@@ -118,7 +118,7 @@ export function TerminalPage() {
             <div className="term-trace-head">
               <span>{t("term.trace")}</span>
               <button className="term-trace-toggle" onClick={() => setShowDeltas(!showDeltas)}>
-                {showDeltas ? "− deltas" : "+ deltas"}
+                {showDeltas ? t("term.deltasOn") : t("term.deltasOff")}
               </button>
               <span className="term-trace-live"><i /> {t("term.live")}</span>
             </div>
@@ -129,7 +129,7 @@ export function TerminalPage() {
                   <span className="term-trace-preview">{preview(event as Record<string, unknown>)}</span>
                 </div>
               ))}
-              {c.events.length === 0 && <div className="term-trace-empty">no events</div>}
+              {c.events.length === 0 && <div className="term-trace-empty">{t("term.noEvents")}</div>}
             </div>
             <div className="term-trace-foot">
               <span>{c.events.length} events</span>
@@ -139,6 +139,22 @@ export function TerminalPage() {
         </div>
 
         <footer className="term-composer">
+          {c.suggestions.length > 0 && (
+            <div className="term-suggest">
+              {c.suggestions.map((text) => (
+                <button
+                  key={text}
+                  className="term-suggest-chip"
+                  onClick={() => {
+                    setDraft(text);
+                    input.current?.focus();
+                  }}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="term-input-line">
             <span className="term-prompt term-prompt--big">❯</span>
             <textarea
@@ -161,7 +177,15 @@ export function TerminalPage() {
           </div>
           <div className="term-status">
             <span className={`term-status-item term-status-item--${c.status}`}>
-              {running ? "● " + t("term.recording") : c.status === "interrupted" ? "● " + t("term.paused") : c.status === "done" ? "● " + t("term.idle") : "○ " + c.status}
+              {running
+                ? "● " + t("term.recording")
+                : c.status === "interrupted"
+                ? "● " + t("term.paused")
+                : c.status === "done"
+                ? "● " + t("term.done")
+                : c.status === "idle"
+                ? "○ " + t("term.idle")
+                : "○ " + t(("status." + c.status) as never)}
             </span>
             <span className="term-status-item">tok {c.tokens}</span>
             <span className="term-status-item">ev {c.events.length}</span>
@@ -204,8 +228,8 @@ function LogEntry({
       <div className={`term-reason ${open ? "is-open" : ""}`}>
         <button className="term-reason-head" onClick={onToggle}>
           <span className="term-caret">{open ? "▾" : "▸"}</span>
-          <span className="term-reason-label">thinking</span>
-          <span className="term-dim">{entry.streaming ? "streaming…" : formatDuration(entry.durationMs ?? 0)}</span>
+          <span className="term-reason-label">{t("term.thinking")}</span>
+          <span className="term-dim">{entry.streaming ? t("term.streaming") : formatDuration(entry.durationMs ?? 0)}</span>
           <span className="term-dim">· {entry.tokens} tok</span>
           {entry.streaming && <span className="term-cursor" />}
         </button>
@@ -223,36 +247,7 @@ function LogEntry({
   if (entry.kind === "plan") return <PlanLine entry={entry} />;
 
   if (entry.kind === "interrupt") {
-    const pending = entry.status === "pending";
-    return (
-      <div className={`term-box ${pending ? "" : "term-box--done"}`}>
-        <div className="term-box-head">
-          {pending ? "┌─ " + t("term.actionRequired") : "┌─ " + t("term.resolved")} {live ? "· interrupt" : ""}
-        </div>
-        <div className="term-box-title">{entry.message}</div>
-        {entry.description && <div className="term-box-desc">{entry.description}</div>}
-        {entry.details.length > 0 && (
-          <div className="term-box-terms">
-            {entry.details.map((d) => (
-              <span key={d.label}>
-                <em>{d.label.toLowerCase()}</em> {d.value}
-              </span>
-            ))}
-          </div>
-        )}
-        {pending ? (
-          <div className="term-box-actions">
-            <button className="term-key term-key--yes" onClick={() => onResolve(true, entry.id)}>{t("term.approve")}</button>
-            <button className="term-key term-key--no" onClick={() => onResolve(false, entry.id)}>{t("term.decline")}</button>
-            <span className="term-dim">run paused · resume[] required</span>
-          </div>
-        ) : (
-          <div className={`term-box-resolved ${entry.expired ? "term-box-resolved--expired" : ""}`}>
-            {entry.expired ? "✗ " + t("term.expired") : "✓ " + entry.status} · {timeOf(entry.resolvedAt)}
-          </div>
-        )}
-      </div>
-    );
+    return <TermInterrupt entry={entry} live={live} onResolve={onResolve} />;
   }
 
   if (entry.kind === "error") {
@@ -271,15 +266,99 @@ function LogEntry({
 }
 
 
-function AssistantLine({ entry }: { entry: AssistantEntry }) {
+/** Interrupt box with its own per-interrupt edit draft: several pending cards
+    must never share an editor or submit each other's args (Fix B parity). */
+function TermInterrupt({
+  entry,
+  live,
+  onResolve,
+}: {
+  entry: InterruptEntry;
+  live: boolean;
+  onResolve: (approved: boolean, interruptId?: string) => void;
+}) {
+  const c = useConversation();
+  const [editing, setEditing] = useState(false);
+  const [editJson, setEditJson] = useState("");
+  const pending = entry.status === "pending";
+
+  function openEdit() {
+    const tool = c.entries.find((e): e is ToolEntry => e.kind === "tool" && e.id === entry.toolCallId);
+    setEditJson(JSON.stringify(tool?.args ?? {}, null, 2));
+    setEditing(true);
+  }
+
+  function approveEdited() {
+    try {
+      c.resolveInterrupt(true, JSON.parse(editJson), entry.id);
+    } catch {
+      setEditing(false);
+      c.resolveInterrupt(true, undefined, entry.id);
+      return;
+    }
+    setEditing(false);
+  }
+
   return (
+    <div className={`term-box ${pending ? "" : "term-box--done"}`}>
+      <div className="term-box-head">
+        {pending ? "┌─ " + t("term.actionRequired") : "┌─ " + t("term.resolved")} {live ? "· interrupt" : ""}
+      </div>
+      <div className="term-box-title">{entry.message}</div>
+      {entry.description && <div className="term-box-desc">{entry.description}</div>}
+      {entry.details.length > 0 && (
+        <div className="term-box-terms">
+          {entry.details.map((d) => (
+            <span key={d.label}>
+              <em>{d.label.toLowerCase()}</em> {d.value}
+            </span>
+          ))}
+        </div>
+      )}
+      {pending ? (
+        <>
+          <div className="term-box-actions">
+            <button className="term-key term-key--yes" onClick={() => onResolve(true, entry.id)}>{t("term.approve")}</button>
+            <button className="term-key term-key--no" onClick={() => onResolve(false, entry.id)}>{t("term.decline")}</button>
+            <button className="term-key term-key--edit" onClick={openEdit}>{t("term.edit")}</button>
+            <span className="term-dim">{t("term.resumeHint")}</span>
+          </div>
+          {editing && (
+            <div className="term-edit">
+              <textarea
+                value={editJson}
+                onChange={(e) => setEditJson(e.target.value)}
+                spellCheck={false}
+                rows={4}
+                aria-label={t("term.edit")}
+              />
+              <div className="term-box-actions">
+                <button className="term-key term-key--yes" onClick={approveEdited}>{t("term.approveEdited")}</button>
+                <button className="term-key term-key--no" onClick={() => setEditing(false)}>{t("term.cancelEdit")}</button>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className={`term-box-resolved ${entry.expired ? "term-box-resolved--expired" : ""}`}>
+          {entry.expired
+            ? "✗ " + t("term.expired")
+            : "✓ " + (entry.status === "approved" ? t("term.approved") : t("term.denied"))}{" "}
+          · {timeOf(entry.resolvedAt)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AssistantLine({ entry }: { entry: AssistantEntry }) {  return (
     <div className="term-assistant">
       <div className="term-assistant-bar" />
       <div className="term-assistant-body">
         <div className="term-assistant-head">
           <span className="term-who">agui</span>
           <span className="term-dim">{timeOf(entry.at)}</span>
-          {entry.streaming && <span className="term-dim term-blink">writing…</span>}
+          {entry.streaming && <span className="term-dim term-blink">{t("term.writing")}</span>}
         </div>
         <Markdown className={`term-md ${entry.streaming ? "is-streaming" : ""}`} text={entry.text} />
       </div>
@@ -315,7 +394,7 @@ function ToolLine({ entry }: { entry: ToolEntry }) {
       )}
       {entry.status === "done" && result?.reservation && (
         <div className="term-tool-result">
-          <span className="term-dim">└</span> held · {result.reservation}
+          <span className="term-dim">└</span> {t("chat.held")} · {result.reservation}
         </div>
       )}
     </div>
@@ -323,9 +402,23 @@ function ToolLine({ entry }: { entry: ToolEntry }) {
 }
 
 function PlanLine({ entry }: { entry: PlanEntry }) {
+  // Non-PLAN activities may carry raw content and no steps at all — a 0/0
+  // meter would read "NaN%", and entry.content would be silently dropped
+  // (same fallback as aurora: render the raw content instead).
+  if (entry.steps.length === 0 && entry.content !== undefined) {
+    return (
+      <div className="term-plan">
+        <div className="term-plan-head">
+          <span className="term-plan-title">▸ {t("term.plan")} · {entry.title.toLowerCase()}</span>
+        </div>
+        <pre className="term-tool-json">{JSON.stringify(entry.content, null, 2)}</pre>
+      </div>
+    );
+  }
   const done = entry.steps.filter((s) => s.state === "done").length;
-  const pct = Math.round((done / entry.steps.length) * 100);
-  const filled = Math.round((done / entry.steps.length) * 12);
+  const total = entry.steps.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const filled = total ? Math.round((done / total) * 12) : 0;
   return (
     <div className="term-plan">
       <div className="term-plan-head">

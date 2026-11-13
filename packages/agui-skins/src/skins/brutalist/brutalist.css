@@ -494,6 +494,65 @@
   color: #7a1d0c;
 }
 
+/* ── empty thread ─────────────────────────────────────────────────── */
+.bru-empty {
+  border: 3px solid var(--ink);
+  background: var(--white);
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 36px 26px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.bru-empty-big {
+  font-size: clamp(24px, 3.4vw, 44px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.bru-empty-cursor {
+  width: 34px;
+  height: 14px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  animation: bru-blink 1s steps(2) infinite;
+}
+
+/* ── subagent row ─────────────────────────────────────────────────── */
+.bru-subagent {
+  border: 2px solid var(--ink);
+  background: var(--white);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.bru-subagent-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  font-family: "IBM Plex Mono", monospace;
+}
+.bru-subagent-tag {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 2px 6px;
+}
+.bru-subagent-name { font-size: 11px; font-weight: 700; }
+.bru-subagent-status { margin-left: auto; font-size: 9px; letter-spacing: 0.1em; color: #5a5548; }
+.bru-subagent[data-status="running"] .bru-subagent-status { background: var(--yellow); color: var(--ink); padding: 1px 6px; }
+.bru-subagent[data-status="error"] .bru-subagent-status { color: var(--red); }
+.bru-subagent-detail {
+  margin: 0;
+  border-top: 1.5px dashed var(--ink);
+  padding: 7px 12px;
+  font-size: 11px;
+  color: #3c382e;
+}
+
 /* ── summary ──────────────────────────────────────────────────────── */
 .bru-summary {
   border-top: 2px solid var(--ink);
@@ -524,11 +583,37 @@
   flex: none;
   border-top: 2px solid var(--ink);
   display: flex;
-  align-items: stretch;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 16px;
   background: var(--paper);
 }
+.bru-composer-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+/* suggestion chips above the composer */
+.bru-suggest {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+.bru-suggest-chip {
+  border: 2px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+.bru-suggest-chip:hover { background: var(--yellow); transform: translateY(-1px); }
 .bru-composer textarea {
   flex: 1;
   min-width: 0;

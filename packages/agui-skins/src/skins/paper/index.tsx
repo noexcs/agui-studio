@@ -31,6 +31,26 @@ export function PaperPage() {
   const letters = c.entries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt" || e.kind === "error");
   const notes = c.entries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan" || e.kind === "subagent");
   const firstAssistant = useMemo(() => c.entries.find((e) => e.kind === "assistant")?.id, [c.entries]);
+  // While the run is mid-tool the main column would otherwise sit empty
+  // (letters only gain an entry as they are written) — name the activity in
+  // progress, or keep naming the last artefact in the gaps between events.
+  const activeNote = [...c.entries].reverse().find(
+    (e): e is ReasoningEntry | ToolEntry | SubagentEntry =>
+      (e.kind === "reasoning" && e.streaming) ||
+      (e.kind === "tool" && (e.status === "args" || e.status === "executing")) ||
+      (e.kind === "subagent" && e.status === "running")
+  );
+  const lastNote = notes[notes.length - 1];
+  const progressNote = activeNote ?? lastNote;
+  const progressLabel = progressNote
+    ? progressNote.kind === "reasoning"
+      ? t("paper.thinking")
+      : progressNote.kind === "tool"
+      ? `${t("paper.toolCall")} · ${progressNote.name}`
+      : progressNote.kind === "plan"
+      ? `${t("paper.plan")} · ${progressNote.title}`
+      : `${t("paper.subagent")} · ${progressNote.name}`
+    : "";
 
   function send() {
     const text = draft.trim();
@@ -77,7 +97,7 @@ export function PaperPage() {
           <div className="pap-mast-right">
             <span className="pap-meta">{fmt(c.events[0]?.event.timestamp as string)} · {c.threadId.slice(-6).toUpperCase()}</span>
             <span className={`pap-status pap-status--${c.status}`}>
-              {c.status === "running" ? t("paper.recording") : c.status === "interrupted" ? t("paper.awaiting") : c.status === "done" ? t("paper.filed") : c.status}
+              {c.status === "running" ? t("paper.recording") : c.status === "interrupted" ? t("paper.awaiting") : c.status === "done" ? t("paper.filed") : t(("status." + c.status) as never)}
             </span>
           </div>
         </header>
@@ -160,7 +180,7 @@ export function PaperPage() {
                       )}
                       {entry.status === "pending" && signingId === entry.id && (
                         <div className="pap-amend">
-                          <label>Terms, as submitted on resume</label>
+                          <label>{t("paper.amendLabel")}</label>
                           <textarea
                             value={editJson[entry.id] ?? ""}
                             onChange={(e) => setEditJson((prev) => ({ ...prev, [entry.id]: e.target.value }))}
@@ -168,7 +188,7 @@ export function PaperPage() {
                           />
                           <div className="pap-slip-actions">
                             <button className="pap-sign" onClick={() => approve(entry.id)}>{t("paper.signEdit")}</button>
-                            <button className="pap-editlink" onClick={() => setSigningId(null)}>Cancel</button>
+                            <button className="pap-editlink" onClick={() => setSigningId(null)}>{t("intr.cancel")}</button>
                           </div>
                         </div>
                       )}
@@ -176,6 +196,34 @@ export function PaperPage() {
                   )}
                 </div>
               ))}
+
+              {/* P.S. cards: the agent's suggested next lines, clickable */}
+              {c.suggestions.length > 0 && (
+                <div className="pap-ps">
+                  {c.suggestions.map((text) => (
+                    <button key={text} className="pap-ps-card" onClick={() => c.send(text)}>
+                      <span className="pap-ps-label">{t("paper.ps")}</span>
+                      <span className="pap-ps-text">{text}</span>
+                      <span className="pap-ps-hint">{t("paper.psHint")}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* the pen is still moving: name what the agent is doing */}
+              {c.status === "running" && (activeNote || letters.length === 0) && (
+                <div className="pap-progress" aria-live="polite">
+                  <span className="pap-progress-rule" aria-hidden="true" />
+                  <span className="pap-progress-body">
+                    <span className="pap-progress-mark" aria-hidden="true">✎</span>
+                    <span className="pap-progress-text">
+                      {t("paper.inProgress")}
+                      {progressLabel ? ` — ${progressLabel}` : ""}
+                    </span>
+                    <i className="pap-blink" aria-hidden="true" />
+                  </span>
+                </div>
+              )}
 
               {c.entries.length > 0 && c.status === "done" && (
                 <div className="pap-colophon">
@@ -258,8 +306,7 @@ export function PaperPage() {
             )}
           </div>
           <div className="pap-composer-hint">
-            <span>⏎ to send · ⇧⏎ for a new line</span>
-            <span className="pap-mono">{c.suggestions.slice(0, 1).join("")}</span>
+            <span>{t("paper.hint")}</span>
           </div>
         </footer>
       </div>
@@ -272,7 +319,7 @@ function ReasoningNote({ entry }: { entry: ReasoningEntry }) {
     <div className="pap-note-body">
       <div className="pap-note-label">
         {t("paper.thinking")} {entry.streaming && <i className="pap-blink" />}
-        <span className="pap-note-meta">{entry.streaming ? "in progress" : formatDuration(entry.durationMs ?? 0)}</span>
+        <span className="pap-note-meta">{entry.streaming ? t("paper.inProgress") : formatDuration(entry.durationMs ?? 0)}</span>
       </div>
       <p className="pap-quote">{plainText(entry.text, 220)}</p>
     </div>
@@ -289,16 +336,16 @@ function ToolNote({ entry }: { entry: ToolEntry }) {
       <pre className="pap-args">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
       {entry.status !== "done" ? (
         <div className="pap-note-meta">
-          {entry.status === "args" ? "args streaming…" : entry.status === "interrupted" ? t("chat.interrupted") : "executing…"}
+          {entry.status === "args" ? t("chat.streamingArgs") : entry.status === "interrupted" ? t("chat.interrupted") : t("chat.executing")}
         </div>
       ) : (
         <div className="pap-result">
           <span className="pap-check">✓</span>
           {result?.results
-            ? `${result.results.length} sources`
+            ? `${result.results.length} ${t("chat.sources")}`
             : result?.reservation
-            ? `held · ${result.reservation}`
-            : "done"}
+            ? `${t("chat.held")} · ${result.reservation}`
+            : t("chat.done")}
           <span className="pap-note-meta">{formatDuration(entry.durationMs ?? 0)}</span>
         </div>
       )}

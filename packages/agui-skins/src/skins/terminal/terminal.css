@@ -670,7 +670,62 @@
 }
 .term-status-item--running { color: var(--green); }
 .term-status-item--interrupted { color: var(--amber); }
+.term-status-item--done { color: var(--green-dim); }
+.term-status-item--stopped,
+.term-status-item--error { color: var(--red); }
 .term-status-spacer { flex: 1; }
+
+/* suggestion chips above the composer */
+.term-suggest {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0 0;
+}
+.term-suggest-chip {
+  font-family: inherit;
+  font-size: 10.5px;
+  color: var(--green-dim);
+  background: rgba(140, 255, 176, 0.05);
+  border: 1px solid var(--line);
+  padding: 2px 9px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.term-suggest-chip:hover {
+  color: var(--green);
+  border-color: rgba(140, 255, 176, 0.5);
+  background: rgba(140, 255, 176, 0.12);
+}
+.term-suggest-chip::before { content: "$ "; color: var(--dim); }
+
+/* per-interrupt edit draft (mono, terminal style) */
+.term-edit {
+  margin-top: 11px;
+  border-left: 2px solid rgba(255, 212, 121, 0.45);
+  padding-left: 12px;
+}
+.term-edit textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  background: rgba(140, 255, 176, 0.04);
+  border: 1px solid var(--line);
+  color: var(--green);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 8px 10px;
+  outline: none;
+}
+.term-edit textarea:focus { border-color: rgba(255, 212, 121, 0.6); }
+.term-key--edit { border-color: rgba(140, 255, 176, 0.4); color: var(--green-dim); }
+.term-key--edit:hover {
+  background: rgba(140, 255, 176, 0.14);
+  border-color: var(--green);
+  color: var(--green);
+}
 
 @media (max-width: 1180px) {
   .term-body { grid-template-columns: minmax(0, 1fr); }

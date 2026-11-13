@@ -27,7 +27,7 @@ describe.each(skins.map((skin) => [skin.id, skin] as const))("skin: %s", (_id, s
     expect(lower).toContain("web.search");
     expect(text).toContain("fixture approval needed");
     expect(lower).toContain("fixture step one");
-    if (["aurora", "classic", "terminal", "paper"].includes(skin.id)) {
+    if (["aurora", "classic", "terminal", "paper", "brutalist"].includes(skin.id)) {
       expect(lower).toContain("fixture subagent");
     }
   });

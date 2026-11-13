@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useConversation } from "../../host";
-import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, ToolEntry } from "../../contract";
+import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
 import { plainText } from "../../utils";
 import { Markdown, timeOf } from "../../shared/Markdown";
@@ -77,6 +77,13 @@ export function BrutalistPage() {
 
           <div className="bru-scroll" ref={scroller}>
             <div className="bru-stack">
+              {c.entries.length === 0 && (
+                <div className="bru-empty">
+                  <span className="bru-empty-big">{t("bru.awaiting")}</span>
+                  <span className="bru-empty-cursor" aria-hidden="true" />
+                </div>
+              )}
+
               {c.entries.map((entry) => (
                 <BruEntry key={entry.id} entry={entry} pending={pending} />
               ))}
@@ -92,25 +99,36 @@ export function BrutalistPage() {
           </div>
 
           <footer className="bru-composer">
-            <textarea
-              rows={1}
-              value={draft}
-              placeholder={t("bru.write")}
-              onChange={(e) => setDraft(e.target.value)}
-              onInput={(e) => {
-                e.currentTarget.style.height = "auto";
-                e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 110) + "px";
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-                if (e.key === "Escape") c.stop();
-              }}
-            />
-            {running ? (
-              <button className="bru-send bru-send--stop" onClick={() => c.stop()}>{t("bru.stop")}</button>
-            ) : (
-              <button className="bru-send" onClick={send} disabled={!draft.trim()}>{t("bru.send")}</button>
+            {c.suggestions.length > 0 && (
+              <div className="bru-suggest">
+                {c.suggestions.map((text) => (
+                  <button key={text} className="bru-suggest-chip" onClick={() => setDraft(text)}>
+                    {text}
+                  </button>
+                ))}
+              </div>
             )}
+            <div className="bru-composer-row">
+              <textarea
+                rows={1}
+                value={draft}
+                placeholder={t("bru.write")}
+                onChange={(e) => setDraft(e.target.value)}
+                onInput={(e) => {
+                  e.currentTarget.style.height = "auto";
+                  e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 110) + "px";
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+                  if (e.key === "Escape") c.stop();
+                }}
+              />
+              {running ? (
+                <button className="bru-send bru-send--stop" onClick={() => c.stop()}>{t("bru.stop")}</button>
+              ) : (
+                <button className="bru-send" onClick={send} disabled={!draft.trim()}>{t("bru.send")}</button>
+              )}
+            </div>
           </footer>
         </main>
 
@@ -173,7 +191,21 @@ function BruEntry({ entry, pending }: { entry: Entry; pending?: InterruptEntry }
   if (entry.kind === "plan") return <BruPlan entry={entry} />;
   if (entry.kind === "interrupt") return <BruInterrupt entry={entry} live={pending?.id === entry.id} />;
   if (entry.kind === "error") return <div className="bru-error">RUN_ERROR · {entry.message}</div>;
+  if (entry.kind === "subagent") return <BruSubagent entry={entry} />;
   return null;
+}
+
+function BruSubagent({ entry }: { entry: SubagentEntry }) {
+  return (
+    <div className="bru-subagent" data-status={entry.status}>
+      <div className="bru-subagent-head">
+        <span className="bru-subagent-tag">{t("bru.subagent")}</span>
+        <span className="bru-subagent-name">{entry.name}</span>
+        <span className="bru-subagent-status">{entry.status.toUpperCase()}</span>
+      </div>
+      {entry.detail && <p className="bru-subagent-detail">{entry.detail}</p>}
+    </div>
+  );
 }
 
 function BruAssistant({ entry }: { entry: AssistantEntry }) {
@@ -217,7 +249,7 @@ function BruTool({ entry }: { entry: ToolEntry }) {
           ))}
         </div>
       )}
-      {result?.reservation && <div className="bru-tool-results">HELD · {result.reservation}</div>}
+      {result?.reservation && <div className="bru-tool-results">{t("bru.held")} · {result.reservation}</div>}
     </div>
   );
 }
@@ -262,11 +294,13 @@ function BruInterrupt({ entry, live }: { entry: InterruptEntry; live: boolean })
         <div className="bru-approve-actions">
           <button className="bru-btn bru-btn--ok" onClick={() => c.resolveInterrupt(true, undefined, entry.id)}>{t("bru.approve")}</button>
           <button className="bru-btn bru-btn--no" onClick={() => c.resolveInterrupt(false, undefined, entry.id)}>{t("bru.deny")}</button>
-          <span className="bru-approve-note">{t("bru.paused")} · {live ? t("bru.waiting") : "interrupt"}</span>
+          <span className="bru-approve-note">{t("bru.paused")} · {live ? t("bru.waiting") : t("bru.interrupt")}</span>
         </div>
       ) : (
         <div className={`bru-approve-resolved ${entry.expired ? "bru-approve-resolved--expired" : ""}`}>
-          {entry.expired ? timeOf(entry.resolvedAt) : `✓ ${entry.status.toUpperCase()} BY YOU · ${timeOf(entry.resolvedAt)}`}
+          {entry.expired
+            ? timeOf(entry.resolvedAt)
+            : `✓ ${entry.status === "approved" ? t("bru.approvedByYou") : t("bru.deniedByYou")} · ${timeOf(entry.resolvedAt)}`}
         </div>
       )}
     </div>

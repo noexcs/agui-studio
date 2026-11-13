@@ -27,7 +27,8 @@ export function ClassicPage() {
 
   const running = c.status === "running";
   const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
-  const plan = c.entries.find((e): e is PlanEntry => e.kind === "plan");
+  // Multiple ACTIVITY_SNAPSHOTs are allowed: list every plan, not just the first.
+  const plans = c.entries.filter((e): e is PlanEntry => e.kind === "plan");
   const interrupts = c.entries.filter((e): e is InterruptEntry => e.kind === "interrupt");
   const lastAssistant = [...c.entries].reverse().find((e) => e.kind === "assistant");
 
@@ -98,9 +99,6 @@ export function ClassicPage() {
             <span className="cl-logo-mark">AG</span>
             <span className="cl-logo-text">Assistant</span>
           </div>
-          <button className="cl-icon-btn" title={zh ? "收起" : "Collapse"}>
-            <Icon name="chevron" size={14} />
-          </button>
         </div>
 
         <button className="cl-new">
@@ -168,9 +166,6 @@ export function ClassicPage() {
             <button className="cl-btn cl-btn--ghost" onClick={() => c.replay()}>
               <Icon name="refresh" size={13} />
               {zh ? "重新运行" : "Run again"}
-            </button>
-            <button className="cl-icon-btn" title={zh ? "更多" : "More"}>
-              <Icon name="more" size={14} />
             </button>
           </div>
         </header>
@@ -361,6 +356,22 @@ export function ClassicPage() {
         </div>
 
         <footer className="cl-composer">
+          {c.suggestions.length > 0 && (
+            <div className="cl-suggestions" role="list" aria-label={zh ? "建议" : "Suggestions"}>
+              {c.suggestions.map((text) => (
+                <button
+                  key={text}
+                  role="listitem"
+                  className="cl-suggestion"
+                  title={zh ? "填入输入框" : "Insert into the composer"}
+                  onClick={() => setDraft(text)}
+                >
+                  <Icon name="sparkle" size={12} />
+                  {text}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="cl-composer-box">
             <textarea
               rows={1}
@@ -380,11 +391,10 @@ export function ClassicPage() {
               }}
             />
             <div className="cl-composer-bar">
-              <div className="cl-composer-tools">
-                <button className="cl-icon-btn" title={zh ? "附件" : "Attach"}><Icon name="paperclip" size={14} /></button>
-                <button className="cl-tool-chip"><Icon name="wrench" size={12} />{zh ? "工具" : "Tools"} · 4</button>
-                <button className="cl-tool-chip mono">{brand.modelLabel}</button>
-              </div>
+            <div className="cl-composer-tools">
+              <button className="cl-tool-chip"><Icon name="wrench" size={12} />{zh ? "工具" : "Tools"} · 4</button>
+              <button className="cl-tool-chip mono">{brand.modelLabel}</button>
+            </div>
               {running ? (
                 <button className="cl-btn" onClick={() => c.stop()}>
                   <Icon name="stop" size={12} />
@@ -402,11 +412,10 @@ export function ClassicPage() {
       </main>
 
       {/* ── context / details ─────────────────────────────────────── */}
-      <aside className="cl-details">
-        <div className="cl-details-head">
-          <strong>{zh ? "会话详情" : "Session details"}</strong>
-          <button className="cl-icon-btn" title={zh ? "关闭" : "Close"}><Icon name="x" size={13} /></button>
-        </div>
+        <aside className="cl-details">
+          <div className="cl-details-head">
+            <strong>{zh ? "会话详情" : "Session details"}</strong>
+          </div>
 
         <section className="cl-panel">
           <h3>{zh ? "运行" : "Run"}</h3>
@@ -432,17 +441,22 @@ export function ClassicPage() {
 
         <section className="cl-panel">
           <h3>{zh ? "计划" : "Plan"}</h3>
-          {plan ? (
-            <ul className="cl-plan">
-              {plan.steps.map((step) => (
-                <li key={step.id} data-state={step.state}>
-                  <span className="cl-check">
-                    {step.state === "done" ? <Icon name="check" size={10} /> : null}
-                  </span>
-                  {step.label}
-                </li>
-              ))}
-            </ul>
+          {plans.length ? (
+            plans.map((plan) => (
+              <div key={plan.id} className="cl-plan-block">
+                <div className="cl-plan-title mono">{plan.title}</div>
+                <ul className="cl-plan">
+                  {plan.steps.map((step) => (
+                    <li key={step.id} data-state={step.state}>
+                      <span className="cl-check">
+                        {step.state === "done" ? <Icon name="check" size={10} /> : null}
+                      </span>
+                      {step.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
           ) : (
             <p className="cl-muted">{zh ? "暂无计划" : "No plan yet"}</p>
           )}

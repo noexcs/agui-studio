@@ -248,7 +248,7 @@ export function AuroraPage() {
             <div className="chat-scroll" ref={scroller}>
               {c.entries.length === 0 && (
                 <div className="block" style={{ opacity: 0.6, textAlign: "center", paddingTop: 40 }}>
-                  <span className="mono" style={{ fontSize: 11 }}>waiting for RUN_STARTED…</span>
+                  <span className="mono" style={{ fontSize: 11 }}>{t("aurora.waiting")}</span>
                 </div>
               )}
 
@@ -473,6 +473,7 @@ function EntryView(props: {
 
 function AssistantBlock({ entry }: { entry: AssistantEntry }) {
   const brand = useSkinBranding();
+  const c = useConversation();
   return (
     <div className="block block--agent">
       <div className="msg-avatar" />
@@ -492,7 +493,9 @@ function AssistantBlock({ entry }: { entry: AssistantEntry }) {
             <button className="msg-action" onClick={() => navigator.clipboard?.writeText(entry.text)}>
               <Icon name="copy" />{t("chat.copy")}
             </button>
-            <button className="msg-action"><Icon name="refresh" />{t("chat.retry")}</button>
+            <button className="msg-action" onClick={() => c.replay()}>
+              <Icon name="refresh" />{t("chat.retry")}
+            </button>
             <span className="msg-action mono" style={{ opacity: 0.6 }}>{estimateTokens(entry.text)} tok</span>
           </div>
         )}
@@ -572,7 +575,7 @@ function ToolBlock({ entry }: { entry: ToolEntry }) {
           )}
           {result && !result.results && (
             <div className="tool-result">
-              <div className="tool-result-head"><Icon name="check" />result</div>
+              <div className="tool-result-head"><Icon name="check" />{t("chat.result")}</div>
               <div className="tool-args">{JSON.stringify(result, null, 2)}</div>
             </div>
           )}
@@ -616,7 +619,7 @@ function PlanBlock({ entry }: { entry: PlanEntry }) {
             <div key={step.id} className="plan-step" data-state={step.state}>
               <span className="plan-check">{step.state === "done" && <Icon name="check" />}</span>
               <span className="plan-step-label">{step.label}</span>
-              {step.state === "active" && <span className="plan-step-time mono">running</span>}
+              {step.state === "active" && <span className="plan-step-time mono">{t("chat.executing")}</span>}
             </div>
           ))}
         </div>

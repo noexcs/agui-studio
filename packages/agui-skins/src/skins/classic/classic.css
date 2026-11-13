@@ -416,6 +416,15 @@
 
 /* plan */
 .cl-plan-card { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); overflow: hidden; }
+.cl-plan-block { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); overflow: hidden; }
+.cl-plan-block + .cl-plan-block { margin-top: 10px; }
+.cl-plan-title {
+  padding: 7px 12px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
 .cl-plan-head {
   display: flex;
   align-items: center;
@@ -519,6 +528,33 @@
 
 /* composer */
 .cl-composer { padding: 10px 24px 16px; background: var(--bg); }
+/* suggestion chips above the composer */
+.cl-suggestions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 2px 8px;
+}
+.cl-suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 11.5px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.cl-suggestion:hover { border-color: var(--accent); background: #f0f6ff; color: var(--accent); }
 .cl-composer-box {
   max-width: 760px;
   margin: 0 auto;

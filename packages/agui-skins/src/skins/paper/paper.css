@@ -426,6 +426,69 @@
   color: var(--ink-3);
 }
 
+/* P.S. — the agent's suggested next lines, appended after the letters */
+.pap-ps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0 18px;
+}
+.pap-ps-card {
+  position: relative;
+  text-align: left;
+  border: 1px solid var(--rule-2);
+  background: #fffdf7;
+  padding: 9px 14px 8px 48px;
+  cursor: pointer;
+  font-family: var(--body-serif);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.pap-ps-card:hover {
+  border-color: var(--vermilion);
+  box-shadow: 2px 2px 0 rgba(180, 71, 44, 0.16);
+  transform: translateY(-1px);
+}
+.pap-ps-label {
+  position: absolute;
+  left: 15px;
+  top: 8px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--vermilion);
+}
+.pap-ps-text { display: block; font-size: 13px; line-height: 1.5; color: var(--ink); }
+.pap-ps-hint {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pap-ps-card:hover .pap-ps-hint { color: var(--vermilion); }
+
+/* the pen is still moving: minimal in-progress annotation for the main column */
+.pap-progress {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: 4px 0 16px 4px;
+  padding: 2px 0 10px 14px;
+  border-left: 2px dotted var(--rule-2);
+}
+.pap-progress-mark { font-family: var(--serif); font-size: 13px; color: var(--ink-3); }
+.pap-progress-text {
+  font-family: var(--body-serif);
+  font-style: italic;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+.pap-progress .pap-blink { align-self: center; flex: none; }
+
 /* ── margin notes ─────────────────────────────────────────────────── */
 .pap-rail {
   border-left: 1px solid var(--rule);
