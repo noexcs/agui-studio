@@ -386,7 +386,11 @@
 }
 .studio-full .stage-full > * {
   position: absolute;
-  inset: 0;
+  /* reserve the bottom strip for the dock: without it the fixed dock
+     (bottom 16px + ~40px tall) covers classic's composer tools row,
+     paper's composer hint, terminal's status bar and brutalist's
+     composer edge. Skins are height:100% so they shrink cleanly. */
+  inset: 0 0 64px;
   height: auto;
   min-height: 0;
 }

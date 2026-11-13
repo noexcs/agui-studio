@@ -19,6 +19,15 @@ const TAGLINE_ZH: Record<string, string> = {
   classic: "中性经典 · 企业稳妥",
 };
 
+/** Hero copy must track the registry: "Four skins" drifted once a fifth skin
+    shipped, so the count is now derived from skins.length. */
+const NUM_EN = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const NUM_ZH = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+export const skinCountWord = (n: number, zh: boolean): string => {
+  if (n >= 0 && n <= 10) return zh ? NUM_ZH[n] : NUM_EN[n];
+  return String(n);
+};
+
 const BASE = import.meta.env.BASE_URL;
 const asset = (path: string) => `${BASE}${path.replace(/^\//, "")}`;
 
@@ -60,6 +69,7 @@ export function Home(props: {
   const skinsRef = useRef<HTMLElement>(null);
   const active = props.skins.find((s) => s.id === props.activeSkin) ?? props.skins[0];
   const tagline = (skin: HomeSkin) => (zh ? TAGLINE_ZH[skin.id] ?? skin.tagline : skin.tagline);
+  const countWord = skinCountWord(props.skins.length, zh);
 
   const scrollToSkins = () => {
     const home = homeRef.current;
@@ -99,13 +109,13 @@ export function Home(props: {
           <h1>
             {zh ? (
               <>
-                四种皮肤，
+                {countWord}种皮肤，
                 <br />
                 一个协议。
               </>
             ) : (
               <>
-                Four skins,
+                {countWord.charAt(0).toUpperCase() + countWord.slice(1)} skins,
                 <br />
                 one protocol.
               </>
@@ -113,8 +123,8 @@ export function Home(props: {
           </h1>
           <p className="hero-sub">
             {zh
-              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框。往下滚，就地切换、直接交互。"
-              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders. Scroll down — switch and use them right here."}
+              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框、中性经典。往下滚，就地切换、直接交互。"
+              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders, neutral classic. Scroll down — switch and use them right here."}
           </p>
           <div className="hero-actions">
             <button className="hero-primary" onClick={scrollToSkins}>
