@@ -221,13 +221,13 @@ export function Home(props: {
           <span className="quick-note">{props.piNote}</span>
         </div>
 
+        <QuickStart lang={props.lang} activeSkin={props.activeSkin} />
+
         <footer className="home-foot">
           <span>AG-UI Studio · protocol 1.0</span>
           <span>React · Vite · pi · DeepSeek</span>
         </footer>
       </section>
-
-      <QuickStart lang={props.lang} />
     </div>
   );
 }

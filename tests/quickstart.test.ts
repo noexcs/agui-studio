@@ -2,7 +2,15 @@ import { createElement } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { skins } from "agui-skins";
-import { buildAiPrompt, copyText, INSTALL_COMMAND, prefillUrl, QuickStart } from "../src/app/QuickStart";
+import {
+  buildAiPrompt,
+  copyText,
+  highlightCode,
+  INSTALL_COMMAND,
+  prefillUrl,
+  QuickStart,
+  skinComponentName,
+} from "../src/app/QuickStart";
 
 afterEach(() => {
   cleanup();
@@ -35,14 +43,61 @@ describe("buildAiPrompt", () => {
     expect(prompt).toContain("SkinTuning");
     expect(prompt).toContain("ConversationStore");
     expect(prompt).toContain("HttpAgentTransport({ url, headers? }).run(input, signal?)");
-    expect(prompt).toContain("Aurora.ChatPage");
-    expect(prompt).toContain('import Aurora from "agui-skins/skins/aurora"');
   });
 
   it("covers the known pitfalls (interrupt resume, JSON Patch state)", () => {
     expect(prompt).toContain("expiresAt");
     expect(prompt).toContain("JSON Patch");
     expect(prompt).toContain("outcome.type === \"interrupt\"");
+  });
+
+  it("parameterizes the minimal example by the given skin (import path + component name)", () => {
+    const paper = buildAiPrompt("paper");
+    expect(paper).toContain('import Paper from "agui-skins/skins/paper"');
+    expect(paper).toContain("Paper.ChatPage");
+    expect(paper).not.toContain("skins/aurora");
+    expect(paper).not.toContain("Aurora.ChatPage");
+
+    const brutalist = buildAiPrompt("brutalist");
+    expect(brutalist).toContain('import Brutalist from "agui-skins/skins/brutalist"');
+    expect(brutalist).toContain("Brutalist.ChatPage");
+  });
+
+  it("uses the selected skin's registry accent in the example tuning", () => {
+    for (const skin of skins) {
+      expect(buildAiPrompt(skin.id)).toContain(`tuning={{ accent: "${skin.swatch[2]}"`);
+    }
+  });
+});
+
+describe("highlightCode", () => {
+  it("marks tokens with hljs-* classes (highlight.js, not a hand-rolled tokenizer)", () => {
+    const html = highlightCode(
+      'import Aurora from "agui-skins/skins/aurora";\n// comment\nconst n = 1;',
+      "tsx"
+    );
+    expect(html).toContain("hljs-keyword");
+    expect(html).toContain("hljs-string");
+    expect(html).toContain("hljs-comment");
+    expect(html).toContain("hljs-title");
+    expect(html).toContain("hljs-number");
+  });
+
+  it("keeps the escaped code text intact", () => {
+    const html = highlightCode('const s = "hello";', "tsx");
+    expect(html).toContain("hello");
+  });
+
+  it("returns an empty string for unknown languages so callers fall back to plain text", () => {
+    expect(highlightCode("anything", "brainfuck")).toBe("");
+  });
+});
+
+describe("skinComponentName", () => {
+  it("derives the PascalCase component identifier from a skin id", () => {
+    expect(skinComponentName("aurora")).toBe("Aurora");
+    expect(skinComponentName("brutalist")).toBe("Brutalist");
+    expect(skinComponentName("dark-glass")).toBe("DarkGlass");
   });
 });
 
@@ -81,7 +136,7 @@ describe("copyText", () => {
 
 describe("QuickStart section", () => {
   it("renders three code cards and one registry-driven row per skin", () => {
-    const { container } = render(createElement(QuickStart, { lang: "zh" }));
+    const { container } = render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
     const cards = container.querySelectorAll(".qs-card");
     expect(cards.length).toBe(3);
     const rows = container.querySelectorAll(".qs-skin-row");
@@ -100,10 +155,29 @@ describe("QuickStart section", () => {
     expect(container.textContent).toContain("HttpAgentTransport");
   });
 
+  it("generates the minimal-setup card and highlighted tokens for the active skin", () => {
+    const { container } = render(createElement(QuickStart, { lang: "zh", activeSkin: "paper" }));
+    expect(container.textContent).toContain('import Paper from "agui-skins/skins/paper"');
+    expect(container.textContent).toContain("Paper.ChatPage");
+    expect(container.textContent).not.toContain("skins/aurora");
+    // library-driven highlighting lands in the DOM as hljs-* spans
+    expect(container.querySelectorAll(".qs-code .hljs-keyword").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll(".qs-code .hljs-string").length).toBeGreaterThan(0);
+  });
+
+  it("marks exactly the active skin's row as current", () => {
+    const { container } = render(createElement(QuickStart, { lang: "zh", activeSkin: "terminal" }));
+    const current = container.querySelectorAll(".qs-skin-row.is-current");
+    expect(current.length).toBe(1);
+    expect(current[0].getAttribute("href")).toContain("skin=terminal");
+    expect(current[0].getAttribute("aria-current")).toBe("true");
+    expect(current[0].textContent).toContain("当前");
+  });
+
   it("opens the Copy for AI dropdown and copies the prompt", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-    render(createElement(QuickStart, { lang: "zh" }));
+    render(createElement(QuickStart, { lang: "zh", activeSkin: "paper" }));
 
     const trigger = screen.getByText("Copy for AI");
     fireEvent.click(trigger);
@@ -118,6 +192,8 @@ describe("QuickStart section", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(expect.stringContaining(INSTALL_COMMAND));
       expect(writeText).toHaveBeenCalledWith(expect.stringContaining("SkinHostProvider"));
+      // the copied prompt follows the selected skin
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('import Paper from "agui-skins/skins/paper"'));
     });
     await waitFor(() => {
       expect(screen.queryByRole("menu")).toBeNull();
@@ -128,7 +204,7 @@ describe("QuickStart section", () => {
   it("copies the install command from the dropdown", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-    render(createElement(QuickStart, { lang: "zh" }));
+    render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
     fireEvent.click(screen.getByText("Copy for AI"));
     fireEvent.click(screen.getByText("复制安装命令"));
     await waitFor(() => {
@@ -137,7 +213,7 @@ describe("QuickStart section", () => {
   });
 
   it("builds prefill deep links for ChatGPT / Claude / v0", () => {
-    render(createElement(QuickStart, { lang: "zh" }));
+    render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
     fireEvent.click(screen.getByText("Copy for AI"));
     const links = screen.getAllByRole("menuitem") as HTMLAnchorElement[];
     const hrefs = links.map((a) => a.getAttribute("href") ?? "");
@@ -150,7 +226,7 @@ describe("QuickStart section", () => {
   });
 
   it("closes the dropdown on Escape and on outside click", () => {
-    render(createElement(QuickStart, { lang: "zh" }));
+    render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
     fireEvent.click(screen.getByText("Copy for AI"));
     expect(screen.getByRole("menu")).toBeTruthy();
 
@@ -164,7 +240,7 @@ describe("QuickStart section", () => {
   });
 
   it("toggles open/closed on repeated trigger clicks", () => {
-    render(createElement(QuickStart, { lang: "zh" }));
+    render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
     const trigger = screen.getByText("Copy for AI");
     fireEvent.click(trigger);
     expect(screen.getByRole("menu")).toBeTruthy();
@@ -173,7 +249,7 @@ describe("QuickStart section", () => {
   });
 
   it("renders the English variant", () => {
-    const { container } = render(createElement(QuickStart, { lang: "en" }));
+    const { container } = render(createElement(QuickStart, { lang: "en", activeSkin: "aurora" }));
     expect(container.textContent).toContain("Get started");
     expect(container.textContent).toContain("Use them in your own app");
     expect(container.textContent).toContain("Connect a real agent");

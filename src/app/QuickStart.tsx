@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { skins } from "agui-skins";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { getSkin, skins } from "agui-skins";
+import hljs from "highlight.js/lib/core";
+import typescript from "highlight.js/lib/languages/typescript";
+import bash from "highlight.js/lib/languages/bash";
 import type { Lang } from "../i18n";
 import { Icon } from "../shared/Icon";
 
@@ -8,7 +11,14 @@ import { Icon } from "../shared/Icon";
 
    Three code cards (install / minimal setup / real agent), a registry-driven
    skin list, and a "Copy for AI" dropdown that hands the full integration
-   guide to an AI. Lives on the landing page right after .skins-section.
+   guide to an AI. Lives inside .skins-section, right before .home-foot.
+
+   Code highlighting is done by highlight.js (lib/core + the two grammars the
+   cards actually use) — the same engine rehype-highlight/lowlight wrap, used
+   directly because these cards are plain <pre><code>, not markdown.
+   The minimal-setup card and the AI prompt are generated from the currently
+   selected skin (import path + component name + accent), same linkage as the
+   customize panel.
    ───────────────────────────────────────────────────────────────────── */
 
 export const INSTALL_COMMAND = "pnpm add agui-skins";
@@ -22,6 +32,35 @@ export const AI_TARGETS = [
 
 const URL_LIMIT = 8000;
 
+/* highlight.js core + only the grammars the cards use ("tsx" is an alias of
+   the typescript grammar, which itself builds on javascript). */
+hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("bash", bash);
+
+/**
+ * Highlight `code` with highlight.js and return the HTML string (hljs-* spans).
+ * Returns "" for unknown languages / errors so callers can fall back to plain text.
+ * Inputs here are static snippets from this module, never user content.
+ */
+export function highlightCode(code: string, grammar: string): string {
+  try {
+    if (!hljs.getLanguage(grammar)) return "";
+    return hljs.highlight(code, { language: grammar, ignoreIllegals: true }).value;
+  } catch {
+    return "";
+  }
+}
+
+/** "brutalist" -> "Brutalist", "dark-glass" -> "DarkGlass" — used as `<X.ChatPage />`. */
+export function skinComponentName(id: string): string {
+  const name = id
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join("");
+  return name || "Skin";
+}
+
 /** Append ?q=<prompt> to a deep link, truncating the prompt so the URL stays under `limit`. */
 export function prefillUrl(base: string, prompt: string, limit = URL_LIMIT): string {
   const fits = (text: string) => base.length + encodeURIComponent(text).length <= limit;
@@ -34,26 +73,13 @@ export function prefillUrl(base: string, prompt: string, limit = URL_LIMIT): str
   return base + encodeURIComponent(cut + marker);
 }
 
-/**
- * The full integration guide, handed to an AI via copy / deep link.
- * Skin metadata is read from the registry at runtime so it never drifts.
- */
-export function buildAiPrompt(): string {
-  const skinList = skins.map((s) => `- ${s.name} — ${s.tagline}`).join("\n");
-  return `请把 AG-UI Studio 的对话皮肤(agui-skins)接入到我的 React 网页里。以下是一份准确的接入指南,基于它的真实公开 API。
-
-## 安装
-${INSTALL_COMMAND}
-peer 依赖:react >=18、react-dom >=18、react-markdown >=9、remark-gfm >=4、lucide-react >=0.4
-
-## 皮肤清单(共 ${skins.length} 套)
-${skinList}
-
-## 最小接入代码
-\`\`\`tsx
-import { SkinHostProvider } from "agui-skins";
+/** The minimal-setup snippet, generated for the given skin (import path, component name, accent). */
+export function minSetupCode(skinId: string): string {
+  const Comp = skinComponentName(skinId);
+  const accent = getSkin(skinId).swatch[2];
+  return `import { SkinHostProvider } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
-import Aurora from "agui-skins/skins/aurora";
+import ${Comp} from "agui-skins/skins/${skinId}";
 
 // 皮肤只通过 useConversation() 从这里取数据;先给一个最小静态实现
 const conversation: SkinConversation = {
@@ -71,13 +97,36 @@ export default function App() {
       conversation={conversation}
       lang="zh"
       branding={{ agentName: "My Copilot", modelLabel: "gpt-4.1" }}
-      tuning={{ accent: "#5ef0c2", textAnim: "rise", density: "comfortable" }}
+      tuning={{ accent: "${accent}", textAnim: "rise", density: "comfortable" }}
     >
-      <Aurora.ChatPage />
+      <${Comp}.ChatPage />
     </SkinHostProvider>
   );
+}`;
 }
+
+/**
+ * The full integration guide, handed to an AI via copy / deep link.
+ * Skin metadata is read from the registry at runtime so it never drifts;
+ * the minimal example is generated for the currently selected skin.
+ */
+export function buildAiPrompt(skinId: string = "aurora"): string {
+  const skin = getSkin(skinId);
+  const skinList = skins.map((s) => `- ${s.name} — ${s.tagline}`).join("\n");
+  return `请把 AG-UI Studio 的对话皮肤(agui-skins)接入到我的 React 网页里。以下是一份准确的接入指南,基于它的真实公开 API。示例代码按当前选中的皮肤「${skin.name}」(id: ${skin.id})生成。
+
+## 安装
+${INSTALL_COMMAND}
+peer 依赖:react >=18、react-dom >=18、react-markdown >=9、remark-gfm >=4、lucide-react >=0.4
+
+## 皮肤清单(共 ${skins.length} 套)
+${skinList}
+
+## 最小接入代码
+\`\`\`tsx
+${minSetupCode(skin.id)}
 \`\`\`
+换其它皮肤只需改最后一行 import 与组件名(<X.ChatPage />)。
 
 ## 关键契约
 - 皮肤绝不解析协议事件:数据只经 useConversation() 从 SkinHostProvider 的 conversation 取,events/entries 等由宿主的 store 归约(参考 ConversationStore:dispatch(event) 把 AG-UI BaseEvent 归约成 entries 视图模型)。
@@ -121,34 +170,7 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/* ── code samples (kept in sync with the real API: src/core/{context,transport,store}.ts) ── */
-
-const MIN_SETUP_CODE = `import { SkinHostProvider } from "agui-skins";
-import type { SkinConversation } from "agui-skins";
-import Aurora from "agui-skins/skins/aurora";
-
-// 皮肤只通过 useConversation() 从这里取数据;先给一个最小静态实现
-const conversation: SkinConversation = {
-  entries: [], sharedState: {}, stateVersion: 0, touchedPaths: [], events: [],
-  status: "idle", suggestions: [], threadId: "t_demo", runId: "r_demo",
-  tokens: 0, transport: "demo",
-  getVersion: () => 0, duration: () => 0,
-  send: () => {}, stop: () => {}, replay: () => {},
-  resolveInterrupt: () => {},
-};
-
-export default function App() {
-  return (
-    <SkinHostProvider
-      conversation={conversation}
-      lang="zh"
-      branding={{ agentName: "My Copilot", modelLabel: "gpt-4.1" }}
-      tuning={{ accent: "#5ef0c2", textAnim: "rise", density: "comfortable" }}
-    >
-      <Aurora.ChatPage />
-    </SkinHostProvider>
-  );
-}`;
+/* ── code sample: real agent (kept in sync with src/core/{transport,store}.ts) ── */
 
 const LIVE_AGENT_CODE = `// 1) SSE 适配层:复制本仓库 src/core/transport.ts(HttpAgentTransport,约 50 行零依赖)
 import { HttpAgentTransport } from "./transport";
@@ -168,6 +190,20 @@ async function runTurn(text: string, signal?: AbortSignal) {
 }`;
 
 /* ── small pieces ──────────────────────────────────────────────────── */
+
+/** pre>code card body with highlight.js tokens (falls back to plain text). */
+function HighlightedCode({ code, grammar }: { code: string; grammar: string }) {
+  const html = useMemo(() => highlightCode(code, grammar), [code, grammar]);
+  return (
+    <pre className="qs-code">
+      {html ? (
+        <code className={`hljs language-${grammar}`} dangerouslySetInnerHTML={{ __html: html }} />
+      ) : (
+        <code>{code}</code>
+      )}
+    </pre>
+  );
+}
 
 function useCopyFlash(): [boolean, (ok: boolean) => void] {
   const [copied, setCopied] = useState(false);
@@ -200,7 +236,7 @@ function CopyButton({ text, zh }: { text: string; zh: boolean }) {
 }
 
 /** "Copy for AI" dropdown: copy prompt / install command + prefill deep links. */
-function CopyForAI({ zh }: { zh: boolean }) {
+function CopyForAI({ zh, skinId }: { zh: boolean; skinId: string }) {
   const [open, setOpen] = useState(false);
   const [copied, flash] = useCopyFlash();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -226,7 +262,7 @@ function CopyForAI({ zh }: { zh: boolean }) {
     setOpen(false);
   };
 
-  const prompt = buildAiPrompt();
+  const prompt = buildAiPrompt(skinId);
 
   return (
     <div className="qs-copyai" ref={rootRef}>
@@ -271,8 +307,11 @@ function CopyForAI({ zh }: { zh: boolean }) {
 
 /* ── the section ───────────────────────────────────────────────────── */
 
-export function QuickStart({ lang }: { lang: Lang }) {
+export function QuickStart({ lang, activeSkin }: { lang: Lang; activeSkin: string }) {
   const zh = lang === "zh";
+  const skin = getSkin(activeSkin);
+  const setupCode = minSetupCode(skin.id);
+  const Comp = skinComponentName(skin.id);
   const openHref = (id: string) => `?skin=${encodeURIComponent(id)}&lang=${lang}&section=skins`;
 
   return (
@@ -282,12 +321,12 @@ export function QuickStart({ lang }: { lang: Lang }) {
           <p className="section-kicker">{zh ? "快速上手" : "Get started"}</p>
           <h2>{zh ? "用在自己的网页里" : "Use them in your own app"}</h2>
         </div>
-        <CopyForAI zh={zh} />
+        <CopyForAI zh={zh} skinId={skin.id} />
       </div>
       <p className="qs-intro">
         {zh
-          ? "三步把任意皮肤嵌进你的 React 应用:装包 → 包一层 SkinHostProvider → 接上你的 agent。也可以把完整接入指南直接交给 AI。"
-          : "Three steps to embed any skin in your React app: install, wrap in a SkinHostProvider, connect your agent. Or hand the full guide to an AI."}
+          ? "三步把任意皮肤嵌进你的 React 应用:装包 → 包一层 SkinHostProvider → 接上你的 agent。示例代码跟随上面选中的皮肤,也可以把完整接入指南直接交给 AI。"
+          : "Three steps to embed any skin in your React app: install, wrap in a SkinHostProvider, connect your agent. Examples follow the skin selected above — or hand the full guide to an AI."}
       </p>
 
       <ol className="qs-steps">
@@ -297,7 +336,7 @@ export function QuickStart({ lang }: { lang: Lang }) {
             <strong>{zh ? "安装" : "Install"}</strong>
             <CopyButton text={INSTALL_COMMAND} zh={zh} />
           </div>
-          <pre className="qs-code"><code>{INSTALL_COMMAND}</code></pre>
+          <HighlightedCode code={INSTALL_COMMAND} grammar="bash" />
           <p className="qs-card-note">
             {zh
               ? "peer 依赖:react ≥18、react-dom ≥18、react-markdown ≥9、remark-gfm ≥4、lucide-react ≥0.4"
@@ -309,13 +348,13 @@ export function QuickStart({ lang }: { lang: Lang }) {
           <div className="qs-card-head">
             <span className="qs-step-no">02</span>
             <strong>{zh ? "最小可跑示例" : "Minimal setup"}</strong>
-            <CopyButton text={MIN_SETUP_CODE} zh={zh} />
+            <CopyButton text={setupCode} zh={zh} />
           </div>
-          <pre className="qs-code"><code>{MIN_SETUP_CODE}</code></pre>
+          <HighlightedCode code={setupCode} grammar="tsx" />
           <p className="qs-card-note">
             {zh
-              ? "conversation 先给静态实现跑起来,再换成你的 store;皮肤换 <Aurora.ChatPage /> 为任意皮肤入口。"
-              : "Start with a static conversation, then swap in your store; swap <Aurora.ChatPage /> for any skin entry."}
+              ? `conversation 先给静态实现跑起来,再换成你的 store;皮肤换 <${Comp}.ChatPage /> 为任意皮肤入口。`
+              : `Start with a static conversation, then swap in your store; swap <${Comp}.ChatPage /> for any skin entry.`}
           </p>
         </li>
 
@@ -325,7 +364,7 @@ export function QuickStart({ lang }: { lang: Lang }) {
             <strong>{zh ? "接真实 agent" : "Connect a real agent"}</strong>
             <CopyButton text={LIVE_AGENT_CODE} zh={zh} />
           </div>
-          <pre className="qs-code"><code>{LIVE_AGENT_CODE}</code></pre>
+          <HighlightedCode code={LIVE_AGENT_CODE} grammar="tsx" />
           <p className="qs-card-note">
             {zh
               ? "服务端按 SSE 返回 AG-UI 事件;dispatch 的归约逻辑参考本仓库 src/core/store.ts。"
@@ -335,17 +374,29 @@ export function QuickStart({ lang }: { lang: Lang }) {
       </ol>
 
       <div className="qs-skins" role="list" aria-label={zh ? "皮肤一览" : "Skins"}>
-        {skins.map((skin) => (
-          <a className="qs-skin-row" role="listitem" key={skin.id} href={openHref(skin.id)} title={`${skin.name} — ${skin.tagline}`}>
-            <i className="qs-swatch" style={{ background: skin.swatch[2] }} />
-            <strong className="qs-skin-name">{skin.name}</strong>
-            <span className="qs-skin-tagline">{skin.tagline}</span>
-            <span className="qs-skin-open">
-              {zh ? "打开" : "Open"}
-              <Icon name="arrow-up-right" size={11} />
-            </span>
-          </a>
-        ))}
+        {skins.map((s) => {
+          const isCurrent = s.id === skin.id;
+          return (
+            <a
+              className={`qs-skin-row ${isCurrent ? "is-current" : ""}`}
+              role="listitem"
+              key={s.id}
+              href={openHref(s.id)}
+              title={`${s.name} — ${s.tagline}`}
+              aria-current={isCurrent ? "true" : undefined}
+              style={isCurrent ? ({ "--accent": s.swatch[2] } as CSSProperties) : undefined}
+            >
+              <i className="qs-swatch" style={{ background: s.swatch[2] }} />
+              <strong className="qs-skin-name">{s.name}</strong>
+              {isCurrent && <span className="qs-skin-current">{zh ? "当前" : "current"}</span>}
+              <span className="qs-skin-tagline">{s.tagline}</span>
+              <span className="qs-skin-open">
+                {zh ? "打开" : "Open"}
+                <Icon name="arrow-up-right" size={11} />
+              </span>
+            </a>
+          );
+        })}
       </div>
     </section>
   );
