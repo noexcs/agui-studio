@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,12 +12,33 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --no-frozen-lockfile
+
+      # vitest coverage thresholds (lines/statements/branches 70, functions 59)
+      # are enforced here; a red run blocks build and deploy via `needs`.
+      # NOTE: `pnpm test -- --coverage` is NOT equivalent — the literal `--`
+      # makes vitest treat --coverage as a filter, silently skipping the gate.
+      - name: Test with coverage gate
+        run: pnpm vitest run --coverage
+
   build:
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,8 +73,16 @@ jobs:
           path: dist
 
   deploy:
-    needs: build
+    needs: [build]
+    # Skip Pages deployment on pull_request (no deploy from PR runs);
+    # push and workflow_dispatch both deploy as before.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    # Scoped to deploy only: workflow-level would serialize PR test runs
+    # against production deploys in both directions.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

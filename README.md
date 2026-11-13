@@ -1,5 +1,7 @@
 # AG-UI Studio — 对话页面设计套件
 
+[![test](https://github.com/noexcs/agui-studio/actions/workflows/deploy.yml/badge.svg)](https://github.com/noexcs/agui-studio/actions/workflows/deploy.yml)
+
 为 [AG-UI 协议](https://docs.ag-ui.com/introduction) 做的一套 **React 对话页面设计系统**：
 
 > **一个协议内核 + 多种彼此独立的视觉风格（skin）**。

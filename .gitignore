@@ -9,3 +9,6 @@ dist/
 # iterative design-review screenshots; keep the README contact sheet only
 shots/*
 !shots/contact-sheet.png
+
+# vitest coverage output
+coverage/
