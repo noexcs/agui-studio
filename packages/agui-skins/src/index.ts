@@ -8,6 +8,9 @@ export type {
   SkinBranding,
   SkinConversation,
   SkinDefinition,
+  SkinTuning,
+  SkinTextAnim,
+  SkinDensity,
   Lang,
 } from "./contract";
 

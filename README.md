@@ -481,3 +481,22 @@ pnpm test
 VITE_STATIC_DEMO=1 VITE_BASE=/agui-studio/ pnpm build
 npx serve dist   # 或任意静态服务器
 ```
+
+
+## 皮肤自定义（每套皮肤独立）
+
+入口：首页内嵌舞台工具条「自定义」、全屏 dock 的滑杆按钮，或 `?customize=1`。
+
+可调项：
+
+| 项 | 取值 | 实现 |
+|---|---|---|
+| 主题色 | 8 个预设 + 任意取色 | `SkinHostProvider` 注入 `--sk-accent`，`tuning.css` 按皮肤映射到各自变量（classic `--accent`、paper `--vermilion`、terminal `--green`、brutalist `--yellow`、aurora `--violet` + 渐变） |
+| 文字动画 | 无 / 渐显 / 上浮 | 对 `.md` 块做出现动画（块首次挂载时播放，流式新增段落自然生效），支持 `prefers-reduced-motion` |
+| 信息密度 | 宽松 / 紧凑 | 调整 markdown 行高与段落/列表/表格间距 |
+
+- 按皮肤分别保存在 `localStorage`（`agui-studio:tuning`），刷新不丢；
+- 支持分享链接：`?accent=%23db2777&anim=rise&density=compact`；
+- 面板内「恢复默认」清空当前皮肤覆盖。
+
+实现位置：`packages/agui-skins/src/tuning.css`、`packages/agui-skins/src/host.tsx`（`tuning`/`skin` props）、`src/app/CustomizePanel.tsx`。

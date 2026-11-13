@@ -49,6 +49,8 @@ export function Home(props: {
   onRunInfo: () => void;
   onDocs: () => void;
   onFullscreen: () => void;
+  onCustomize: () => void;
+  customizing?: boolean;
   children: ReactNode;
 }) {
   const zh = props.lang === "zh";
@@ -188,7 +190,16 @@ export function Home(props: {
                 <Icon name="braces" size={13} />
                 {zh ? "运行" : "run"}
               </button>
-              <button className="embed-btn" onClick={props.onFullscreen} title={zh ? "全屏打开" : "Open full screen"}>
+              <button
+              className="embed-btn"
+              onClick={props.onCustomize}
+              title={zh ? "自定义外观" : "Customize"}
+              data-active={props.customizing || undefined}
+            >
+              <Icon name="sliders" size={13} />
+              {zh ? "自定义" : "Customize"}
+            </button>
+            <button className="embed-btn" onClick={props.onFullscreen} title={zh ? "全屏打开" : "Open full screen"}>
                 <Icon name="arrow-up-right" size={13} />
                 {zh ? "全屏" : "full"}
               </button>

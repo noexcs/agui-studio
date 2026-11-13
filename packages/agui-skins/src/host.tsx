@@ -1,6 +1,15 @@
-import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { getDict, setLang as setModuleLang, setOverrides, t as moduleT } from "./i18n";
-import type { Lang, SkinBranding, SkinConversation } from "./contract";
+import type { Lang, SkinBranding, SkinConversation, SkinTuning } from "./contract";
+import "./tuning.css";
 
 export interface SkinHostValue {
   conversation: SkinConversation;
@@ -28,6 +37,10 @@ export function SkinHostProvider(props: {
   branding?: Partial<SkinBranding>;
   /** shallow dictionary overrides, e.g. { "chat.send": "提交" } */
   messages?: Record<string, string>;
+  /** per-skin visual tuning (accent / text animation / density) */
+  tuning?: SkinTuning;
+  /** skin id, used to scope accent overrides */
+  skin?: string;
   children: ReactNode;
 }) {
   const lang = props.lang ?? "en";
@@ -51,7 +64,23 @@ export function SkinHostProvider(props: {
     [props.conversation, lang, branding, t]
   );
 
-  return <SkinHostContext.Provider value={value}>{props.children}</SkinHostContext.Provider>;
+  const tuning = props.tuning ?? {};
+  const tuneStyle = tuning.accent ? ({ "--sk-accent": tuning.accent } as CSSProperties) : undefined;
+
+  return (
+    <SkinHostContext.Provider value={value}>
+      <div
+        className="sk-tune"
+        data-skin={props.skin}
+        data-sk-accent={tuning.accent ? "" : undefined}
+        data-sk-text-anim={tuning.textAnim ?? "none"}
+        data-sk-density={tuning.density ?? "comfortable"}
+        style={tuneStyle}
+      >
+        {props.children}
+      </div>
+    </SkinHostContext.Provider>
+  );
 }
 
 export function useSkinHost(): SkinHostValue {

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SkinHostProvider } from "agui-skins";
+import type { SkinTuning } from "agui-skins";
+import { CustomizePanel } from "./CustomizePanel";
 import { createStudio, type ConversationStore } from "../core/store";
 import { checkBridge, type BridgeHealth, type PiBackend } from "../core/pi";
 import { getSkin, skins } from "agui-skins";
@@ -31,6 +33,16 @@ export default function App() {
 
   const [full, setFull] = useState(params.get("full") === "1");
   const [skinId, setSkinId] = useState(() => getSkin(params.get("skin")).id);
+  const [tuningBySkin, setTuningBySkin] = useState<Record<string, SkinTuning>>(() => {
+    const seeded = loadTuning();
+    // shareable tuning links: ?accent=%23db2777&anim=rise&density=compact
+    const accent = params.get("accent") ?? undefined;
+    const anim = params.get("anim") as SkinTuning["textAnim"];
+    const density = params.get("density") as SkinTuning["density"];
+    if (accent || anim || density) seeded[skinId] = { accent, textAnim: anim, density };
+    return seeded;
+  });
+  const [customizeOpen, setCustomizeOpen] = useState(() => params.get("customize") === "1");
   const [backend, setBackend] = useState<Backend>(initialBackend);
   const [lang, setLang] = useState<Lang>(initialLang);
   const [health, setHealth] = useState<BridgeHealth | null>(null);
@@ -190,8 +202,27 @@ export default function App() {
     modelLabel: customBrand.model ?? "gemini-2.5-flash",
   };
 
+  const tuning = tuningBySkin[skinId] ?? {};
+  const updateTuning = (next: SkinTuning) => {
+    setTuningBySkin((prev) => {
+      const all = { ...prev, [skinId]: next };
+      try {
+        localStorage.setItem(TUNING_KEY, JSON.stringify(all));
+      } catch {
+        /* private mode */
+      }
+      return all;
+    });
+  };
+
   const skinStage = (
-    <SkinHostProvider conversation={store as unknown as SkinConversation} lang={lang} branding={branding}>
+    <SkinHostProvider
+      conversation={store as unknown as SkinConversation}
+      lang={lang}
+      branding={branding}
+      tuning={tuning}
+      skin={skinId}
+    >
       <ErrorBoundary FallbackComponent={SkinCrash} onReset={() => store.replay()} resetKeys={[skinId, lang]}>
         <CrashProbe />
         <SkinPage />
@@ -224,6 +255,14 @@ export default function App() {
             <button className="dock-btn" onClick={() => setPaletteOpen(true)} title={zh ? "命令面板 ⌘K" : "Command palette ⌘K"}>
               <Icon name="command" size={14} />
             </button>
+            <button
+              className="dock-btn"
+              onClick={() => setCustomizeOpen((v) => !v)}
+              title={zh ? "自定义外观" : "Customize"}
+              data-active={customizeOpen || undefined}
+            >
+              <Icon name="sliders" size={14} />
+            </button>
             <button className="dock-btn dock-mono" onClick={() => chooseLang(zh ? "en" : "zh")} title={zh ? "切换语言" : "Language"}>
               {zh ? "中" : "EN"}
             </button>
@@ -253,6 +292,8 @@ export default function App() {
           onLang={() => chooseLang(zh ? "en" : "zh")}
           onBackend={chooseBackend}
           staticDemo={STATIC_DEMO}
+          onCustomize={() => setCustomizeOpen((v) => !v)}
+          customizing={customizeOpen}
           onRunInfo={() => setRunInfoOpen(true)}
           onDocs={() => window.open("https://docs.ag-ui.com/introduction", "_blank", "noreferrer")}
           onFullscreen={openFullscreen}
@@ -275,6 +316,14 @@ export default function App() {
         onReplay={() => store.replay()}
         onRunInfo={() => setRunInfoOpen(true)}
         onCopyState={copyState}
+      />
+
+      <CustomizePanel
+        open={customizeOpen}
+        skinName={getSkin(skinId).name}
+        tuning={tuning}
+        onChange={updateTuning}
+        onClose={() => setCustomizeOpen(false)}
       />
 
       <RunDialog open={runInfoOpen} onOpenChange={setRunInfoOpen} rows={rows} onCopy={copyState} />
@@ -311,4 +360,16 @@ function SkinCrash({ error, resetErrorBoundary }: FallbackProps) {
       </div>
     </div>
   );
+}
+
+
+const TUNING_KEY = "agui-studio:tuning";
+
+function loadTuning(): Record<string, SkinTuning> {
+  try {
+    const raw = localStorage.getItem(TUNING_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, SkinTuning>) : {};
+  } catch {
+    return {};
+  }
 }

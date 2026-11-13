@@ -155,6 +155,16 @@ export interface SkinCapabilities {
   subagents?: { supported: boolean };
 }
 
+export type SkinTextAnim = "none" | "fade" | "rise";
+export type SkinDensity = "comfortable" | "compact";
+
+/** Per-skin visual overrides applied by the host (customize panel). */
+export interface SkinTuning {
+  accent?: string;
+  textAnim?: SkinTextAnim;
+  density?: SkinDensity;
+}
+
 export interface SkinBranding {
   agentName: string;
   modelLabel: string;

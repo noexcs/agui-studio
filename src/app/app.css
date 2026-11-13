@@ -542,3 +542,202 @@ a {
 @keyframes fade { from { opacity: 0; } }
 @keyframes float-in { from { opacity: 0; transform: translate(-50%, -8px) scale(0.98); } }
 @keyframes pop-in { from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); } }
+
+/* ── per-skin customize drawer ───────────────────────────────────── */
+.customize {
+  position: fixed;
+  top: 86px;
+  right: 20px;
+  z-index: 70;
+  width: 300px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 14, 18, 0.94);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  color: #e9edf5;
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.customize-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.customize-kicker {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8b93a7;
+}
+
+.customize-head h3 {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.customize-close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #c6ccda;
+  cursor: pointer;
+}
+
+.customize-close:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.customize-section {
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.customize-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 9px;
+  font-size: 12px;
+  color: #c6ccda;
+}
+
+.customize-label em {
+  font-style: normal;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  color: #8b93a7;
+}
+
+.customize-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.customize-swatch {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  padding: 0;
+}
+
+.customize-swatch.is-active {
+  box-shadow: 0 0 0 2px rgba(12, 14, 18, 0.95), 0 0 0 3.5px #7aa2ff;
+}
+
+.customize-swatch-auto {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: conic-gradient(#2563eb 0 25%, #db2777 0 50%, #059669 0 75%, #d97706 0);
+}
+
+.customize-swatch--pick {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #1b1f28;
+}
+
+.customize-swatch--pick input[type="color"] {
+  width: 150%;
+  height: 150%;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.customize-seg {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.customize-segbtn {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #aab2c3;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.customize-segbtn:hover {
+  color: #e9edf5;
+}
+
+.customize-segbtn.is-active {
+  background: #e9edf5;
+  color: #0c0e12;
+}
+
+.customize-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.customize-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #c6ccda;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.customize-reset:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.customize-hint {
+  font-size: 10px;
+  color: #7c8498;
+  text-align: right;
+}
+
+.embed-btn[data-active],
+.dock-btn[data-active] {
+  border-color: rgba(160, 185, 255, 0.45);
+  background: rgba(122, 162, 255, 0.14);
+  color: #cfd9ff;
+}
+
+@media (max-width: 720px) {
+  .customize {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    top: 70px;
+  }
+}

@@ -1,0 +1,84 @@
+/* Per-skin tuning: accent / text animation / density.
+   Applied by <SkinHostProvider tuning={...} skin={...}> through data attributes. */
+
+.sk-tune {
+  position: absolute;
+  inset: 0;
+}
+
+.sk-tune > * {
+  height: 100%;
+  width: 100%;
+}
+
+/* ── text animation (applies to markdown blocks as they appear) ──── */
+.sk-tune[data-sk-text-anim="fade"] .md > * {
+  animation: sk-text-fade 0.34s ease both;
+}
+
+.sk-tune[data-sk-text-anim="rise"] .md > * {
+  animation: sk-text-rise 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes sk-text-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sk-text-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-tune .md > * { animation: none !important; }
+}
+
+/* ── density ─────────────────────────────────────────────────────── */
+.sk-tune[data-sk-density="compact"] .md {
+  line-height: 1.5;
+}
+
+.sk-tune[data-sk-density="compact"] .md p,
+.sk-tune[data-sk-density="compact"] .md ul,
+.sk-tune[data-sk-density="compact"] .md ol,
+.sk-tune[data-sk-density="compact"] .md table,
+.sk-tune[data-sk-density="compact"] .md pre,
+.sk-tune[data-sk-density="compact"] .md blockquote {
+  margin-top: 0.45em;
+  margin-bottom: 0.45em;
+}
+
+.sk-tune[data-sk-density="compact"] .md li {
+  margin: 0.12em 0;
+}
+
+/* ── accent overrides (only when the user picked a color) ────────── */
+.sk-tune[data-sk-accent][data-skin="aurora"] .skin-aurora {
+  --violet: var(--sk-accent);
+  --accent-grad: linear-gradient(135deg, var(--sk-accent), var(--mint));
+  --accent-grad-soft: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--sk-accent) 22%, transparent),
+    color-mix(in srgb, var(--mint) 14%, transparent)
+  );
+}
+
+.sk-tune[data-sk-accent][data-skin="paper"] .skin-paper {
+  --vermilion: var(--sk-accent);
+}
+
+.sk-tune[data-sk-accent][data-skin="terminal"] .skin-term {
+  --green: var(--sk-accent);
+  --green-dim: color-mix(in srgb, var(--sk-accent) 45%, transparent);
+}
+
+.sk-tune[data-sk-accent][data-skin="brutalist"] .skin-brut {
+  --yellow: var(--sk-accent);
+}
+
+.sk-tune[data-sk-accent][data-skin="classic"] .skin-classic {
+  --accent: var(--sk-accent);
+  --accent-2: color-mix(in srgb, var(--sk-accent) 78%, #0f172a);
+  --accent-soft: color-mix(in srgb, var(--sk-accent) 12%, white);
+}

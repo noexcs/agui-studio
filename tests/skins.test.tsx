@@ -88,3 +88,39 @@ describe("host injection", () => {
     expect(() => render(<Page />)).toThrow(/SkinHostProvider/);
   });
 });
+
+describe("skin tuning", () => {
+  it("injects accent, text animation and density into the wrapper", () => {
+    const Page = skins.find((s) => s.id === "classic")!.ChatPage;
+    const { container } = render(
+      <SkinHostProvider
+        conversation={makeFixture()}
+        lang="zh"
+        branding={BRANDING}
+        skin="classic"
+        tuning={{ accent: "#db2777", textAnim: "rise", density: "compact" }}
+      >
+        <Page />
+      </SkinHostProvider>
+    );
+    const wrapper = container.querySelector(".sk-tune") as HTMLElement;
+    expect(wrapper).toBeTruthy();
+    expect(wrapper.dataset.skTextAnim).toBe("rise");
+    expect(wrapper.dataset.skDensity).toBe("compact");
+    expect(wrapper.dataset.skAccent).toBe("");
+    expect(wrapper.style.getPropertyValue("--sk-accent")).toBe("#db2777");
+  });
+
+  it("keeps the original look without tuning", () => {
+    const Page = skins[0].ChatPage;
+    const { container } = render(
+      <SkinHostProvider conversation={makeFixture()} branding={BRANDING}>
+        <Page />
+      </SkinHostProvider>
+    );
+    const wrapper = container.querySelector(".sk-tune") as HTMLElement;
+    expect(wrapper.dataset.skTextAnim).toBe("none");
+    expect(wrapper.dataset.skDensity).toBe("comfortable");
+    expect(wrapper.hasAttribute("data-sk-accent")).toBe(false);
+  });
+});
