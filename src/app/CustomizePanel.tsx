@@ -1,4 +1,4 @@
-import { Icon } from "agui-skins";
+import { Icon, accentGuard, type AccentGuard } from "agui-skins";
 import { isZh } from "../i18n";
 import type { SkinDensity, SkinTextAnim, SkinTuning } from "agui-skins";
 
@@ -39,6 +39,25 @@ function sameTuning(a: SkinTuning, b: SkinTuning) {
   );
 }
 
+/** Fix E: non-blocking readability note for extreme accent picks. */
+function contrastHint(guard: AccentGuard, zh: boolean): string {
+  const onLight = guard.asTextRatio.toFixed(1);
+  const onDark = guard.onDarkRatio.toFixed(1);
+  if (guard.tooLight && guard.tooDark) {
+    return zh
+      ? `对比度偏低（白底 ${onLight}:1、深底 ${onDark}:1）：浅色皮肤的链接与按钮文字已自动改用深色前景；深色皮肤建议换更亮的颜色。`
+      : `Low contrast (${onLight}:1 on white, ${onDark}:1 on dark): link and button text on light skins switch to a dark foreground automatically; pick a brighter color for dark skins.`;
+  }
+  if (guard.tooLight) {
+    return zh
+      ? `该颜色在浅色皮肤上对比度偏低（${onLight}:1）：链接与按钮文字已自动改用深色前景。`
+      : `Low contrast on light skins (${onLight}:1): link and button text switch to a dark foreground automatically.`;
+  }
+  return zh
+    ? `该颜色在深色皮肤上对比度偏低（${onDark}:1）：Aurora / Terminal 的文字可能不清晰，建议换更亮的颜色。`
+    : `Low contrast on dark skins (${onDark}:1): text on Aurora / Terminal may be hard to read — pick a brighter color.`;
+}
+
 export function CustomizePanel(props: {
   open: boolean;
   variant?: "inline" | "drawer";
@@ -55,6 +74,10 @@ export function CustomizePanel(props: {
   const anim = props.tuning.textAnim ?? "none";
   const density = props.tuning.density ?? "comfortable";
   const inline = props.variant === "inline";
+  // Fix E: guard the custom accent; hint only — rendering is auto-adjusted by
+  // the skin host (--sk-accent-fg / --sk-accent-ink), never blocked here.
+  const guard = accent ? accentGuard(accent) : null;
+  const hint = guard && (guard.tooLight || guard.tooDark) ? contrastHint(guard, zh) : null;
 
   return (
     <section className={`customize ${inline ? "customize--inline" : "customize--drawer"}`} aria-label={zh ? "皮肤自定义" : "Customize skin"}>
@@ -105,6 +128,11 @@ export function CustomizePanel(props: {
               <input type="color" value={accent ?? "#2563eb"} onChange={(event) => set({ accent: event.target.value })} />
             </label>
           </div>
+          {hint && (
+            <p className="customize-hint" role="note">
+              {hint}
+            </p>
+          )}
         </div>
 
         <div className="customize-tile">

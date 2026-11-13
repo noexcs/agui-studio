@@ -17,6 +17,16 @@ export type {
 export { skins, getSkin } from "./skins/registry";
 export type { Skin } from "./skins/registry";
 
+export {
+  accentGuard,
+  safeAccent,
+  AA_NORMAL_TEXT,
+  LIGHT_SURFACE_REF,
+  DARK_SURFACE_REF,
+  DARK_INK,
+} from "./contrast";
+export type { AccentGuard, AccentFgTier } from "./contrast";
+
 export { Icon } from "./shared/Icon";
 export { Markdown, timeOf, clock } from "./shared/Markdown";
 export { useStickToBottom } from "./shared/useStickToBottom";

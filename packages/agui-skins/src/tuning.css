@@ -82,3 +82,14 @@
   --accent-2: color-mix(in srgb, var(--sk-accent) 78%, #0f172a);
   --accent-soft: color-mix(in srgb, var(--sk-accent) 12%, white);
 }
+
+/* ── accent contrast guards (Fix E; values computed by the host) ─────
+   --sk-accent-fg: black/white foreground for text set ON the accent
+   (classic primary buttons, logo mark).
+   --sk-accent-ink: the accent darkened until it clears AA as text on
+   light surfaces (links, em, meta text); only injected when needed.
+   Fallbacks keep the legacy rendering for every untouched path. */
+.sk-tune[data-sk-accent][data-skin="classic"] .skin-classic {
+  --accent-fg: var(--sk-accent-fg, #fff);
+  --accent-ink: var(--sk-accent-ink, var(--accent));
+}

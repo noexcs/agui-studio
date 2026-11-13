@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { getDict, setLang as setModuleLang, setOverrides, t as moduleT } from "./i18n";
+import { accentGuard, safeAccent } from "./contrast";
 import type { Lang, SkinBranding, SkinConversation, SkinTuning } from "./contract";
 import "./tuning.css";
 
@@ -65,7 +66,25 @@ export function SkinHostProvider(props: {
   );
 
   const tuning = props.tuning ?? {};
-  const tuneStyle = tuning.accent ? ({ "--sk-accent": tuning.accent } as CSSProperties) : undefined;
+  // Fix E: derive contrast guards from the user accent. --sk-accent-fg is the
+  // black/white foreground for text placed ON the accent; --sk-accent-ink is
+  // the accent darkened until it clears AA as text on light surfaces. Skins
+  // consume both through tuning.css; an unparseable accent keeps legacy
+  // rendering instead of crashing the host.
+  let tuneStyle: CSSProperties | undefined;
+  if (tuning.accent) {
+    const normalized = safeAccent(tuning.accent);
+    if (normalized) {
+      const guard = accentGuard(normalized);
+      tuneStyle = {
+        "--sk-accent": tuning.accent,
+        "--sk-accent-fg": guard.onAccentFg,
+        ...(guard.inkOnLight ? { "--sk-accent-ink": guard.inkOnLight } : {}),
+      } as CSSProperties;
+    } else {
+      tuneStyle = { "--sk-accent": tuning.accent } as CSSProperties;
+    }
+  }
 
   return (
     <SkinHostContext.Provider value={value}>

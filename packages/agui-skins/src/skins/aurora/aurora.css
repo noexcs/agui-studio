@@ -44,7 +44,7 @@
 
   --text: #e9edf6;
   --text-2: #9aa4b6;
-  --text-3: #5f6879;
+  --text-3: #7b8496; /* Fix E: was #5f6879 (3.4–3.6:1 on dark panels); +1 brightness step, same hue, ≥4.5:1 everywhere it renders */
 
   --mint: #5ef0c2;
   --mint-soft: rgba(94, 240, 194, 0.14);
