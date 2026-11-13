@@ -1,6 +1,7 @@
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { GridMotion } from "./GridMotion";
 import { Icon } from "../shared/Icon";
+import { QuickStart } from "../app/QuickStart";
 import type { Lang } from "../i18n";
 
 export interface HomeSkin {
@@ -225,6 +226,8 @@ export function Home(props: {
           <span>React · Vite · pi · DeepSeek</span>
         </footer>
       </section>
+
+      <QuickStart lang={props.lang} />
     </div>
   );
 }
