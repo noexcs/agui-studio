@@ -477,13 +477,12 @@ describe("createPiMapper: recorded fixture replay", () => {
       ...repeat("TEXT_MESSAGE_CONTENT", 4),
       "TEXT_MESSAGE_END",
       "CUSTOM", // usage
-      "STEP_FINISHED", // turn 2
-      "STEP_FINISHED", // agent_settled trailing step
+      "STEP_FINISHED", // turn 2 (closed once — agent_settled no longer duplicates it)
       "RUN_FINISHED",
     ]);
 
     expect(byType("STEP_STARTED").map((e) => e.stepName)).toEqual(["turn 1", "read", "turn 2"]);
-    expect(byType("STEP_FINISHED").map((e) => e.stepName)).toEqual(["read", "turn 1", "turn 2", "turn 2"]);
+    expect(byType("STEP_FINISHED").map((e) => e.stepName)).toEqual(["read", "turn 1", "turn 2"]);
     expect(byType("CUSTOM").map((e) => e.name)).toEqual([
       "pi.message_start",
       "pi.tool_progress",
@@ -520,10 +519,9 @@ describe("createPiMapper: recorded fixture replay", () => {
 
     const toolIds = (type: string) => new Set(byType(type).map((e) => e.toolCallId));
     expect(toolIds("TOOL_CALL_START")).toEqual(new Set(["call_read_1"]));
-    // recorded pi `toolcall_delta` records carry no `id` (only contentIndex + delta),
-    // so the mapper emits TOOL_CALL_ARGS with toolCallId: undefined on this stream —
-    // current implementation behavior, locked here; flagged in the task report.
-    expect(toolIds("TOOL_CALL_ARGS")).toEqual(new Set([undefined]));
+    // recorded pi `toolcall_delta` records carry no `id` (only contentIndex + delta);
+    // the mapper backfills the toolCallId tracked from toolcall_start (fix round 1).
+    expect(toolIds("TOOL_CALL_ARGS")).toEqual(new Set(["call_read_1"]));
     expect(toolIds("TOOL_CALL_END")).toEqual(new Set(["call_read_1"]));
     expect(toolIds("TOOL_CALL_RESULT")).toEqual(new Set(["call_read_1"]));
 
@@ -537,5 +535,121 @@ describe("createPiMapper: recorded fixture replay", () => {
       expect(event.runId).toBe(RUN);
       expect(event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     }
+  });
+});
+
+/* ── regressions: fix round 1 (controller-ruled defects) ────────────── */
+
+describe("createPiMapper: regressions (fix round 1)", () => {
+  it("backfills toolCallId for id-less toolcall_delta records from the tracked toolcall_start", () => {
+    const mapper = newMapper();
+    mapper.map({ type: "turn_start" });
+
+    const events = [
+      ...mapper.map(update({ type: "toolcall_start", contentIndex: 2, id: "call_1", toolName: "read" })),
+      ...mapper.map(update({ type: "toolcall_delta", contentIndex: 2, delta: '{"path":' })), // pi deltas carry no id
+      ...mapper.map(update({ type: "toolcall_delta", contentIndex: 2, delta: '"file"}' })),
+      ...mapper.map(
+        update({
+          type: "toolcall_end",
+          contentIndex: 2,
+          toolCall: { id: "call_1", type: "function", function: { name: "read", arguments: "{}" } },
+        })
+      ),
+    ];
+
+    expect(eventTypes(events)).toEqual(["TOOL_CALL_START", "TOOL_CALL_ARGS", "TOOL_CALL_ARGS", "TOOL_CALL_END"]);
+    expect(events.map((event) => event.toolCallId)).toEqual(["call_1", "call_1", "call_1", "call_1"]);
+  });
+
+  it("routes id-less args deltas to the right call when two toolcalls stream concurrently", () => {
+    const mapper = newMapper();
+    mapper.map({ type: "turn_start" });
+
+    const events = [
+      ...mapper.map(update({ type: "toolcall_start", contentIndex: 2, id: "call_a", toolName: "read" })),
+      ...mapper.map(update({ type: "toolcall_start", contentIndex: 5, id: "call_b", toolName: "bash" })),
+      ...mapper.map(update({ type: "toolcall_delta", contentIndex: 2, delta: '{"a":' })),
+      ...mapper.map(update({ type: "toolcall_delta", contentIndex: 5, delta: '{"b":' })),
+      ...mapper.map(update({ type: "toolcall_delta", contentIndex: 2, delta: "1}" })),
+      ...mapper.map(update({ type: "toolcall_end", contentIndex: 2, toolCall: { id: "call_a" } })),
+      ...mapper.map(update({ type: "toolcall_end", contentIndex: 5, toolCall: { id: "call_b" } })),
+    ];
+
+    const args = events.filter((event) => event.type === "TOOL_CALL_ARGS");
+    expect(args.map((event) => `${event.toolCallId}:${event.delta}`)).toEqual([
+      'call_a:{"a":',
+      'call_b:{"b":',
+      "call_a:1}",
+    ]);
+    expect(events.filter((event) => event.type === "TOOL_CALL_END").map((event) => event.toolCallId)).toEqual([
+      "call_a",
+      "call_b",
+    ]);
+  });
+
+  it("keeps ids consistent when toolcall_end omits the toolCall object", () => {
+    const mapper = newMapper();
+    mapper.map({ type: "turn_start" });
+
+    const events = [
+      ...mapper.map(update({ type: "toolcall_start", contentIndex: 2, id: "call_1", toolName: "read" })),
+      ...mapper.map(update({ type: "toolcall_end", contentIndex: 2 })), // no toolCall object at all
+    ];
+    expect(eventTypes(events)).toEqual(["TOOL_CALL_START", "TOOL_CALL_END"]);
+    expect(events[1].toolCallId).toBe("call_1");
+
+    // the real id must now be tracked: executing it must NOT resynthesize the lifecycle
+    const execution = mapper.map({ type: "tool_execution_start", toolCallId: "call_1", toolName: "read", args: {} });
+    expect(eventTypes(execution)).toEqual(["STEP_STARTED"]);
+  });
+
+  it("never tracks undefined ids from degenerate toolcall records", () => {
+    const mapper = newMapper();
+    mapper.map({ type: "turn_start" });
+
+    const end = mapper.map(update({ type: "toolcall_end", contentIndex: 7 })); // no start, no toolCall, no id
+    expect(eventTypes(end)).toEqual(["TOOL_CALL_END"]);
+    expect(end[0].toolCallId).toBeUndefined();
+
+    // an unrelated real tool execution still synthesizes its own lifecycle
+    const execution = mapper.map({
+      type: "tool_execution_start",
+      toolCallId: "call_x",
+      toolName: "bash",
+      args: { cmd: "ls" },
+    });
+    expect(eventTypes(execution)).toEqual(["TOOL_CALL_START", "TOOL_CALL_ARGS", "TOOL_CALL_END", "STEP_STARTED"]);
+  });
+
+  it("returns [] for non-object pi records instead of throwing", () => {
+    const mapper = newMapper();
+    expect(mapper.map(null)).toEqual([]);
+    expect(mapper.map(undefined)).toEqual([]);
+    expect(mapper.map(42)).toEqual([]);
+    expect(mapper.map("junk")).toEqual([]);
+    expect(mapper.map(true)).toEqual([]);
+    expect(mapper.map([1, 2])).toEqual([]);
+    // the mapper stays usable afterwards
+    expect(eventTypes(mapper.map({ type: "agent_start" }))).toEqual(["RUN_STARTED"]);
+  });
+
+  it("emits STEP_FINISHED for a turn at most once (turn_end close wins; agent_settled does not duplicate)", () => {
+    const events = mapAll([
+      { type: "agent_start" },
+      { type: "turn_start" },
+      { type: "turn_end" },
+      { type: "agent_settled", aborted: false },
+    ]);
+    expect(eventTypes(events)).toEqual(["RUN_STARTED", "STEP_STARTED", "STEP_FINISHED", "RUN_FINISHED"]);
+    expect(events.filter((event) => event.type === "STEP_FINISHED").map((event) => event.stepName)).toEqual(["turn 1"]);
+    expect(events[events.length - 1].outcome).toEqual({ type: "success" });
+  });
+
+  it("still closes an open turn exactly once on agent_settled when turn_end never arrives", () => {
+    const events = mapAll([{ type: "turn_start" }, { type: "agent_settled", aborted: false }]);
+    expect(eventTypes(events)).toEqual(["STEP_STARTED", "STEP_FINISHED", "RUN_FINISHED"]);
+    expect(events[1].stepName).toBe("turn 1");
+    expect(events[2].outcome).toEqual({ type: "success" });
   });
 });

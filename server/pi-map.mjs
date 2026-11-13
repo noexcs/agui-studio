@@ -36,7 +36,9 @@ export function createPiMapper({ threadId, runId }) {
   const openText = new Set();
   const openThinking = new Set();
   const tools = new Set();
+  const toolIndexToId = new Map(); // contentIndex → toolCallId (pi deltas may omit the id)
   let turn = 0;
+  let turnClosed = false; // whether the current turn already emitted its STEP_FINISHED
   const stamp = () => new Date().toISOString();
   const base = (type, extra = {}) => ({ type, timestamp: stamp(), threadId, runId, ...extra });
   const textId = (index) => `pi_msg_${turn}_text_${index}`;
@@ -45,6 +47,7 @@ export function createPiMapper({ threadId, runId }) {
   /** @param {any} record a pi JSONL record @returns {any[]} AG-UI events */
   function map(record) {
     const out = [];
+    if (!record || typeof record !== "object") return out; // tolerate junk JSONL lines
     switch (record.type) {
       case "agent_start":
         out.push(base(E.RUN_STARTED));
@@ -52,6 +55,7 @@ export function createPiMapper({ threadId, runId }) {
 
       case "turn_start":
         turn += 1;
+        turnClosed = false;
         out.push(base(E.STEP_STARTED, { stepName: `turn ${turn}` }));
         break;
 
@@ -90,16 +94,24 @@ export function createPiMapper({ threadId, runId }) {
             out.push(base(E.REASONING_END, { messageId: thinkId(index) }));
             break;
           case "toolcall_start":
-            tools.add(update.id);
+            if (update.id != null) {
+              tools.add(update.id);
+              toolIndexToId.set(index, update.id);
+            }
             out.push(base(E.TOOL_CALL_START, { toolCallId: update.id, toolCallName: update.toolName || "tool" }));
             break;
           case "toolcall_delta":
-            out.push(base(E.TOOL_CALL_ARGS, { toolCallId: update.id, delta: update.delta || "" }));
+            // pi deltas carry no id — fall back to the call tracked for this contentIndex
+            out.push(
+              base(E.TOOL_CALL_ARGS, { toolCallId: update.id ?? toolIndexToId.get(index), delta: update.delta || "" })
+            );
             break;
-          case "toolcall_end":
-            tools.add(update.toolCall?.id);
-            out.push(base(E.TOOL_CALL_END, { toolCallId: update.toolCall?.id }));
+          case "toolcall_end": {
+            const endId = update.toolCall?.id ?? update.id ?? toolIndexToId.get(index);
+            if (endId != null) tools.add(endId); // never track undefined ids
+            out.push(base(E.TOOL_CALL_END, { toolCallId: endId }));
             break;
+          }
           case "error":
             out.push(base(E.RUN_ERROR, { message: update.error || update.reason || "provider stream error" }));
             break;
@@ -155,6 +167,7 @@ export function createPiMapper({ threadId, runId }) {
           }
           openText.clear();
           openThinking.clear();
+          toolIndexToId.clear();
           if (record.usage) {
             out.push(base(E.CUSTOM, { name: "usage", value: record.usage }));
           }
@@ -164,11 +177,16 @@ export function createPiMapper({ threadId, runId }) {
 
       case "turn_end":
         out.push(base(E.STEP_FINISHED, { stepName: `turn ${turn}` }));
+        turnClosed = true;
         if (record.message?.usage) out.push(base(E.CUSTOM, { name: "usage", value: record.message.usage }));
         break;
 
       case "agent_settled":
-        out.push(base(E.STEP_FINISHED, { stepName: `turn ${turn}` }));
+        if (!turnClosed) {
+          // aborted mid-turn: close the open turn here; a turn_end already closed it
+          out.push(base(E.STEP_FINISHED, { stepName: `turn ${turn}` }));
+          turnClosed = true;
+        }
         out.push(base(E.RUN_FINISHED, { outcome: { type: record.aborted ? "stopped" : "success" } }));
         break;
 

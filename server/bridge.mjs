@@ -157,6 +157,7 @@ function runPi(req, res, body, runId) {
       } catch {
         continue;
       }
+      if (!record || typeof record !== "object") continue; // junk line: skip, never crash the run
       if (record.type === "session") {
         stream.send(
           stateSnapshotFromPi(
@@ -217,9 +218,23 @@ function runFixture(res, body, runId) {
     records = readFileSync(FIXTURE, "utf8")
       .split("\n")
       .filter((line) => line.trim())
-      .map((line) => JSON.parse(line));
+      .reduce((acc, line) => {
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) acc.push(parsed);
+        } catch {
+          /* bad line: skip it instead of failing the whole run */
+        }
+        return acc;
+      }, []);
   } catch (error) {
     stream.send({ type: "RUN_ERROR", message: `fixture missing: ${error.message}` });
+    stream.close();
+    return;
+  }
+  if (records.length === 0) {
+    // nothing in the fixture maps to a pi record → same RUN_ERROR semantics as a missing file
+    stream.send({ type: "RUN_ERROR", message: `fixture missing: no parsable pi records in ${FIXTURE}` });
     stream.close();
     return;
   }

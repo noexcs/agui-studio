@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { createServer, type AddressInfo } from "node:net";
 import { join } from "node:path";
 
@@ -21,6 +22,8 @@ const repoPath = (...segments: string[]): string => {
 };
 
 const BRIDGE_SCRIPT = repoPath("server", "bridge.mjs");
+const PI_MAP_SCRIPT = repoPath("server", "pi-map.mjs");
+const FIXTURE_PATH = repoPath("server", "fixtures", "pi-run.jsonl");
 
 type Frame = { type: string; threadId: string; runId: string; timestamp: string } & Record<string, unknown>;
 
@@ -39,12 +42,12 @@ function getFreePort(): Promise<number> {
   });
 }
 
-async function waitForBridge(timeoutMs: number): Promise<void> {
+async function waitForBridge(url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let lastError = "";
   while (Date.now() < deadline) {
     try {
-      const res = await fetch(`${baseUrl}/api/health`);
+      const res = await fetch(`${url}/api/health`);
       if (res.ok) return;
       lastError = `health returned ${res.status}`;
     } catch (error) {
@@ -53,6 +56,25 @@ async function waitForBridge(timeoutMs: number): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`bridge subprocess not ready within ${timeoutMs}ms (${lastError})`);
+}
+
+/** SIGTERM a bridge subprocess, escalating to SIGKILL, and wait for its exit. */
+async function stopBridge(proc: ChildProcess | null): Promise<void> {
+  if (!proc || proc.exitCode !== null || proc.signalCode !== null) return;
+  proc.kill("SIGTERM");
+  await new Promise<void>((resolve) => {
+    const enforce = setTimeout(() => {
+      try {
+        proc.kill("SIGKILL");
+      } catch {
+        /* already gone */
+      }
+    }, 2000);
+    proc.once("exit", () => {
+      clearTimeout(enforce);
+      resolve();
+    });
+  });
 }
 
 beforeAll(async () => {
@@ -81,7 +103,7 @@ beforeAll(async () => {
 
   try {
     // 25s headroom: the bridge synchronously probes `pi --version` (up to 15s) before listen
-    await Promise.race([waitForBridge(25000), exited]);
+    await Promise.race([waitForBridge(baseUrl, 25000), exited]);
   } catch (error) {
     child.kill("SIGKILL");
     child = null;
@@ -92,22 +114,41 @@ beforeAll(async () => {
 afterAll(async () => {
   const proc = child;
   child = null;
-  if (!proc || proc.exitCode !== null || proc.signalCode !== null) return;
-  proc.kill("SIGTERM");
-  await new Promise<void>((resolve) => {
-    const enforce = setTimeout(() => {
-      try {
-        proc.kill("SIGKILL");
-      } catch {
-        /* already gone */
-      }
-    }, 2000);
-    proc.once("exit", () => {
-      clearTimeout(enforce);
-      resolve();
-    });
-  });
+  await stopBridge(proc);
 });
+
+/** Spawn a bridge from an arbitrary script directory (for doctored fixtures). */
+async function startTempBridge(
+  scriptDir: string,
+): Promise<{ child: ChildProcess; baseUrl: string; close: () => Promise<void> }> {
+  const port = await getFreePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const proc = spawn(process.execPath, [join(scriptDir, "bridge.mjs")], {
+    env: { ...process.env, PORT: String(port) },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stderrTail = "";
+  proc.stderr?.on("data", (chunk: Buffer) => {
+    stderrTail = (stderrTail + chunk.toString()).slice(-1000);
+  });
+  proc.stdout?.resume();
+  const exited = new Promise<never>((_, reject) => {
+    proc.once("exit", (code, signal) =>
+      reject(
+        new Error(
+          `bridge subprocess exited before readiness (code=${code} signal=${signal})${stderrTail ? " · " + stderrTail.trim() : ""}`,
+        ),
+      ),
+    );
+  });
+  try {
+    await Promise.race([waitForBridge(baseUrl, 25000), exited]);
+  } catch (error) {
+    proc.kill("SIGKILL");
+    throw error;
+  }
+  return { child: proc, baseUrl, close: () => stopBridge(proc) };
+}
 
 function parseSse(raw: string): Frame[] {
   return raw
@@ -212,6 +253,8 @@ describe("bridge subprocess (fixture backend)", () => {
       new Set(frames.filter((frame) => frame.type === type).map((frame) => frame.toolCallId));
     expect(frames.filter((frame) => frame.type === "TOOL_CALL_START")).toHaveLength(1);
     expect(toolCallIds("TOOL_CALL_START")).toEqual(new Set(["call_read_1"]));
+    // pi's id-less toolcall_delta records must still land on the right call (fix round 1)
+    expect(toolCallIds("TOOL_CALL_ARGS")).toEqual(new Set(["call_read_1"]));
     expect(toolCallIds("TOOL_CALL_END")).toEqual(new Set(["call_read_1"]));
     expect(toolCallIds("TOOL_CALL_RESULT")).toEqual(new Set(["call_read_1"]));
     expect(frames.filter((frame) => frame.type === "STEP_STARTED").map((frame) => frame.stepName)).toEqual([
@@ -312,4 +355,86 @@ describe("bridge subprocess (fixture backend)", () => {
     expect(res.status).toBe(404);
     expect(await res.json()).toMatchObject({ error: "not found" });
   });
+});
+
+/* ── bad-line robustness: the bridge against a doctored fixture copy ──
+ * The recorded fixture must stay untouched, so these tests copy the real
+ * bridge + mapper byte-for-byte into a temp dir and serve doctored fixtures. */
+
+describe("bridge subprocess (bad fixture lines)", () => {
+  let serverDir: string;
+  const repoLines = readFileSync(FIXTURE_PATH, "utf8")
+    .split("\n")
+    .filter((line) => line.trim());
+
+  beforeAll(() => {
+    serverDir = mkdtempSync(join(tmpdir(), "agui-bridge-badline-"));
+    writeFileSync(join(serverDir, "bridge.mjs"), readFileSync(BRIDGE_SCRIPT));
+    writeFileSync(join(serverDir, "pi-map.mjs"), readFileSync(PI_MAP_SCRIPT));
+    mkdirSync(join(serverDir, "fixtures"), { recursive: true });
+  });
+
+  afterAll(() => {
+    rmSync(serverDir, { recursive: true, force: true });
+  });
+
+  const runInstant = async (url: string) => {
+    const res = await fetch(`${url}/api/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "bad lines", backend: "fixture", instant: true }),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+    return parseSse(await res.text());
+  };
+
+  it("skips non-object fixture lines and still completes the recorded run", async () => {
+    // bad lines that parse fine but are not pi records (the crash case pre-fix)
+    const mixedFixture = [
+      "null",
+      repoLines[0],
+      "42",
+      repoLines[1],
+      "true",
+      ...repoLines.slice(2),
+      "[1,2]",
+      '"not a pi record"',
+    ].join("\n");
+    writeFileSync(join(serverDir, "fixtures", "pi-run.jsonl"), mixedFixture);
+
+    const { baseUrl, close } = await startTempBridge(serverDir);
+    try {
+      const frames = await runInstant(baseUrl);
+
+      expect(frames[frames.length - 1].type).toBe("RUN_FINISHED");
+      expect(frames[frames.length - 1].outcome).toEqual({ type: "success" });
+      expect(frames.filter((frame) => frame.type === "RUN_ERROR")).toHaveLength(0);
+      expect(frames.filter((frame) => frame.type === "TEXT_MESSAGE_CONTENT").map((frame) => frame.delta as string).join("")).toBe(
+        EXPECTED_REPLY,
+      );
+      expect(new Set(frames.filter((frame) => frame.type === "TOOL_CALL_ARGS").map((frame) => frame.toolCallId))).toEqual(
+        new Set(["call_read_1"]),
+      );
+
+      // the bridge process must have survived the run
+      const health = await fetch(`${baseUrl}/api/health`);
+      expect(((await health.json()) as Record<string, unknown>).ok).toBe(true);
+    } finally {
+      await close();
+    }
+  }, 15000);
+
+  it("answers RUN_ERROR when no fixture line maps to a pi record", async () => {
+    writeFileSync(join(serverDir, "fixtures", "pi-run.jsonl"), ["null", "42", "[1,2]", '"nope"'].join("\n"));
+
+    const { baseUrl, close } = await startTempBridge(serverDir);
+    try {
+      const frames = await runInstant(baseUrl);
+      // existing RUN_ERROR semantics: error frame, stream closed, no STATE_SNAPSHOT
+      expect(frames.map((frame) => frame.type)).toEqual(["RUN_ERROR"]);
+    } finally {
+      await close();
+    }
+  }, 15000);
 });
