@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AG-UI Studio — a protocol-native conversation surface</title>
+<meta name="description" content="A design prototype for AG-UI: streaming text, reasoning, tool calls, shared state and human-in-the-loop interrupts as first-class UI." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+
+<!-- ══ background layers ══════════════════════════════════════════════ -->
+<div class="bg" aria-hidden="true">
+  <div class="bg-orb bg-orb--mint"></div>
+  <div class="bg-orb bg-orb--cyan"></div>
+  <div class="bg-orb bg-orb--violet"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+  <div class="bg-vignette"></div>
+</div>
+
+<!-- ══ icon sprite ════════════════════════════════════════════════════ -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.5 13.7 9l5.5 1.7-5.5 1.7L12 18l-1.7-5.6L4.8 10.7 10.3 9 12 3.5Z"/><path d="M19 15.5 19.8 18l2.5.8-2.5.8L19 22l-.8-2.4-2.5-.8 2.5-.8.8-2.5Z"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0 5 5L21 12.6 12.6 21a3 3 0 0 1-4.2-4.2L16.8 8.4 14.7 6.3Z"/><path d="m9 4 1.4 1.4M4 9l1.4 1.4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M15 5.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 5.5 15"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6.7M20 5v6h-6"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 4v16"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 4.5A3 3 0 0 0 6.5 7.5a3 3 0 0 0-1 5.7A3 3 0 0 0 8 18.2a3 3 0 0 0 5.5 1.3V5.8a3 3 0 0 0-4-1.3Z"/><path d="M14.5 4.5a3 3 0 0 1 3 3 3 3 0 0 1 1 5.7 3 3 0 0 1-2.5 5 3 3 0 0 1-5.5 1.3"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v6c0 4.2-3 7.2-7 8.5-4-1.3-7-4.3-7-8.5V6l7-2.5Z"/><path d="m9.2 12 2 2 3.6-3.6"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3.5 8 4.5-8 4.5-8-4.5 8-4.5Z"/><path d="m4 12 8 4.5 8-4.5M4 16l8 4.5L20 16"/></symbol>
+  <symbol id="i-braces" viewBox="0 0 24 24"><path d="M9 4.5C7 4.5 7 7 7 9.5S6 12 4.5 12 7 12.5 7 14.5 7 19.5 9 19.5M15 4.5c2 0 2 2.5 2 5s1 2.5 2.5 2.5S17 12.5 17 14.5s0 5-2 5"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6.5L14 18l2.5-6H21"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/></symbol>
+  <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="M20 11.5 12.3 19a4.6 4.6 0 0 1-6.6-6.6l7.6-7.6a3 3 0 1 1 4.3 4.3l-7.6 7.6a1.6 1.6 0 0 1-2.2-2.2l7-7"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 20c-4 1.2-4-2.2-5.5-2.7M15 21v-3.4a2.9 2.9 0 0 0-.8-2.2c2.7-.3 5.3-1.4 5.3-6a4.7 4.7 0 0 0-1.3-3.3 4.4 4.4 0 0 0-.1-3.3s-1.2-.3-3.6 1.4a12 12 0 0 0-6.4 0C5.7 2.5 4.5 2.8 4.5 2.8a4.4 4.4 0 0 0-.1 3.3A4.7 4.7 0 0 0 3 9.4c0 4.6 2.6 5.7 5.3 6A2.9 2.9 0 0 0 7.5 17.6V21"/></symbol>
+  <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-command" viewBox="0 0 24 24"><path d="M9 6.5A2.5 2.5 0 1 0 6.5 9H9m0-2.5V9m0 6v2.5A2.5 2.5 0 1 1 6.5 15H9m-2.5 0H9m6-8.5A2.5 2.5 0 1 1 17.5 9H15m0-2.5V9m0 6v2.5A2.5 2.5 0 1 0 17.5 15H15m2.5 0H15"/></symbol>
+</svg>
+
+<!-- ══ app ════════════════════════════════════════════════════════════ -->
+<div class="app" id="app">
+
+  <!-- ── top bar ───────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><span></span></div>
+      <div class="brand-word">
+        <span class="brand-name">AG-UI</span>
+        <span class="brand-sub">Studio</span>
+      </div>
+      <span class="brand-version">protocol 1.0</span>
+    </div>
+
+    <div class="topbar-center">
+      <div class="conn" id="conn">
+        <span class="conn-dot"></span>
+        <span class="conn-label">SSE</span>
+        <span class="conn-sep">·</span>
+        <span class="conn-host mono" id="connHost">agent.local/run</span>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="run-pill" id="runPill" data-status="idle">
+        <span class="run-pill-dot"></span>
+        <span class="run-pill-text" id="runPillText">idle</span>
+        <span class="run-pill-meta mono" id="runPillMeta"></span>
+      </div>
+      <button class="icon-btn" id="btnReplay" title="Replay run" aria-label="Replay run"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      <button class="icon-btn" id="btnInspector" title="Toggle inspector" aria-label="Toggle inspector" aria-pressed="true"><svg class="icon"><use href="#i-panel"/></svg></button>
+      <a class="icon-btn" href="https://docs.ag-ui.com/introduction" target="_blank" rel="noreferrer" title="AG-UI docs" aria-label="AG-UI docs"><svg class="icon"><use href="#i-github"/></svg></a>
+      <div class="avatar" title="noexcs">N</div>
+    </div>
+  </header>
+
+  <!-- ── workspace ─────────────────────────────────────────────────── -->
+  <div class="workspace" id="workspace">
+
+    <!-- sidebar -->
+    <aside class="panel sidebar" id="sidebar">
+      <div class="side-top">
+        <button class="new-thread">
+          <svg class="icon"><use href="#i-plus"/></svg>
+          <span>New thread</span>
+          <kbd class="kbd">⌘N</kbd>
+        </button>
+        <label class="search">
+          <svg class="icon"><use href="#i-search"/></svg>
+          <input type="text" placeholder="Search threads" aria-label="Search threads" />
+        </label>
+      </div>
+
+      <div class="side-scroll">
+        <div class="side-group">
+          <div class="side-label">Threads</div>
+          <button class="thread is-active" data-thread="trip">
+            <span class="thread-dot thread-dot--mint"></span>
+            <span class="thread-body">
+              <span class="thread-title">Lisbon in three days</span>
+              <span class="thread-meta mono">thread_01J9F2 · 8m</span>
+            </span>
+          </button>
+          <button class="thread" data-thread="auth">
+            <span class="thread-dot thread-dot--violet"></span>
+            <span class="thread-body">
+              <span class="thread-title">Auth middleware refactor</span>
+              <span class="thread-meta mono">thread_01J9C7 · 1h</span>
+            </span>
+          </button>
+          <button class="thread" data-thread="digest">
+            <span class="thread-dot thread-dot--cyan"></span>
+            <span class="thread-body">
+              <span class="thread-title">Weekly research digest</span>
+              <span class="thread-meta mono">thread_01J8QX · 3h</span>
+            </span>
+          </button>
+          <button class="thread" data-thread="budget">
+            <span class="thread-dot thread-dot--amber"></span>
+            <span class="thread-body">
+              <span class="thread-title">Q2 budget review</span>
+              <span class="thread-meta mono">thread_01J7M1 · Tue</span>
+            </span>
+          </button>
+        </div>
+
+        <div class="side-group">
+          <div class="side-label">Agents</div>
+          <div class="agent-row is-active">
+            <div class="agent-orb agent-orb--mint"></div>
+            <div class="agent-body">
+              <span class="agent-name">AG-UI Assistant</span>
+              <span class="agent-meta mono">langgraph · sse</span>
+            </div>
+            <span class="agent-badge">live</span>
+          </div>
+          <div class="agent-row">
+            <div class="agent-orb agent-orb--violet"></div>
+            <div class="agent-body">
+              <span class="agent-name">Research Scout</span>
+              <span class="agent-meta mono">mastra · sse</span>
+            </div>
+          </div>
+          <div class="agent-row">
+            <div class="agent-orb agent-orb--amber"></div>
+            <div class="agent-body">
+              <span class="agent-name">Ops Agent</span>
+              <span class="agent-meta mono">adk · ws</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-foot">
+        <div class="usage">
+          <div class="usage-head">
+            <span class="usage-label">Context</span>
+            <span class="usage-num mono" id="usageNum">4.2k / 200k</span>
+          </div>
+          <div class="usage-track"><span id="usageBar" style="width:12%"></span></div>
+        </div>
+        <div class="user-row">
+          <div class="avatar avatar--sm">N</div>
+          <div class="user-body">
+            <span class="user-name">noexcs</span>
+            <span class="user-plan">Design preview</span>
+          </div>
+          <button class="icon-btn icon-btn--sm" aria-label="More"><svg class="icon"><use href="#i-more"/></svg></button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- chat -->
+    <main class="panel chat">
+      <div class="chat-head">
+        <div class="chat-id">
+          <div class="agent-orb agent-orb--mint agent-orb--lg">
+            <span class="agent-orb-pulse"></span>
+          </div>
+          <div class="chat-id-text">
+            <div class="chat-title">
+              <span>AG-UI Assistant</span>
+              <span class="verified" title="Connected agent"><svg class="icon"><use href="#i-check"/></svg></span>
+            </div>
+            <div class="chat-sub mono">gemini-2.5-flash · thread_01J9F2QP · run_7K2A</div>
+          </div>
+        </div>
+        <div class="chat-caps">
+          <span class="cap" title="Agent declares tool support"><svg class="icon"><use href="#i-wrench"/></svg>tools <b>4</b></span>
+          <span class="cap" title="REASONING_* events"><svg class="icon"><use href="#i-brain"/></svg>reasoning</span>
+          <span class="cap" title="STATE_SNAPSHOT / STATE_DELTA"><svg class="icon"><use href="#i-layers"/></svg>state</span>
+          <span class="cap cap--hitl" title="Human-in-the-loop interrupts"><svg class="icon"><use href="#i-shield"/></svg>interrupts</span>
+        </div>
+      </div>
+
+      <div class="chat-scroll" id="timeline" role="log" aria-live="polite" aria-label="Conversation">
+        <!-- messages are rendered here -->
+      </div>
+
+      <div class="composer-wrap">
+        <div class="suggestions" id="suggestions" hidden></div>
+        <form class="composer" id="composer" autocomplete="off">
+          <div class="composer-glow" aria-hidden="true"></div>
+          <textarea id="input" rows="1" placeholder="Message AG-UI Assistant…" aria-label="Message"></textarea>
+          <div class="composer-bar">
+            <div class="composer-tools">
+              <button type="button" class="tool-btn" aria-label="Attach"><svg class="icon"><use href="#i-paperclip"/></svg></button>
+              <button type="button" class="tool-btn" aria-label="Tools"><svg class="icon"><use href="#i-wrench"/></svg><span>4 tools</span></button>
+              <button type="button" class="tool-btn" aria-label="Command palette"><svg class="icon"><use href="#i-command"/></svg><span>Commands</span></button>
+            </div>
+            <div class="composer-right">
+              <span class="model-chip mono">gemini-2.5-flash</span>
+              <button type="submit" class="send" id="send" aria-label="Send message">
+                <svg class="icon"><use href="#i-send"/></svg>
+              </button>
+            </div>
+          </div>
+        </form>
+        <div class="composer-hint">
+          <span><kbd class="kbd">⏎</kbd> send · <kbd class="kbd">⇧⏎</kbd> newline · <kbd class="kbd">esc</kbd> stop</span>
+          <span class="hint-right mono">events stream over SSE</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- inspector -->
+    <aside class="panel inspector" id="inspector">
+      <div class="insp-head">
+        <div class="tabs" role="tablist">
+          <button class="tab is-active" data-tab="events" role="tab" aria-selected="true">Events<span class="tab-count mono" id="evCount">0</span></button>
+          <button class="tab" data-tab="state" role="tab" aria-selected="false">Shared state<span class="tab-count mono" id="stCount">v0</span></button>
+        </div>
+        <button class="icon-btn icon-btn--sm" id="btnClear" title="Clear log" aria-label="Clear log"><svg class="icon"><use href="#i-x"/></svg></button>
+      </div>
+
+      <div class="insp-pane" id="paneEvents">
+        <div class="ev-filters" id="evFilters">
+          <button class="filter is-active" data-filter="all">All</button>
+          <button class="filter" data-filter="lifecycle"><i class="fdot fdot--life"></i>Lifecycle</button>
+          <button class="filter" data-filter="text"><i class="fdot fdot--text"></i>Text</button>
+          <button class="filter" data-filter="tool"><i class="fdot fdot--tool"></i>Tool</button>
+          <button class="filter" data-filter="state"><i class="fdot fdot--state"></i>State</button>
+          <button class="filter" data-filter="reasoning"><i class="fdot fdot--reason"></i>Reasoning</button>
+          <button class="filter" data-filter="special"><i class="fdot fdot--special"></i>Special</button>
+        </div>
+        <div class="ev-list" id="evList"></div>
+        <div class="insp-foot">
+          <span class="mono" id="evFoot">0 events</span>
+          <span class="mono insp-transport">transport: mock SSE · 0.6×</span>
+        </div>
+      </div>
+
+      <div class="insp-pane is-hidden" id="paneState">
+        <div class="state-head">
+          <div>
+            <div class="state-title">Shared state</div>
+            <div class="state-sub mono">JSON Patch · RFC 6902</div>
+          </div>
+          <span class="state-version mono" id="stateVersion">v0</span>
+        </div>
+        <div class="state-tree" id="stateTree"></div>
+        <div class="insp-foot">
+          <span class="mono" id="stateFoot">no snapshot yet</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="assets/agui.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

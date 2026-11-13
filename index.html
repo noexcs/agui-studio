@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AG-UI Studio — conversation skins</title>
+    <meta name="description" content="A React design kit for AG-UI conversation surfaces: one protocol core, many independent skins." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.addEventListener("error", (e) => {
+        document.title = "ERR: " + (e.message || "?") + " @ " + (e.filename || "").split("/").pop() + ":" + e.lineno;
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        document.title = "REJ: " + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+      });
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

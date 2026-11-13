@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vite/
+*.log
+.DS_Store
+.env.local
+.env.*.local
+
+# iterative design-review screenshots; keep the README contact sheet only
+shots/*
+!shots/contact-sheet.png

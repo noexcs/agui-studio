@@ -1,0 +1,26 @@
+{
+  "name": "agui-skins",
+  "version": "0.1.0",
+  "description": "Five reusable AG-UI conversation surfaces (Aurora, Paper, Terminal, Brutalist, Classic) for React.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": ["**/*.css"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./i18n": "./src/i18n/index.ts",
+    "./contract": "./src/contract.ts",
+    "./skins/*": "./src/skins/*/index.tsx"
+  },
+  "files": ["src"],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "react-markdown": ">=9",
+    "remark-gfm": ">=4",
+    "lucide-react": ">=0.4"
+  },
+  "peerDependenciesMeta": {
+    "@radix-ui/react-tabs": { "optional": true },
+    "react-json-view-lite": { "optional": true }
+  }
+}
