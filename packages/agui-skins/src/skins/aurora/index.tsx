@@ -683,9 +683,9 @@ function InterruptBlock(props: {
 
   return (
     <div className="block">
-      <div className={`interrupt ${pending ? "" : "interrupt--resolved"} ${!live && pending ? "is-busy" : ""}`}>
+      <div className={`interrupt ${pending ? "" : entry.expired ? "interrupt--expired" : "interrupt--resolved"} ${!live && pending ? "is-busy" : ""}`}>
         <div className="interrupt-head">
-          <span className="interrupt-icon"><Icon name={pending ? "shield" : "check"} /></span>
+          <span className="interrupt-icon"><Icon name={pending ? "shield" : entry.expired ? "clock" : "check"} /></span>
           <span className="interrupt-kicker">{pending ? t("intr.paused") : t("intr.resolved")}</span>
           <span className="interrupt-time mono">{timeOf(entry.at)}</span>
         </div>
@@ -725,8 +725,8 @@ function InterruptBlock(props: {
 
         {!pending && (
           <div className="resolved-row">
-            <Icon name="check" />
-            <span>{entry.status === "approved" ? t("intr.approvedBy") : t("intr.deniedBy")}</span>
+            <Icon name={entry.expired ? "clock" : "check"} />
+            <span>{entry.status === "approved" ? t("intr.approvedBy") : entry.expired ? t("intr.expired") : t("intr.deniedBy")}</span>
             <time>{timeOf(entry.resolvedAt)}</time>
           </div>
         )}

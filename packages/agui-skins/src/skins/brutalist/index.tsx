@@ -241,9 +241,9 @@ function BruInterrupt({ entry, live }: { entry: InterruptEntry; live: boolean })
   const c = useConversation();
   const pending = entry.status === "pending";
   return (
-    <div className={`bru-approve ${pending ? "" : "bru-approve--done"}`}>
+    <div className={`bru-approve ${pending ? "" : entry.expired ? "bru-approve--expired" : "bru-approve--done"}`}>
       <div className="bru-approve-head">
-        {pending ? "▲ " + t("bru.approvalRequired") : "■ " + t("bru.resolved")}
+        {pending ? "▲ " + t("bru.approvalRequired") : entry.expired ? "■ " + t("bru.expired") : "■ " + t("bru.resolved")}
         <span>{timeOf(entry.at)}</span>
       </div>
       <h3>{entry.message}</h3>
@@ -263,7 +263,9 @@ function BruInterrupt({ entry, live }: { entry: InterruptEntry; live: boolean })
           <span className="bru-approve-note">{t("bru.paused")} · {live ? t("bru.waiting") : "interrupt"}</span>
         </div>
       ) : (
-        <div className="bru-approve-resolved">✓ {entry.status.toUpperCase()} BY YOU · {timeOf(entry.resolvedAt)}</div>
+        <div className={`bru-approve-resolved ${entry.expired ? "bru-approve-resolved--expired" : ""}`}>
+          {entry.expired ? timeOf(entry.resolvedAt) : `✓ ${entry.status.toUpperCase()} BY YOU · ${timeOf(entry.resolvedAt)}`}
+        </div>
       )}
     </div>
   );

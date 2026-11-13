@@ -472,12 +472,17 @@
 }
 .bru-approve--done { background: #e9e4d6; box-shadow: 4px 4px 0 var(--ink); }
 .bru-approve--done .bru-approve-head { background: #2f5d4e; color: #eafff3; }
+.bru-approve--expired { background: #e9e4d6; box-shadow: 4px 4px 0 var(--ink); }
+.bru-approve--expired .bru-approve-head { background: var(--red); color: #fff2ef; }
 .bru-approve-resolved {
   font-family: "IBM Plex Mono", monospace;
   font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: #1f4a3d;
+}
+.bru-approve-resolved--expired {
+  color: #7a1d0c;
 }
 
 .bru-error {

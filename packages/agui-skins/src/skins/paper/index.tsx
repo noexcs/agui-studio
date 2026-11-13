@@ -1,6 +1,6 @@
 ﻿import { useMemo, useRef, useState } from "react";
 import { useConversation } from "../../host";
-import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, ToolEntry } from "../../contract";
+import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration, estimateTokens } from "../../utils";
 import { plainText } from "../../utils";
 import { Icon } from "../../shared/Icon";
@@ -28,8 +28,8 @@ export function PaperPage() {
   const running = c.status === "running";
   const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
 
-  const letters = c.entries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt");
-  const notes = c.entries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan");
+  const letters = c.entries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt" || e.kind === "error");
+  const notes = c.entries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan" || e.kind === "subagent");
   const firstAssistant = useMemo(() => c.entries.find((e) => e.kind === "assistant")?.id, [c.entries]);
 
   function send() {
@@ -110,11 +110,22 @@ export function PaperPage() {
                     </article>
                   )}
 
+                  {entry.kind === "error" && (
+                    <article className="pap-error">
+                      <div className="pap-error-tag">
+                        <span className="pap-dotmark" />
+                        <span>{t("paper.errorLabel")}</span>
+                        <span className="pap-letter-meta">RUN_ERROR</span>
+                      </div>
+                      <p className="pap-error-msg">{entry.message}</p>
+                    </article>
+                  )}
+
                   {entry.kind === "interrupt" && (
-                    <div className={`pap-slip ${entry.status === "pending" ? "pap-slip--open" : "pap-slip--signed"}`}>
+                    <div className={`pap-slip ${entry.status === "pending" ? "pap-slip--open" : entry.expired ? "pap-slip--expired" : "pap-slip--signed"}`}>
                       <div className="pap-slip-head">
                         <span className="pap-slip-label">
-                          {entry.status === "pending" ? t("paper.authorisation") : entry.status === "approved" ? t("paper.signedLabel") : t("paper.declinedLabel")}
+                          {entry.status === "pending" ? t("paper.authorisation") : entry.expired ? t("paper.expiredLabel") : entry.status === "approved" ? t("paper.signedLabel") : t("paper.declinedLabel")}
                         </span>
                         <span className="pap-slip-no">{timeOf(entry.at)}</span>
                       </div>
@@ -142,7 +153,7 @@ export function PaperPage() {
                         </div>
                       ) : (
                         <div className="pap-slip-signed">
-                          {entry.status === "approved" ? t("paper.signed") : t("paper.declined")} · {timeOf(entry.resolvedAt)}
+                          {entry.status === "approved" ? t("paper.signed") : entry.expired ? t("paper.expired") : t("paper.declined")} · {timeOf(entry.resolvedAt)}
                         </div>
                       )}
                       {signing && entry.status === "pending" && (
@@ -184,6 +195,7 @@ export function PaperPage() {
                   {entry.kind === "reasoning" && <ReasoningNote entry={entry} />}
                   {entry.kind === "tool" && <ToolNote entry={entry} />}
                   {entry.kind === "plan" && <PlanNote entry={entry} />}
+                  {entry.kind === "subagent" && <SubagentNote entry={entry} />}
                 </div>
               ))}
 
@@ -308,6 +320,18 @@ function PlanNote({ entry }: { entry: PlanEntry }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function SubagentNote({ entry }: { entry: SubagentEntry }) {
+  return (
+    <div className="pap-note-body">
+      <div className="pap-note-label">
+        {t("paper.subagent")} <span className="pap-mono pap-toolname">{entry.name}</span>
+        <span className="pap-note-meta">{entry.status}</span>
+      </div>
+      {entry.detail && <p className="pap-quote">{plainText(entry.detail, 220)}</p>}
     </div>
   );
 }

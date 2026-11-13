@@ -501,6 +501,11 @@ svg { display: block; }
 }
 .interrupt--resolved { border-color: rgba(94, 240, 194, 0.24); background: linear-gradient(180deg, rgba(94, 240, 194, 0.07), transparent); box-shadow: none; }
 .interrupt--resolved::before { background: linear-gradient(90deg, transparent, rgba(94, 240, 194, 0.5), transparent); }
+.interrupt--expired { border-color: rgba(154, 164, 182, 0.24); background: linear-gradient(180deg, rgba(154, 164, 182, 0.07), transparent); box-shadow: none; }
+.interrupt--expired::before { background: linear-gradient(90deg, transparent, rgba(154, 164, 182, 0.45), transparent); }
+.interrupt--expired .interrupt-icon { background: rgba(154, 164, 182, 0.12); border-color: rgba(154, 164, 182, 0.28); color: var(--text-2); }
+.interrupt--expired .interrupt-kicker { color: var(--text-2); }
+.interrupt--expired .resolved-row { color: var(--text-2); }
 .interrupt-head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
 .interrupt-icon { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: rgba(255, 196, 107, 0.16); border: 1px solid rgba(255, 196, 107, 0.3); color: var(--amber); }
 .interrupt-icon .icon { width: 13px; height: 13px; }

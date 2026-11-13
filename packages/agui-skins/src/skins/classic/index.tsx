@@ -47,6 +47,10 @@ export function ClassicPage() {
     ? zh
       ? "出错"
       : "Error"
+    : c.status === "stopped"
+    ? zh
+      ? "已停止"
+      : "Stopped"
     : zh
     ? "空闲"
     : "Idle";
@@ -246,9 +250,9 @@ export function ClassicPage() {
               if (entry.kind === "interrupt") {
                 return (
                   <div key={entry.id} className="cl-row cl-row--wide">
-                    <div className={`cl-approval ${entry.status === "pending" ? "" : "is-resolved"}`}>
+                    <div className={`cl-approval ${entry.status === "pending" ? "" : entry.expired ? "cl-approval--expired" : "is-resolved"}`}>
                       <div className="cl-approval-head">
-                        <Icon name={entry.status === "pending" ? "shield" : "check"} size={14} />
+                        <Icon name={entry.status === "pending" ? "shield" : entry.expired ? "clock" : "check"} size={14} />
                         <strong>
                           {entry.status === "pending"
                             ? zh
@@ -258,6 +262,10 @@ export function ClassicPage() {
                             ? zh
                               ? "已批准"
                               : "Approved"
+                            : entry.expired
+                            ? zh
+                              ? "已过期"
+                              : "Expired"
                             : zh
                             ? "已拒绝"
                             : "Declined"}
@@ -302,8 +310,8 @@ export function ClassicPage() {
                         </>
                       ) : (
                         <p className="cl-approval-resolved">
-                          <Icon name="check" size={12} />
-                          {entry.status === "approved" ? t("intr.approvedBy") : t("intr.deniedBy")}
+                          <Icon name={entry.expired ? "clock" : "check"} size={12} />
+                          {entry.status === "approved" ? t("intr.approvedBy") : entry.expired ? t("intr.expired") : t("intr.deniedBy")}
                         </p>
                       )}
                     </div>

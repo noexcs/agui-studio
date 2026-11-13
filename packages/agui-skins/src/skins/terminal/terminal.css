@@ -527,6 +527,9 @@
   color: var(--green);
   font-size: 11px;
 }
+.term-box-resolved--expired {
+  color: var(--amber);
+}
 
 /* ── trace pane ───────────────────────────────────────────────────── */
 .term-trace {

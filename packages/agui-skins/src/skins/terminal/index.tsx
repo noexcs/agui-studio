@@ -247,7 +247,9 @@ function LogEntry({
             <span className="term-dim">run paused · resume[] required</span>
           </div>
         ) : (
-          <div className="term-box-resolved">✓ {entry.status} · {timeOf(entry.resolvedAt)}</div>
+          <div className={`term-box-resolved ${entry.expired ? "term-box-resolved--expired" : ""}`}>
+            {entry.expired ? "✗ " + t("term.expired") : "✓ " + entry.status} · {timeOf(entry.resolvedAt)}
+          </div>
         )}
       </div>
     );

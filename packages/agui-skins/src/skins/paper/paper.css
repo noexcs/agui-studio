@@ -185,6 +185,31 @@
 }
 .pap-letter-meta { margin-left: auto; font-family: var(--mono); letter-spacing: 0.02em; text-transform: none; font-size: 9px; }
 
+/* ── error dispatch (RUN_ERROR) ───────────────────────────────────── */
+.pap-error {
+  border: 1px solid rgba(180, 71, 44, 0.45);
+  background: rgba(180, 71, 44, 0.05);
+  padding: 14px 18px;
+}
+.pap-error-tag {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--vermilion);
+  font-weight: 600;
+}
+.pap-error-msg {
+  margin: 0;
+  font-family: var(--body-serif);
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--vermilion);
+}
+
 .pap-md {
   font-family: var(--body-serif);
   font-size: 15px;
@@ -324,6 +349,9 @@
 }
 .pap-slip--signed { border-style: solid; border-color: rgba(47, 93, 78, 0.35); background: #f2f6f1; }
 .pap-slip--signed .pap-slip-label { color: var(--green); }
+.pap-slip--expired { border-style: solid; border-color: var(--rule-2); background: var(--paper-2); }
+.pap-slip--expired .pap-slip-label { color: var(--ink-2); }
+.pap-slip--expired .pap-slip-signed { color: var(--ink-2); }
 .pap-slip-no { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
 .pap-slip-title {
   font-family: var(--serif);

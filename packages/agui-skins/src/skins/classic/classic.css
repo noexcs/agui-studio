@@ -205,6 +205,8 @@
 .cl-status--done i { background: var(--success); }
 .cl-status--error { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
 .cl-status--error i { background: var(--danger); }
+.cl-status--stopped { color: #52525b; background: #f4f4f5; border-color: #d4d4d8; }
+.cl-status--stopped i { background: #71717a; }
 
 .cl-btn {
   display: inline-flex;
@@ -451,6 +453,9 @@
 .cl-approval.is-resolved { border-color: var(--border); border-left-color: var(--success); background: #f9fafb; }
 .cl-approval-head { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--warn-text); margin-bottom: 6px; }
 .cl-approval.is-resolved .cl-approval-head { color: var(--success); }
+.cl-approval--expired { border-style: dashed; border-color: var(--border); border-left-color: #71717a; background: #f9fafb; }
+.cl-approval--expired .cl-approval-head { color: #52525b; }
+.cl-approval--expired .cl-approval-resolved { color: var(--muted); }
 .cl-approval-head strong { font-weight: 600; }
 .cl-approval-time { margin-left: auto; font-size: 10px; color: var(--faint); }
 .cl-approval-title { margin: 0 0 3px; font-size: 13.5px; font-weight: 600; color: var(--text); }
