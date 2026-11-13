@@ -22,8 +22,8 @@ export function PaperPage() {
   const scroller = useStickToBottom<HTMLDivElement>();
   const notesRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
-  const [signing, setSigning] = useState(false);
-  const [editJson, setEditJson] = useState("");
+  const [signingId, setSigningId] = useState<string | null>(null);
+  const [editJson, setEditJson] = useState<Record<string, string>>({});
   const input = useRef<HTMLTextAreaElement>(null);
   const running = c.status === "running";
   const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
@@ -45,21 +45,23 @@ export function PaperPage() {
       : pending;
     if (!target) return;
     const tool = c.entries.find((e): e is ToolEntry => e.kind === "tool" && e.id === target.toolCallId);
-    setEditJson(JSON.stringify(tool?.args ?? {}, null, 2));
-    setSigning(true);
+    // Draft state is keyed by interrupt id: several pending cards must never
+    // share an editor or submit each other's args.
+    setEditJson((prev) => ({ ...prev, [target.id]: JSON.stringify(tool?.args ?? {}, null, 2) }));
+    setSigningId(target.id);
   }
 
   function approve(id?: string) {
-    if (signing) {
+    if (id && signingId === id) {
       try {
-        c.resolveInterrupt(true, JSON.parse(editJson), id);
+        c.resolveInterrupt(true, JSON.parse(editJson[id] ?? ""), id);
       } catch {
         c.resolveInterrupt(true, undefined, id);
       }
     } else {
       c.resolveInterrupt(true, undefined, id);
     }
-    setSigning(false);
+    setSigningId(null);
   }
 
   return (
@@ -156,13 +158,17 @@ export function PaperPage() {
                           {entry.status === "approved" ? t("paper.signed") : entry.expired ? t("paper.expired") : t("paper.declined")} · {timeOf(entry.resolvedAt)}
                         </div>
                       )}
-                      {signing && entry.status === "pending" && (
+                      {entry.status === "pending" && signingId === entry.id && (
                         <div className="pap-amend">
                           <label>Terms, as submitted on resume</label>
-                          <textarea value={editJson} onChange={(e) => setEditJson(e.target.value)} spellCheck={false} />
+                          <textarea
+                            value={editJson[entry.id] ?? ""}
+                            onChange={(e) => setEditJson((prev) => ({ ...prev, [entry.id]: e.target.value }))}
+                            spellCheck={false}
+                          />
                           <div className="pap-slip-actions">
                             <button className="pap-sign" onClick={() => approve(entry.id)}>{t("paper.signEdit")}</button>
-                            <button className="pap-editlink" onClick={() => setSigning(false)}>Cancel</button>
+                            <button className="pap-editlink" onClick={() => setSigningId(null)}>Cancel</button>
                           </div>
                         </div>
                       )}
@@ -282,7 +288,9 @@ function ToolNote({ entry }: { entry: ToolEntry }) {
       </div>
       <pre className="pap-args">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
       {entry.status !== "done" ? (
-        <div className="pap-note-meta">{entry.status === "args" ? "args streaming…" : "executing…"}</div>
+        <div className="pap-note-meta">
+          {entry.status === "args" ? "args streaming…" : entry.status === "interrupted" ? t("chat.interrupted") : "executing…"}
+        </div>
       ) : (
         <div className="pap-result">
           <span className="pap-check">✓</span>

@@ -67,8 +67,6 @@ export function AuroraPage() {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [editJson, setEditJson] = useState("");
   const scroller = useStickToBottom<HTMLDivElement>();
   const eventList = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -92,30 +90,6 @@ export function AuroraPage() {
     if (!text || running) return;
     setDraft("");
     c.send(text);
-  }
-
-  function openEdit(id?: string) {
-    const target = id
-      ? c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.id === id && e.status === "pending")
-      : interrupt;
-    if (!target) return;
-    const tool = c.entries.find((e): e is ToolEntry => e.kind === "tool" && e.id === target.toolCallId);
-    setEditJson(JSON.stringify(tool?.args ?? {}, null, 2));
-    setEditing(true);
-  }
-
-  function approve(id?: string) {
-    if (editing) {
-      try {
-        c.resolveInterrupt(true, JSON.parse(editJson), id);
-      } catch {
-        setEditing(false);
-        c.resolveInterrupt(true, undefined, id);
-      }
-    } else {
-      c.resolveInterrupt(true, undefined, id);
-    }
-    setEditing(false);
   }
 
   return (
@@ -285,13 +259,8 @@ export function AuroraPage() {
                   open={!!openReasoning[entry.id]}
                   onToggleReasoning={() => setOpenReasoning((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
                   interrupt={entry.kind === "interrupt" ? interrupt : undefined}
-                  editing={editing}
-                  editJson={editJson}
-                  setEditJson={setEditJson}
-                  onApprove={() => approve(entry.id)}
-                  onDeny={() => { c.resolveInterrupt(false, undefined, entry.id); setEditing(false); }}
-                  onEdit={() => openEdit(entry.id)}
-                  onCancelEdit={() => setEditing(false)}
+                  onApprove={(editedArgs) => c.resolveInterrupt(true, editedArgs, entry.id)}
+                  onDeny={() => c.resolveInterrupt(false, undefined, entry.id)}
                 />
               ))}
 
@@ -460,13 +429,8 @@ function EntryView(props: {
   open: boolean;
   onToggleReasoning: () => void;
   interrupt?: InterruptEntry;
-  editing: boolean;
-  editJson: string;
-  setEditJson: (v: string) => void;
-  onApprove: () => void;
+  onApprove: (editedArgs?: Record<string, unknown>) => void;
   onDeny: () => void;
-  onEdit: () => void;
-  onCancelEdit: () => void;
 }) {
   const { entry } = props;
 
@@ -489,13 +453,8 @@ function EntryView(props: {
       <InterruptBlock
         entry={entry}
         live={props.interrupt?.id === entry.id}
-        editing={props.editing}
-        editJson={props.editJson}
-        setEditJson={props.setEditJson}
         onApprove={props.onApprove}
         onDeny={props.onDeny}
-        onEdit={props.onEdit}
-        onCancelEdit={props.onCancelEdit}
       />
     );
   }
@@ -589,6 +548,7 @@ function ToolBlock({ entry }: { entry: ToolEntry }) {
             <span className="tool-status">
               {entry.status === "args" && <><span className="spinner" />{t("chat.streamingArgs")}</>}
               {entry.status === "executing" && <><span className="spinner" />{t("chat.executing")}</>}
+              {entry.status === "interrupted" && <><Icon name="pause" />{t("chat.interrupted")}</>}
               {entry.status === "done" && <><Icon name="check" />{t("chat.done")}</>}
               {entry.status === "error" && <><Icon name="x" />{t("chat.failed")}</>}
             </span>
@@ -670,16 +630,37 @@ function PlanBlock({ entry }: { entry: PlanEntry }) {
 function InterruptBlock(props: {
   entry: InterruptEntry;
   live: boolean;
-  editing: boolean;
-  editJson: string;
-  setEditJson: (v: string) => void;
-  onApprove: () => void;
+  onApprove: (editedArgs?: Record<string, unknown>) => void;
   onDeny: () => void;
-  onEdit: () => void;
-  onCancelEdit: () => void;
 }) {
-  const { entry, live, editing } = props;
+  const c = useConversation();
+  const { entry, live } = props;
   const pending = entry.status === "pending";
+  // Draft state is per interrupt: with several pending cards each card must
+  // keep its own editor, its own input and its own submitted args.
+  const [editing, setEditing] = useState(false);
+  const [editJson, setEditJson] = useState("");
+
+  function openEdit() {
+    const tool = c.entries.find((e): e is ToolEntry => e.kind === "tool" && e.id === entry.toolCallId);
+    setEditJson(JSON.stringify(tool?.args ?? {}, null, 2));
+    setEditing(true);
+  }
+
+  function approve() {
+    if (editing) {
+      try {
+        props.onApprove(JSON.parse(editJson));
+      } catch {
+        setEditing(false);
+        props.onApprove(undefined);
+        return;
+      }
+    } else {
+      props.onApprove(undefined);
+    }
+    setEditing(false);
+  }
 
   return (
     <div className="block">
@@ -706,17 +687,17 @@ function InterruptBlock(props: {
         {pending && (
           <>
             <div className="interrupt-actions">
-              <button className="btn btn--approve" onClick={props.onApprove}><Icon name="check" />{t("intr.approve")}</button>
+              <button className="btn btn--approve" onClick={approve}><Icon name="check" />{t("intr.approve")}</button>
               <button className="btn btn--deny" onClick={props.onDeny}><Icon name="x" />{t("intr.deny")}</button>
-              <button className="btn btn--ghost" onClick={props.onEdit}>{t("intr.edit")}</button>
+              <button className="btn btn--ghost" onClick={openEdit}>{t("intr.edit")}</button>
               <span className="interrupt-hint">resume[0].payload</span>
             </div>
             {editing && (
               <div className="interrupt-edit">
-                <textarea value={props.editJson} onChange={(e) => props.setEditJson(e.target.value)} spellCheck={false} />
+                <textarea value={editJson} onChange={(e) => setEditJson(e.target.value)} spellCheck={false} />
                 <div className="interrupt-actions">
-                  <button className="btn btn--approve" onClick={props.onApprove}>{t("intr.approveEdited")}</button>
-                  <button className="btn btn--ghost" onClick={props.onCancelEdit}>{t("intr.cancel")}</button>
+                  <button className="btn btn--approve" onClick={approve}>{t("intr.approveEdited")}</button>
+                  <button className="btn btn--ghost" onClick={() => setEditing(false)}>{t("intr.cancel")}</button>
                 </div>
               </div>
             )}

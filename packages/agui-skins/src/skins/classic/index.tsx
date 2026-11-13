@@ -22,8 +22,8 @@ export function ClassicPage() {
   const [draft, setDraft] = useState("");
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
   const [openTools, setOpenTools] = useState<Record<string, boolean>>({});
-  const [editing, setEditing] = useState(false);
-  const [editJson, setEditJson] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editJson, setEditJson] = useState<Record<string, string>>({});
 
   const running = c.status === "running";
   const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
@@ -68,21 +68,23 @@ export function ClassicPage() {
       : pending;
     if (!target) return;
     const tool = c.entries.find((e): e is ToolEntry => e.kind === "tool" && e.id === target.toolCallId);
-    setEditJson(JSON.stringify(tool?.args ?? {}, null, 2));
-    setEditing(true);
+    // Draft state is keyed by interrupt id: several pending cards must never
+    // share an editor or submit each other's args.
+    setEditJson((prev) => ({ ...prev, [target.id]: JSON.stringify(tool?.args ?? {}, null, 2) }));
+    setEditingId(target.id);
   }
 
   function approve(id?: string) {
-    if (editing) {
+    if (id && editingId === id) {
       try {
-        c.resolveInterrupt(true, JSON.parse(editJson), id);
+        c.resolveInterrupt(true, JSON.parse(editJson[id] ?? ""), id);
       } catch {
         c.resolveInterrupt(true, undefined, id);
       }
     } else {
       c.resolveInterrupt(true, undefined, id);
     }
-    setEditing(false);
+    setEditingId(null);
   }
 
   const threadTitle = zh ? "里斯本三日" : "Lisbon in three days";
@@ -297,13 +299,17 @@ export function ClassicPage() {
                             </button>
                             <button className="cl-link" onClick={() => beginEdit(entry.id)}>{t("intr.edit")}</button>
                           </div>
-                          {editing && (
+                          {editingId === entry.id && (
                             <div className="cl-edit">
                               <label>{zh ? "提交参数（可修改后批准）" : "Arguments submitted on resume"}</label>
-                              <textarea value={editJson} onChange={(e) => setEditJson(e.target.value)} spellCheck={false} />
+                              <textarea
+                                value={editJson[entry.id] ?? ""}
+                                onChange={(e) => setEditJson((prev) => ({ ...prev, [entry.id]: e.target.value }))}
+                                spellCheck={false}
+                              />
                               <div className="cl-approval-actions">
                                 <button className="cl-btn cl-btn--primary" onClick={() => approve(entry.id)}>{t("intr.approveEdited")}</button>
-                                <button className="cl-btn" onClick={() => setEditing(false)}>{t("intr.cancel")}</button>
+                                <button className="cl-btn" onClick={() => setEditingId(null)}>{t("intr.cancel")}</button>
                               </div>
                             </div>
                           )}
@@ -526,6 +532,10 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
                 ? zh
                   ? "执行中"
                   : "Running"
+                : entry.status === "interrupted"
+                ? zh
+                  ? "已暂停"
+                  : "Paused"
                 : entry.status === "done"
                 ? zh
                   ? "已完成"

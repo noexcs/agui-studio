@@ -293,7 +293,9 @@ function ToolLine({ entry }: { entry: ToolEntry }) {
   return (
     <div className="term-tool">
       <button className="term-tool-head" onClick={() => setOpen(!open)}>
-        <span className="term-tool-mark">{entry.status === "done" ? "✓" : entry.status === "error" ? "✗" : "⟳"}</span>
+        <span className="term-tool-mark">
+          {entry.status === "done" ? "✓" : entry.status === "error" ? "✗" : entry.status === "interrupted" ? "‖" : "⟳"}
+        </span>
         <span className="term-tool-name">{entry.name}</span>
         <span className="term-dim term-tool-args">{entry.argsRaw.slice(0, 52)}</span>
         <span className="term-dim term-tool-time">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>

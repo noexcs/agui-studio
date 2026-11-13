@@ -51,7 +51,7 @@ export interface ReasoningEntry extends BaseEntry {
   encryptedValue?: string;
 }
 
-export type ToolStatus = "args" | "executing" | "done" | "error";
+export type ToolStatus = "args" | "executing" | "interrupted" | "done" | "error";
 
 export interface ToolEntry extends BaseEntry {
   kind: "tool";

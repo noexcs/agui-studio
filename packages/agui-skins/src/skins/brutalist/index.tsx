@@ -203,7 +203,9 @@ function BruTool({ entry }: { entry: ToolEntry }) {
     <div className="bru-tool">
       <div className="bru-tool-head">
         <span className="bru-tool-name">{entry.name.toUpperCase()}</span>
-        <span className="bru-tool-status">{entry.status === "done" ? "■ DONE" : "▶ " + entry.status.toUpperCase()}</span>
+        <span className="bru-tool-status">
+          {entry.status === "done" ? "■ DONE" : entry.status === "interrupted" ? "‖ INTERRUPTED" : "▶ " + entry.status.toUpperCase()}
+        </span>
       </div>
       <pre className="bru-tool-args">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
       {result?.results && (
