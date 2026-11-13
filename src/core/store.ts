@@ -46,7 +46,7 @@ export interface ReasoningEntry extends BaseEntry {
   encryptedValue?: string;
 }
 
-export type ToolStatus = "args" | "executing" | "done" | "error";
+export type ToolStatus = "args" | "executing" | "interrupted" | "done" | "error";
 
 export interface ToolEntry extends BaseEntry {
   kind: "tool";
@@ -370,7 +370,11 @@ export class ConversationStore {
   pendingInterrupt = (): InterruptEntry | undefined => this.pendingInterrupts()[0];
 
   hasConversation = () => this.entries.length > 0;
-  duration = () => (this.startedAt && this.endedAt ? this.endedAt - this.startedAt : this.endedAt ? Date.now() - this.startedAt : 0);
+  /** Elapsed run time: live `now - startedAt` while in flight, the frozen span once ended. */
+  duration = (): number => {
+    if (!this.startedAt) return 0;
+    return this.endedAt ? this.endedAt - this.startedAt : Date.now() - this.startedAt;
+  };
 
   private startEvents(events: TimedEvent[]) {
     this.handle = play(events, (event) => this.dispatch(event), { speed: this.speed });
@@ -519,6 +523,13 @@ export class ConversationStore {
         this.endedAt = time;
         if (outcome?.type === "interrupt") {
           this.status = "interrupted";
+          // The run is suspended: no further events will arrive for open tool
+          // calls until resume, so they must not keep reading as in flight.
+          for (const entry of this.entries) {
+            if (entry.kind === "tool" && (entry.status === "args" || entry.status === "executing")) {
+              entry.status = "interrupted";
+            }
+          }
           for (const intr of outcome.interrupts ?? []) {
             if (!intr || this.entries.some((e) => e.kind === "interrupt" && e.id === intr.id)) continue;
             this.entries.push({
