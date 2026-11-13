@@ -1,6 +1,7 @@
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { GridMotion } from "./GridMotion";
 import { Icon } from "../shared/Icon";
+import { QuickStart } from "../app/QuickStart";
 import type { Lang } from "../i18n";
 
 export interface HomeSkin {
@@ -219,6 +220,8 @@ export function Home(props: {
           <button className="quick-btn" onClick={props.onDocs}><Icon name="external-link" size={14} />{zh ? "协议文档" : "Protocol docs"}</button>
           <span className="quick-note">{props.piNote}</span>
         </div>
+
+        <QuickStart lang={props.lang} activeSkin={props.activeSkin} />
 
         <footer className="home-foot">
           <span>AG-UI Studio · protocol 1.0</span>

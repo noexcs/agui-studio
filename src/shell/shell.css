@@ -613,3 +613,246 @@
   .skin-tabs { grid-template-columns: minmax(0, 1fr); }
   .embed-tagline { display: none; }
 }
+
+/* ── quick start (get started + copy for ai) ──────────────────────── */
+/* nested inside .skins-section, directly before .home-foot */
+.quickstart-section {
+  position: relative;
+  margin-top: clamp(40px, 6vw, 72px);
+  background: var(--ink);
+  padding: clamp(56px, 8vw, 104px) clamp(24px, 6vw, 92px) clamp(48px, 6vw, 72px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.quickstart-section .section-head { margin-bottom: 18px; }
+.qs-intro {
+  margin: 0 0 28px;
+  max-width: 600px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.55);
+}
+.qs-steps {
+  list-style: none;
+  margin: 0 0 36px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start; /* cards hug their content — a short card must not stretch */
+  gap: 12px;
+}
+.qs-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+.qs-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.qs-step-no {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.35);
+}
+.qs-card-head strong { flex: 1; font-size: 12.5px; font-weight: 500; color: rgba(255, 255, 255, 0.9); }
+.qs-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.6);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.qs-copy-btn:hover { color: #fff; border-color: rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.07); }
+.qs-copy-btn.is-copied { color: #7ef2cd; border-color: rgba(94, 240, 194, 0.35); background: rgba(94, 240, 194, 0.08); }
+.qs-code {
+  flex: 1;
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: hidden;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.78);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.qs-code code { font-family: inherit; }
+/* highlight.js tokens — mapped onto the shell palette (mint accent on ink);
+   these classes are emitted by highlight.js, colors here are the "theme". */
+.qs-code .hljs-keyword,
+.qs-code .hljs-literal,
+.qs-code .hljs-built_in { color: #7ef2cd; }
+.qs-code .hljs-string { color: #ffce7b; }
+.qs-code .hljs-comment { color: rgba(255, 255, 255, 0.32); font-style: italic; }
+.qs-code .hljs-title,
+.qs-code .hljs-title.class_,
+.qs-code .hljs-title.function_,
+.qs-code .hljs-name { color: #9ecbff; }
+.qs-code .hljs-attr,
+.qs-code .hljs-property { color: #c0b3ff; }
+.qs-code .hljs-number { color: #ffa198; }
+.qs-code .hljs-tag { color: rgba(255, 255, 255, 0.7); }
+.qs-card-note {
+  margin: 0;
+  padding: 0 14px 12px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.qs-skins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+.qs-skin-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.25s, border-color 0.25s;
+}
+.qs-skin-row:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.24); }
+/* the currently selected skin — same accent underline pattern as .skin-tab.is-active */
+.qs-skin-row.is-current {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(94, 240, 194, 0.3);
+  box-shadow: inset 0 -2px 0 var(--accent, #5ef0c2);
+}
+.qs-skin-row.is-current:hover { border-color: rgba(94, 240, 194, 0.45); }
+.qs-skin-current {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 240, 194, 0.3);
+  background: rgba(94, 240, 194, 0.07);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7ef2cd;
+}
+.qs-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.qs-skin-name { font-size: 13px; font-weight: 500; flex: none; }
+.qs-skin-tagline {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.42);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qs-skin-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  transition: color 0.2s;
+}
+.qs-skin-row:hover .qs-skin-open { color: #fff; }
+
+/* copy for ai dropdown */
+.qs-copyai { position: relative; }
+.qs-copyai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.qs-copyai-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.35); color: #fff; }
+.qs-copyai-btn.is-copied { color: #7ef2cd; border-color: rgba(94, 240, 194, 0.4); background: rgba(94, 240, 194, 0.08); }
+.qs-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 208px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 16, 20, 0.96);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.95);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.qs-menu button,
+.qs-menu a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.qs-menu button:hover,
+.qs-menu a:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+.qs-menu-sep { height: 1px; margin: 5px 6px; background: rgba(255, 255, 255, 0.08); }
+
+@media (max-width: 1180px) {
+  /* the section head stacks here and the trigger sits at the left edge —
+     anchor the menu to the button's left so it can't leave the viewport */
+  .qs-menu { left: 0; right: auto; }
+}
+@media (max-width: 1080px) {
+  .qs-steps { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 430px) {
+  .qs-code { padding: 12px; font-size: 10.5px; }
+  .qs-skin-tagline { white-space: normal; }
+  .qs-skin-row { flex-wrap: wrap; }
+}
