@@ -307,6 +307,13 @@ export class ConversationStore {
       this.status = "stopped";
       this.entries.forEach((e) => {
         if ((e.kind === "assistant" || e.kind === "reasoning") && e.streaming) e.streaming = false;
+        // Same rule as the interrupt path below: a run that stops mid-tool will
+        // never deliver a TOOL_CALL_RESULT, so open tool calls must not keep
+        // reading as in flight. ToolStatus has no "stopped" member — the
+        // paused "interrupted" state is the aligned value.
+        if (e.kind === "tool" && (e.status === "args" || e.status === "executing")) {
+          e.status = "interrupted";
+        }
       });
       this.notify();
     }
