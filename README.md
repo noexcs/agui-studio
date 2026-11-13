@@ -485,7 +485,7 @@ npx serve dist   # 或任意静态服务器
 
 ## 皮肤自定义（每套皮肤独立）
 
-入口：首页内嵌舞台工具条「自定义」、全屏 dock 的滑杆按钮，或 `?customize=1`。
+首页舞台下方**默认展开**一块常驻的自定义面板（工具条「自定义」可收起）；全屏模式为 dock 抽屉。
 
 可调项：
 
@@ -497,6 +497,7 @@ npx serve dist   # 或任意静态服务器
 
 - 按皮肤分别保存在 `localStorage`（`agui-studio:tuning`），刷新不丢；
 - 支持分享链接：`?accent=%23db2777&anim=rise&density=compact`；
-- 面板内「恢复默认」清空当前皮肤覆盖。
+- 面板内「恢复默认」清空当前皮肤覆盖；
+- 预设：原始 / 冷调 / 暖调 / 紧凑，一键套用。
 
 实现位置：`packages/agui-skins/src/tuning.css`、`packages/agui-skins/src/host.tsx`（`tuning`/`skin` props）、`src/app/CustomizePanel.tsx`。

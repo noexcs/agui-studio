@@ -51,6 +51,7 @@ export function Home(props: {
   onFullscreen: () => void;
   onCustomize: () => void;
   customizing?: boolean;
+  customize?: ReactNode;
   children: ReactNode;
 }) {
   const zh = props.lang === "zh";
@@ -207,6 +208,8 @@ export function Home(props: {
           </div>
           <div className="embed-stage">{props.children}</div>
         </div>
+
+        {props.customize}
 
         <div className="quick-bar">
           <span className="quick-label">{zh ? "更多" : "More"}</span>

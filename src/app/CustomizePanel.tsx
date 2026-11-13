@@ -24,12 +24,28 @@ const DENSITIES: { value: SkinDensity; zh: string; en: string }[] = [
   { value: "compact", zh: "紧凑", en: "Compact" },
 ];
 
+const PRESETS: { zh: string; en: string; tuning: SkinTuning }[] = [
+  { zh: "原始", en: "Default", tuning: {} },
+  { zh: "冷调", en: "Cool", tuning: { accent: "#0891b2", textAnim: "fade", density: "comfortable" } },
+  { zh: "暖调", en: "Warm", tuning: { accent: "#d97706", textAnim: "fade", density: "comfortable" } },
+  { zh: "紧凑", en: "Compact", tuning: { accent: undefined, textAnim: "none", density: "compact" } },
+];
+
+function sameTuning(a: SkinTuning, b: SkinTuning) {
+  return (
+    (a.accent ?? undefined) === (b.accent ?? undefined) &&
+    (a.textAnim ?? "none") === (b.textAnim ?? "none") &&
+    (a.density ?? "comfortable") === (b.density ?? "comfortable")
+  );
+}
+
 export function CustomizePanel(props: {
   open: boolean;
+  variant?: "inline" | "drawer";
   skinName: string;
   tuning: SkinTuning;
   onChange: (next: SkinTuning) => void;
-  onClose: () => void;
+  onClose?: () => void;
 }) {
   const zh = isZh();
   if (!props.open) return null;
@@ -38,92 +54,121 @@ export function CustomizePanel(props: {
   const accent = props.tuning.accent;
   const anim = props.tuning.textAnim ?? "none";
   const density = props.tuning.density ?? "comfortable";
+  const inline = props.variant === "inline";
 
   return (
-    <aside className="customize" role="dialog" aria-label={zh ? "皮肤自定义" : "Customize skin"}>
+    <section className={`customize ${inline ? "customize--inline" : "customize--drawer"}`} aria-label={zh ? "皮肤自定义" : "Customize skin"}>
       <header className="customize-head">
         <div>
           <div className="customize-kicker">{zh ? "自定义" : "Customize"}</div>
           <h3>{props.skinName}</h3>
         </div>
-        <button className="customize-close" onClick={props.onClose} aria-label={zh ? "关闭" : "Close"}>
-          <Icon name="x" size={16} />
-        </button>
+        <div className="customize-head-actions">
+          <button className="customize-reset" onClick={() => props.onChange({})}>
+            <Icon name="rotate" size={13} />
+            {zh ? "恢复默认" : "Reset"}
+          </button>
+          {props.onClose && (
+            <button className="customize-close" onClick={props.onClose} aria-label={zh ? "收起" : "Collapse"}>
+              <Icon name={inline ? "chevron" : "x"} size={16} />
+            </button>
+          )}
+        </div>
       </header>
 
-      <section className="customize-section">
-        <div className="customize-label">
-          <span>{zh ? "主题色" : "Accent color"}</span>
-          <em>{accent ?? (zh ? "皮肤默认" : "skin default")}</em>
-        </div>
-        <div className="customize-swatches">
-          <button
-            className={`customize-swatch ${!accent ? "is-active" : ""}`}
-            onClick={() => set({ accent: undefined })}
-            title={zh ? "皮肤默认色" : "Skin default"}
-            aria-label={zh ? "默认" : "Default"}
-          >
-            <span className="customize-swatch-auto" />
-          </button>
-          {ACCENTS.map((item) => (
+      <div className="customize-grid">
+        <div className="customize-tile">
+          <div className="customize-label">
+            <span>{zh ? "主题色" : "Accent color"}</span>
+            <em>{accent ?? (zh ? "皮肤默认" : "skin default")}</em>
+          </div>
+          <div className="customize-swatches">
             <button
-              key={item.hex}
-              className={`customize-swatch ${accent === item.hex ? "is-active" : ""}`}
-              style={{ background: item.hex }}
-              onClick={() => set({ accent: item.hex })}
-              title={zh ? item.zh : item.en}
-              aria-label={zh ? item.zh : item.en}
-            />
-          ))}
-          <label className="customize-swatch customize-swatch--pick" title={zh ? "自定义颜色" : "Custom color"}>
-            <input type="color" value={accent ?? "#2563eb"} onChange={(event) => set({ accent: event.target.value })} />
-          </label>
-        </div>
-      </section>
-
-      <section className="customize-section">
-        <div className="customize-label">
-          <span>{zh ? "文字动画" : "Text animation"}</span>
-          <em>{TEXT_ANIMS.find((item) => item.value === anim)?.[zh ? "zh" : "en"]}</em>
-        </div>
-        <div className="customize-seg">
-          {TEXT_ANIMS.map((item) => (
-            <button
-              key={item.value}
-              className={`customize-segbtn ${anim === item.value ? "is-active" : ""}`}
-              onClick={() => set({ textAnim: item.value })}
+              className={`customize-swatch ${!accent ? "is-active" : ""}`}
+              onClick={() => set({ accent: undefined })}
+              title={zh ? "皮肤默认色" : "Skin default"}
+              aria-label={zh ? "默认" : "Default"}
             >
-              {zh ? item.zh : item.en}
+              <span className="customize-swatch-auto" />
             </button>
-          ))}
+            {ACCENTS.map((item) => (
+              <button
+                key={item.hex}
+                className={`customize-swatch ${accent === item.hex ? "is-active" : ""}`}
+                style={{ background: item.hex }}
+                onClick={() => set({ accent: item.hex })}
+                title={zh ? item.zh : item.en}
+                aria-label={zh ? item.zh : item.en}
+              />
+            ))}
+            <label className="customize-swatch customize-swatch--pick" title={zh ? "自定义颜色" : "Custom color"}>
+              <input type="color" value={accent ?? "#2563eb"} onChange={(event) => set({ accent: event.target.value })} />
+            </label>
+          </div>
         </div>
-      </section>
 
-      <section className="customize-section">
-        <div className="customize-label">
-          <span>{zh ? "信息密度" : "Density"}</span>
-          <em>{DENSITIES.find((item) => item.value === density)?.[zh ? "zh" : "en"]}</em>
+        <div className="customize-tile">
+          <div className="customize-label">
+            <span>{zh ? "文字动画" : "Text animation"}</span>
+            <em>{TEXT_ANIMS.find((item) => item.value === anim)?.[zh ? "zh" : "en"]}</em>
+          </div>
+          <div className="customize-seg">
+            {TEXT_ANIMS.map((item) => (
+              <button
+                key={item.value}
+                className={`customize-segbtn ${anim === item.value ? "is-active" : ""}`}
+                onClick={() => set({ textAnim: item.value })}
+              >
+                {zh ? item.zh : item.en}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="customize-seg">
-          {DENSITIES.map((item) => (
-            <button
-              key={item.value}
-              className={`customize-segbtn ${density === item.value ? "is-active" : ""}`}
-              onClick={() => set({ density: item.value })}
-            >
-              {zh ? item.zh : item.en}
-            </button>
-          ))}
-        </div>
-      </section>
 
-      <footer className="customize-foot">
-        <button className="customize-reset" onClick={() => props.onChange({})}>
-          <Icon name="rotate" size={13} />
-          {zh ? "恢复默认" : "Reset"}
-        </button>
-        <span className="customize-hint">{zh ? "改动实时生效，按皮肤单独保存" : "Live, saved per skin"}</span>
-      </footer>
-    </aside>
+        <div className="customize-tile">
+          <div className="customize-label">
+            <span>{zh ? "信息密度" : "Density"}</span>
+            <em>{DENSITIES.find((item) => item.value === density)?.[zh ? "zh" : "en"]}</em>
+          </div>
+          <div className="customize-seg">
+            {DENSITIES.map((item) => (
+              <button
+                key={item.value}
+                className={`customize-segbtn ${density === item.value ? "is-active" : ""}`}
+                onClick={() => set({ density: item.value })}
+              >
+                {zh ? item.zh : item.en}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="customize-tile">
+          <div className="customize-label">
+            <span>{zh ? "预设" : "Presets"}</span>
+            <em>{zh ? "一键套用" : "one click"}</em>
+          </div>
+          <div className="customize-presets">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.en}
+                className={`customize-preset ${sameTuning(props.tuning, preset.tuning) ? "is-active" : ""}`}
+                onClick={() => props.onChange(preset.tuning)}
+              >
+                {zh ? preset.zh : preset.en}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {inline ? (
+        <p className="customize-hint customize-hint--inline">
+          {zh ? "改动实时生效，按皮肤单独保存；可直接分享当前链接。" : "Changes apply live, saved per skin. The URL captures the current tuning."}
+        </p>
+      ) : (
+        <p className="customize-hint customize-hint--inline">{zh ? "改动实时生效，按皮肤单独保存" : "Live, saved per skin"}</p>
+      )}
+    </section>
   );
 }

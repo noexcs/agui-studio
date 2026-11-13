@@ -545,21 +545,83 @@ a {
 
 /* ── per-skin customize drawer ───────────────────────────────────── */
 .customize {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(12, 14, 18, 0.94);
+  backdrop-filter: blur(18px) saturate(140%);
+  color: #e9edf5;
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.customize--drawer {
   position: fixed;
   top: 86px;
   right: 20px;
   z-index: 70;
-  width: 300px;
+  width: 320px;
   max-height: calc(100vh - 120px);
   overflow: auto;
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(12, 14, 18, 0.94);
-  backdrop-filter: blur(18px) saturate(140%);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.customize--inline {
+  position: relative;
+  margin-top: 14px;
+}
+
+.customize-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customize-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 18px 26px;
+  padding-top: 15px;
+}
+
+.customize-tile {
+  min-width: 0;
+}
+
+.customize-tile .customize-label {
+  margin-bottom: 8px;
+}
+
+.customize-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.customize-preset {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #c6ccda;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.customize-preset:hover {
+  background: rgba(255, 255, 255, 0.07);
   color: #e9edf5;
-  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.customize-preset.is-active {
+  border-color: rgba(160, 185, 255, 0.45);
+  background: rgba(122, 162, 255, 0.14);
+  color: #cfd9ff;
+}
+
+.customize-hint--inline {
+  margin: 14px 0 0;
+  text-align: left;
 }
 
 .customize-head {

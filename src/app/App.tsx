@@ -42,7 +42,8 @@ export default function App() {
     if (accent || anim || density) seeded[skinId] = { accent, textAnim: anim, density };
     return seeded;
   });
-  const [customizeOpen, setCustomizeOpen] = useState(() => params.get("customize") === "1");
+  // the landing page shows the customizer inline and expanded by default
+  const [customizeOpen, setCustomizeOpen] = useState(() => params.get("customize") !== "0" && !params.get("full"));
   const [backend, setBackend] = useState<Backend>(initialBackend);
   const [lang, setLang] = useState<Lang>(initialLang);
   const [health, setHealth] = useState<BridgeHealth | null>(null);
@@ -153,6 +154,7 @@ export default function App() {
 
   function openFullscreen() {
     setFull(true);
+    setCustomizeOpen(false);
     window.scrollTo(0, 0);
   }
 
@@ -214,6 +216,17 @@ export default function App() {
       return all;
     });
   };
+
+  const inlineCustomize = (
+    <CustomizePanel
+      variant="inline"
+      open={customizeOpen}
+      skinName={getSkin(skinId).name}
+      tuning={tuning}
+      onChange={updateTuning}
+      onClose={() => setCustomizeOpen(false)}
+    />
+  );
 
   const skinStage = (
     <SkinHostProvider
@@ -294,6 +307,7 @@ export default function App() {
           staticDemo={STATIC_DEMO}
           onCustomize={() => setCustomizeOpen((v) => !v)}
           customizing={customizeOpen}
+          customize={inlineCustomize}
           onRunInfo={() => setRunInfoOpen(true)}
           onDocs={() => window.open("https://docs.ag-ui.com/introduction", "_blank", "noreferrer")}
           onFullscreen={openFullscreen}
@@ -318,13 +332,16 @@ export default function App() {
         onCopyState={copyState}
       />
 
-      <CustomizePanel
-        open={customizeOpen}
-        skinName={getSkin(skinId).name}
-        tuning={tuning}
-        onChange={updateTuning}
-        onClose={() => setCustomizeOpen(false)}
-      />
+      {full && (
+        <CustomizePanel
+          variant="drawer"
+          open={customizeOpen}
+          skinName={getSkin(skinId).name}
+          tuning={tuning}
+          onChange={updateTuning}
+          onClose={() => setCustomizeOpen(false)}
+        />
+      )}
 
       <RunDialog open={runInfoOpen} onOpenChange={setRunInfoOpen} rows={rows} onCopy={copyState} />
     </>
