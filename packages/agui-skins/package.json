@@ -5,22 +5,54 @@
   "type": "module",
   "license": "MIT",
   "sideEffects": ["**/*.css"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./i18n": "./src/i18n/index.ts",
-    "./contract": "./src/contract.ts",
-    "./skins/*": "./src/skins/*/index.tsx"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n.d.ts",
+      "import": "./dist/i18n.js",
+      "default": "./dist/i18n.js"
+    },
+    "./contract": {
+      "types": "./dist/contract.d.ts",
+      "import": "./dist/contract.js",
+      "default": "./dist/contract.js"
+    },
+    "./skins/*": {
+      "types": "./dist/skins/*.d.ts",
+      "import": "./dist/skins/*.js",
+      "default": "./dist/skins/*.js"
+    },
+    "./index.css": "./dist/index.css",
+    "./skins/*.css": "./dist/skins/*.css"
   },
-  "files": ["src"],
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup"
+  },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18",
     "react-markdown": ">=9",
     "remark-gfm": ">=4",
-    "lucide-react": ">=0.4"
+    "lucide-react": ">=0.4",
+    "@radix-ui/react-tabs": ">=1.2",
+    "react-json-view-lite": ">=2"
   },
   "peerDependenciesMeta": {
     "@radix-ui/react-tabs": { "optional": true },
     "react-json-view-lite": { "optional": true }
+  },
+  "devDependencies": {
+    "@radix-ui/react-tabs": "^1.2.1",
+    "@types/react": "^18.3.12",
+    "react-json-view-lite": "^2.5.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.6.3"
   }
 }

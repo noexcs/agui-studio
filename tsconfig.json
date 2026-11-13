@@ -16,7 +16,13 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    "paths": {
+      "@/*": ["src/*"],
+      "agui-skins": ["packages/agui-skins/src/index.ts"],
+      "agui-skins/i18n": ["packages/agui-skins/src/i18n/index.ts"],
+      "agui-skins/contract": ["packages/agui-skins/src/contract.ts"],
+      "agui-skins/skins/*": ["packages/agui-skins/src/skins/*/index.tsx"]
+    }
   },
   "include": ["src"]
 }
