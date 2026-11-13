@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getSkin, skins } from "agui-skins";
 import hljs from "highlight.js/lib/core";
 import typescript from "highlight.js/lib/languages/typescript";
 import bash from "highlight.js/lib/languages/bash";
 import type { Lang } from "../i18n";
 import { Icon } from "../shared/Icon";
+import { skinSwatches } from "../shell/skin-swatches";
 
 /* ─────────────────────────────────────────────────────────────────────
    快速上手 — the "use it in your own app" section.
@@ -331,45 +332,54 @@ export function QuickStart({ lang, activeSkin }: { lang: Lang; activeSkin: strin
 
       <ol className="qs-steps">
         <li className="qs-card">
-          <div className="qs-card-head">
+          <div className="qs-code-zone">
+            <HighlightedCode code={INSTALL_COMMAND} grammar="bash" />
+            <p className="qs-card-note">
+              {zh
+                ? "peer 依赖:react ≥18、react-dom ≥18、react-markdown ≥9、remark-gfm ≥4、lucide-react ≥0.4"
+                : "peers: react >=18, react-dom >=18, react-markdown >=9, remark-gfm >=4, lucide-react >=0.4"}
+            </p>
+          </div>
+          <div className="qs-card-foot">
             <span className="qs-step-no">01</span>
             <strong>{zh ? "安装" : "Install"}</strong>
+            <span className="qs-lang">bash</span>
             <CopyButton text={INSTALL_COMMAND} zh={zh} />
           </div>
-          <HighlightedCode code={INSTALL_COMMAND} grammar="bash" />
-          <p className="qs-card-note">
-            {zh
-              ? "peer 依赖:react ≥18、react-dom ≥18、react-markdown ≥9、remark-gfm ≥4、lucide-react ≥0.4"
-              : "peers: react >=18, react-dom >=18, react-markdown >=9, remark-gfm >=4, lucide-react >=0.4"}
-          </p>
         </li>
 
         <li className="qs-card">
-          <div className="qs-card-head">
+          <div className="qs-code-zone">
+            <HighlightedCode code={setupCode} grammar="tsx" />
+            <p className="qs-card-note">
+              {zh
+                ? `conversation 先给静态实现跑起来,再换成你的 store;皮肤换 <${Comp}.ChatPage /> 为任意皮肤入口。`
+                : `Start with a static conversation, then swap in your store; swap <${Comp}.ChatPage /> for any skin entry.`}
+            </p>
+          </div>
+          <div className="qs-card-foot">
             <span className="qs-step-no">02</span>
             <strong>{zh ? "最小可跑示例" : "Minimal setup"}</strong>
+            <span className="qs-lang">tsx</span>
             <CopyButton text={setupCode} zh={zh} />
           </div>
-          <HighlightedCode code={setupCode} grammar="tsx" />
-          <p className="qs-card-note">
-            {zh
-              ? `conversation 先给静态实现跑起来,再换成你的 store;皮肤换 <${Comp}.ChatPage /> 为任意皮肤入口。`
-              : `Start with a static conversation, then swap in your store; swap <${Comp}.ChatPage /> for any skin entry.`}
-          </p>
         </li>
 
         <li className="qs-card">
-          <div className="qs-card-head">
+          <div className="qs-code-zone">
+            <HighlightedCode code={LIVE_AGENT_CODE} grammar="tsx" />
+            <p className="qs-card-note">
+              {zh
+                ? "服务端按 SSE 返回 AG-UI 事件;dispatch 的归约逻辑参考本仓库 src/core/store.ts。"
+                : "The server answers with AG-UI events over SSE; see src/core/store.ts for the reducer."}
+            </p>
+          </div>
+          <div className="qs-card-foot">
             <span className="qs-step-no">03</span>
             <strong>{zh ? "接真实 agent" : "Connect a real agent"}</strong>
+            <span className="qs-lang">tsx</span>
             <CopyButton text={LIVE_AGENT_CODE} zh={zh} />
           </div>
-          <HighlightedCode code={LIVE_AGENT_CODE} grammar="tsx" />
-          <p className="qs-card-note">
-            {zh
-              ? "服务端按 SSE 返回 AG-UI 事件;dispatch 的归约逻辑参考本仓库 src/core/store.ts。"
-              : "The server answers with AG-UI events over SSE; see src/core/store.ts for the reducer."}
-          </p>
         </li>
       </ol>
 
@@ -384,9 +394,12 @@ export function QuickStart({ lang, activeSkin }: { lang: Lang; activeSkin: strin
               href={openHref(s.id)}
               title={`${s.name} — ${s.tagline}`}
               aria-current={isCurrent ? "true" : undefined}
-              style={isCurrent ? ({ "--accent": s.swatch[2] } as CSSProperties) : undefined}
             >
-              <i className="qs-swatch" style={{ background: s.swatch[2] }} />
+              <span className="qs-swatch-row" aria-hidden="true">
+                {skinSwatches(s.id, s.swatch[2]).map((color, i) => (
+                  <i key={i} style={{ background: color }} />
+                ))}
+              </span>
               <strong className="qs-skin-name">{s.name}</strong>
               {isCurrent && <span className="qs-skin-current">{zh ? "当前" : "current"}</span>}
               <span className="qs-skin-tagline">{s.tagline}</span>

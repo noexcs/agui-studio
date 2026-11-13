@@ -1,5 +1,6 @@
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { GridMotion } from "./GridMotion";
+import { skinSwatches } from "./skin-swatches";
 import { Icon } from "../shared/Icon";
 import { QuickStart } from "../app/QuickStart";
 import type { Lang } from "../i18n";
@@ -42,8 +43,9 @@ const GRID_ITEMS = [
 ].map(asset);
 
 /**
- * Landing page: Grid Motion hero, then skin buttons and an inline, interactive
- * stage — switching skins never leaves this page.
+ * Landing page: Grid Motion hero (violet-black colorway), skin cards with
+ * palette dots, and an inline, interactive stage — switching skins never
+ * leaves this page.
  */
 export function Home(props: {
   skins: HomeSkin[];
@@ -79,9 +81,9 @@ export function Home(props: {
   };
 
   return (
-    <div className="home" ref={homeRef}>
+    <div className={`home ${zh ? "home--zh" : ""}`} ref={homeRef}>
       <section className="home-hero">
-        <GridMotion items={GRID_ITEMS} rows={5} aspectRatio={1.35} gap={18} radius={16} angle={-14} speed={22} dim={0.5} spotlight={0.7} fade={0.55} />
+        <GridMotion items={GRID_ITEMS} rows={5} aspectRatio={1.35} gap={18} radius={16} angle={-14} speed={22} dim={0.45} spotlight={0.75} fade={0.55} />
         <div className="hero-shade" aria-hidden="true" />
 
         <header className="home-top">
@@ -111,13 +113,13 @@ export function Home(props: {
               <>
                 {countWord}种皮肤，
                 <br />
-                一个协议。
+                一个<em className="hero-serif-zh">协议</em>。
               </>
             ) : (
               <>
                 {countWord.charAt(0).toUpperCase() + countWord.slice(1)} skins,
                 <br />
-                one protocol.
+                one <em className="hero-serif">protocol.</em>
               </>
             )}
           </h1>
@@ -156,25 +158,38 @@ export function Home(props: {
         </div>
 
         <div className="skin-tabs" role="tablist" aria-label={zh ? "皮肤" : "Skins"}>
-          {props.skins.map((skin, index) => (
-            <button
-              key={skin.id}
-              role="tab"
-              aria-selected={skin.id === props.activeSkin}
-              className={`skin-tab ${skin.id === props.activeSkin ? "is-active" : ""}`}
-              style={{ "--accent": skin.accent } as CSSProperties}
-              onClick={() => props.onSkin(skin.id)}
-            >
-              <span className="skin-tab-no">0{index + 1}</span>
-              <span className="skin-tab-body">
+          {props.skins.map((skin, index) => {
+            const isCurrent = skin.id === props.activeSkin;
+            return (
+              <button
+                key={skin.id}
+                role="tab"
+                aria-selected={isCurrent}
+                className={`skin-tab ${isCurrent ? "is-active" : ""}`}
+                style={{ "--skin-accent": skin.accent } as CSSProperties}
+                onClick={() => props.onSkin(skin.id)}
+              >
+                <span className="skin-tab-meta">
+                  <span className="skin-tab-slug">{skin.id}</span>
+                  {isCurrent ? (
+                    <span className="skin-tab-status">{zh ? "当前" : "current"}</span>
+                  ) : (
+                    <span className="skin-tab-no">0{index + 1}</span>
+                  )}
+                </span>
                 <span className="skin-tab-name">
                   {skin.name}
                   <i style={{ background: skin.accent }} />
                 </span>
                 <span className="skin-tab-tagline">{tagline(skin)}</span>
-              </span>
-            </button>
-          ))}
+                <span className="skin-tab-swatches" aria-hidden="true">
+                  {skinSwatches(skin.id, skin.accent).map((color, i) => (
+                    <i key={i} style={{ background: color }} />
+                  ))}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="embed-shell">
@@ -220,7 +235,7 @@ export function Home(props: {
           <div className="embed-stage">{props.children}</div>
         </div>
 
-        {props.customize}
+        <div className="custom-zone">{props.customize}</div>
 
         <div className="quick-bar">
           <span className="quick-label">{zh ? "更多" : "More"}</span>
