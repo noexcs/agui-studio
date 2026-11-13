@@ -747,3 +747,19 @@ svg { display: block; }
 .skin-aurora .presence { display: flex; align-items: center; gap: 6px; }
 .skin-aurora .interrupt-desc { max-width: 62ch; }
 .skin-aurora .tool-args { max-height: 148px; }
+
+/* ── Aurora additions: keyboard focus (a11y) ─────────────────────────
+   High-contrast mint ring; the inputs that opt out of outline (composer,
+   search, interrupt editor) keep their :focus-within / :focus glow, so
+   this only has to win over the UA default on buttons, links and tabs. */
+.skin-aurora :focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(94, 240, 194, 0.14);
+}
+.skin-aurora .ev-row:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+}
+.skin-aurora .ev-row:focus-visible .ev-type { color: #fff; }

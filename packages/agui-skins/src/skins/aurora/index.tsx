@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useMemo, useRef, useState } from "react";
 import { useConversation } from "../../host";
 import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration, estimateTokens } from "../../utils";
@@ -68,14 +68,11 @@ export function AuroraPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const scroller = useStickToBottom<HTMLDivElement>();
-  const eventList = useRef<HTMLDivElement>(null);
+  // Inspector event list pins to the newest event with the same contract as
+  // the chat column: streaming appends no longer yank the reader back down
+  // once they have scrolled up to inspect history.
+  const eventList = useStickToBottom<HTMLDivElement>();
   const textarea = useRef<HTMLTextAreaElement>(null);
-
-
-  useEffect(() => {
-    const el = eventList.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [c.events.length, filter]);
 
   const events = useMemo(
     () => (filter === "all" ? c.events : c.events.filter((e) => categoryOf(e.event.type) === filter)),
@@ -365,12 +362,22 @@ export function AuroraPage() {
                     const firstTs = Date.parse(String(c.events[0]?.event.timestamp ?? ""));
                     const evTs = Date.parse(String(event.timestamp ?? ""));
                     const offset = isFinite(firstTs) && isFinite(evTs) ? "+" + ((evTs - firstTs) / 1000).toFixed(2) + "s" : "";
+                    const toggle = () => setSelected(selected === seq ? null : seq);
                     return (
                       <div
                         key={seq}
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={selected === seq}
                         className={`ev-row ${selected === seq ? "is-selected" : ""}`}
                         data-cat={cat}
-                        onClick={() => setSelected(selected === seq ? null : seq)}
+                        onClick={toggle}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+                            e.preventDefault();
+                            toggle();
+                          }
+                        }}
                       >
                         <div className="ev-main">
                           <div className="ev-top">

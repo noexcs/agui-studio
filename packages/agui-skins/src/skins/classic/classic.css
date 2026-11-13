@@ -687,3 +687,16 @@
 .cl-subagent-status--running { color: var(--accent); border-color: #bfdbfe; background: var(--accent-soft); }
 .cl-subagent-status--done { color: var(--accent); }
 .cl-subagent-status--error { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .cl-row,
+  .cl-caret,
+  .cl-md.is-streaming > :last-child::after {
+    animation: none !important;
+  }
+}

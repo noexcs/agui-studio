@@ -746,3 +746,33 @@
   margin-right: 10px;
 }
 .term-trace-toggle:hover { color: var(--green); border-color: var(--line-2); }
+
+/* ── keyboard focus (a11y): bright phosphor green, cursor-grade glow ── */
+.skin-term :focus-visible {
+  outline: 1.5px solid var(--green);
+  outline-offset: 2px;
+  box-shadow: 0 0 10px rgba(140, 255, 176, 0.4);
+}
+/* the composer textarea kills the UA outline with none — give it the same
+   phosphor treatment explicitly so keyboard focus is never invisible */
+.term-input-line textarea:focus-visible,
+.term-edit textarea:focus-visible {
+  outline: 1.5px solid var(--green);
+  outline-offset: 2px;
+  box-shadow: 0 0 10px rgba(140, 255, 176, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .term-led,
+  .term-blink,
+  .term-cursor,
+  .term-trace-live i,
+  .term-md.is-streaming > :last-child::after {
+    animation: none !important;
+  }
+}

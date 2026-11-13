@@ -718,3 +718,26 @@
   .bru-body { grid-template-columns: 176px minmax(0, 1fr); }
   .bru-side { display: none; }
 }
+
+/* ── keyboard focus (a11y): hard 3px ink border with a yellow halo so it
+   also reads on the dark side panel, where the outline inverts to yellow ── */
+.skin-brut :focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--yellow);
+}
+.skin-brut .bru-side :focus-visible {
+  outline-color: var(--yellow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .bru-md.is-streaming > :last-child::after,
+  .bru-empty-cursor {
+    animation: none !important;
+  }
+}

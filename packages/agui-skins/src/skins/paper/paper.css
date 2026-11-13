@@ -715,3 +715,22 @@
 .pap-plan-box { font-size: 10px; font-weight: 600; color: var(--green); }
 .pap-column { max-width: 664px; }
 .pap-slip-title { padding-right: 150px; }
+
+/* ── keyboard focus (a11y): vermilion hairline, a proofreader's mark ── */
+.skin-paper :focus-visible {
+  outline: 1.5px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .pap-status--running::before,
+  .pap-blink,
+  .pap-md.is-streaming > :last-child::after {
+    animation: none !important;
+  }
+}
