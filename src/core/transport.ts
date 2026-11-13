@@ -33,7 +33,7 @@ export class HttpAgentTransport {
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
-      const frames = buffer.split("\n\n");
+      const frames = buffer.split(/\r?\n\r?\n/);
       buffer = frames.pop() ?? "";
       for (const frame of frames) {
         const data = frame
@@ -41,7 +41,14 @@ export class HttpAgentTransport {
           .filter((line) => line.startsWith("data:"))
           .map((line) => line.slice(5).trim())
           .join("\n");
-        if (data) yield JSON.parse(data) as BaseEvent;
+        if (!data) continue;
+        const parsed: unknown = JSON.parse(data);
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          throw new Error("AG-UI transport error: SSE frame is not a JSON object");
+        }
+        // keep-alives and other type-less envelopes are ignorable, not errors
+        if (!("type" in parsed)) continue;
+        yield parsed as BaseEvent;
       }
     }
   }
