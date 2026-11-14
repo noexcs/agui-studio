@@ -1,0 +1,88 @@
+/* Shared protocol inspector trigger + panel. Neutral so any skin can host it. */
+.sk-proto-trigger {
+  position: absolute;
+  right: 14px;
+  bottom: 72px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(12, 14, 24, 0.84);
+  color: #e8e9f5;
+  font: inherit;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.9);
+}
+.sk-proto-trigger:hover { border-color: rgba(255, 255, 255, 0.3); }
+.sk-proto-trigger em { font-style: normal; opacity: 0.6; font-family: var(--sk-mono, ui-monospace, monospace); }
+
+.sk-proto-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(3, 4, 9, 0.55);
+  backdrop-filter: blur(3px);
+}
+.sk-proto-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(440px, 92%);
+  height: 100%;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0b0d16;
+  color: #e6e8f2;
+  box-shadow: -30px 0 80px -40px #000;
+}
+.sk-proto-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.sk-proto-tabs { display: flex; gap: 4px; }
+.sk-proto-tabs button {
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8e93ab;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.sk-proto-tabs button.is-active { background: rgba(255, 255, 255, 0.09); color: #f2f3fa; }
+.sk-proto-close { display: inline-flex; padding: 5px; border: 0; border-radius: 6px; background: transparent; color: #8e93ab; cursor: pointer; }
+.sk-proto-close:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.sk-proto-events { flex: 1; overflow: auto; padding: 8px 10px; }
+.sk-proto-event { border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.sk-proto-event summary { display: flex; align-items: baseline; gap: 8px; padding: 6px 2px; cursor: pointer; list-style: none; }
+.sk-proto-event summary::-webkit-details-marker { display: none; }
+.sk-proto-type { color: #b8b0ff; font-family: var(--sk-mono, ui-monospace, monospace); font-size: 10px; }
+.sk-proto-time { margin-left: auto; color: #70758b; font-size: 9.5px; }
+.sk-proto-event pre, .sk-proto-json {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #9fa4b9;
+  font-family: var(--sk-mono, ui-monospace, monospace);
+  font-size: 9.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
+}
+.sk-proto-json { margin: 12px; }
+.sk-proto-more { width: 100%; margin-bottom: 6px; padding: 5px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; background: none; color: #8e93ab; font: inherit; font-size: 10px; cursor: pointer; }
+.sk-proto-meta { overflow: auto; padding: 12px; }
+.sk-proto-meta dl { display: grid; gap: 7px; margin: 0 0 10px; }
+.sk-proto-meta dl > div { display: flex; justify-content: space-between; gap: 10px; font-size: 10.5px; }
+.sk-proto-meta dt { color: #70758b; text-transform: uppercase; letter-spacing: 0.08em; font-size: 9px; }
+.sk-proto-meta dd { margin: 0; color: #cfd3e4; font-family: var(--sk-mono, ui-monospace, monospace); }
+.sk-proto-empty { color: #70758b; font-size: 11px; padding: 12px; }
+
+.skin-paper, .skin-brut, .skin-classic, .skin-particle { position: relative; }

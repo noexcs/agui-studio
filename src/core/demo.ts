@@ -193,10 +193,33 @@ const T0 = Date.now();
 const at = (ms: number) => new Date(T0 + ms).toISOString();
 
 export function chunkWords(text: string, group = 2): string[] {
+  if (/[\u3400-\u9fff]/.test(text)) {
+    const chars = Array.from(text);
+    const out: string[] = [];
+    for (let i = 0; i < chars.length; i += group) out.push(chars.slice(i, i + group).join(""));
+    return out;
+  }
   const words = text.match(/\S+\s*/g) || [];
   const out: string[] = [];
   for (let i = 0; i < words.length; i += group) out.push(words.slice(i, i + group).join(""));
   return out;
+}
+
+function pushReasoning(b: Builder, id: string, text: string): void {
+  b.push(40, { type: EventType.REASONING_START, messageId: id });
+  b.push(30, { type: EventType.REASONING_MESSAGE_START, messageId: id, role: "reasoning" });
+  for (const piece of chunkWords(text, 2)) {
+    b.push(28, { type: EventType.REASONING_MESSAGE_CONTENT, messageId: id, delta: piece });
+  }
+  b.push(40, { type: EventType.REASONING_MESSAGE_END, messageId: id });
+  b.push(30, { type: EventType.REASONING_END, messageId: id });
+}
+
+function stretchEvents(events: TimedEvent[], targetMs: number): TimedEvent[] {
+  const total = events[events.length - 1]?.at ?? 0;
+  if (!total) return events;
+  const scale = targetMs / total;
+  return events.map((item) => ({ ...item, at: Math.round(item.at * scale) }));
 }
 
 export class Builder {
@@ -231,7 +254,7 @@ export function buildRunEvents(threadId = THREAD_ID, runId = RUN_FIRST, lang: La
   const b = new Builder(threadId, runId);
 
   b.push(0, { type: EventType.RUN_STARTED });
-  b.push(80, { type: EventType.STEP_STARTED, stepName: "understand" });
+  b.push(80, { type: EventType.STEP_STARTED, stepName: lang === "zh" ? "理解需求" : "Understand request" });
   b.push(80, { type: EventType.REASONING_START, messageId: "rsn_1" });
   b.push(40, { type: EventType.REASONING_MESSAGE_START, messageId: "rsn_1", role: "reasoning" });
   for (const piece of chunkWords(c.reasoning, 2)) {
@@ -241,8 +264,8 @@ export function buildRunEvents(threadId = THREAD_ID, runId = RUN_FIRST, lang: La
   b.push(50, { type: EventType.REASONING_END, messageId: "rsn_1" });
   b.push(90, { type: EventType.CUSTOM, name: "reasoning.summary", value: { duration_ms: 1840 } });
 
-  b.push(110, { type: EventType.STEP_FINISHED, stepName: "understand" });
-  b.push(70, { type: EventType.STEP_STARTED, stepName: "research" });
+  b.push(110, { type: EventType.STEP_FINISHED, stepName: lang === "zh" ? "理解需求" : "Understand request" });
+  b.push(70, { type: EventType.STEP_STARTED, stepName: lang === "zh" ? "查资料" : "Research options" });
   b.push(60, {
     type: EventType.TOOL_CALL_START,
     toolCallId: "tc_search",
@@ -264,8 +287,27 @@ export function buildRunEvents(threadId = THREAD_ID, runId = RUN_FIRST, lang: La
     }),
   });
 
-  b.push(80, { type: EventType.STEP_FINISHED, stepName: "research" });
-  b.push(60, { type: EventType.STEP_STARTED, stepName: "compose" });
+  pushReasoning(
+    b,
+    "rsn_2",
+    lang === "zh"
+      ? "火车与交通票的价格已经确认。下一步是把住宿压到可免费取消的价位，再向用户解释 hold 与正式下单的区别，不能把 hold 说成已预订。"
+      : "The rail and transport fares are confirmed. Next I need a free-cancellation rate, and I must explain the difference between a hold and an actual booking — a hold is not a confirmed reservation."
+  );
+
+  b.push(100, { type: EventType.TEXT_MESSAGE_START, messageId: "msg_asst_0", role: "assistant" });
+  for (const piece of chunkWords(
+    lang === "zh"
+      ? "我先确认了辛特拉火车和 72 小时交通票的价格。按你们两人、五月中旬、慢节奏的偏好，我会把住宿控制在每晚 €166 左右，再留一点预算给观景台和蛋挞。"
+      : "I checked the Sintra train and the 72-hour transport pass. For two travellers, mid-May and a slow pace, I will keep lodging around €166/night so there is room for the miradouros and pastéis.",
+    2
+  )) {
+    b.push(34, { type: EventType.TEXT_MESSAGE_CONTENT, messageId: "msg_asst_0", delta: piece });
+  }
+  b.push(80, { type: EventType.TEXT_MESSAGE_END, messageId: "msg_asst_0" });
+
+  b.push(80, { type: EventType.STEP_FINISHED, stepName: lang === "zh" ? "查资料" : "Research options" });
+  b.push(60, { type: EventType.STEP_STARTED, stepName: lang === "zh" ? "编写方案" : "Compose plan" });
   b.push(100, {
     type: EventType.STATE_SNAPSHOT,
     snapshot: {
@@ -317,6 +359,25 @@ export function buildRunEvents(threadId = THREAD_ID, runId = RUN_FIRST, lang: La
   b.args("tc_book", c.bookingArgs, 24);
   b.push(70, { type: EventType.TOOL_CALL_END, toolCallId: "tc_book" });
 
+  pushReasoning(
+    b,
+    "rsn_3",
+    lang === "zh"
+      ? "酒店与预算已经对齐，现在可以准备 hold。请求审批时要明确总价、取消政策和 hold 的截止时间。"
+      : "The hotel and budget now line up, so I can prepare the hold. The approval request should state the total, the cancellation policy and the hold deadline."
+  );
+
+  b.push(110, { type: EventType.TEXT_MESSAGE_START, messageId: "msg_asst_1", role: "assistant" });
+  for (const piece of chunkWords(
+    lang === "zh"
+      ? "酒店我选的是可免费取消的房型：两晚 €332，入住前两天可退。现在我先做一个 hold，你确认价格后再正式下单；如果预算想换更低一档，我也可以退回去重选。"
+      : "I picked the free-cancellation rate: €332 for two nights, refundable until two days before check-in. I will place a hold now and only book after you confirm the price; if you want a cheaper tier I can step back and reselect.",
+    2
+  )) {
+    b.push(34, { type: EventType.TEXT_MESSAGE_CONTENT, messageId: "msg_asst_1", delta: piece });
+  }
+  b.push(80, { type: EventType.TEXT_MESSAGE_END, messageId: "msg_asst_1" });
+
   b.push(260, {
     type: EventType.RUN_FINISHED,
     outcome: {
@@ -340,7 +401,7 @@ export function buildRunEvents(threadId = THREAD_ID, runId = RUN_FIRST, lang: La
     },
   });
 
-  return b.list;
+  return stretchEvents(b.list, 14_000);
 }
 
 /** Phase 2: resume the interrupted run with the human decision. */
@@ -387,6 +448,18 @@ export function buildResumeEvents(
       : [{ op: "add", path: "/notes/-", value: lang === "zh" ? "住宿留空——用户拒绝了预订" : "lodging left open — user declined hold" }],
   });
 
+  pushReasoning(
+    b,
+    "rsn_4",
+    lang === "zh"
+      ? approved
+        ? "审批结果已通过。先写入订单与预算，再向用户确认取消政策和后续需要手动确认的项。"
+        : "审批被拒绝。不要写入订单，保持预算与状态一致，并明确告诉用户住宿仍留空。"
+      : approved
+        ? "The approval came back positive. Commit the booking and budget first, then confirm the cancellation policy and the remaining manual checks."
+        : "The approval was declined. Do not commit the booking; keep budget and state consistent and say clearly that lodging stays open."
+  );
+
   b.push(110, { type: EventType.TEXT_MESSAGE_START, messageId: "msg_asst_2", role: "assistant" });
   chunkWords(answer, 2).forEach((piece, i) => {
     b.push(24 + (i % 3) * 5, { type: EventType.TEXT_MESSAGE_CONTENT, messageId: "msg_asst_2", delta: piece });
@@ -406,9 +479,9 @@ export function buildResumeEvents(
       { op: "replace", path: "/bookings/0/status", value: approved ? "confirmed" : "cancelled" },
     ],
   });
-  b.push(110, { type: EventType.STEP_FINISHED, stepName: "compose" });
+  b.push(110, { type: EventType.STEP_FINISHED, stepName: lang === "zh" ? "编写方案" : "Compose plan" });
   b.push(80, { type: EventType.RUN_FINISHED, outcome: { type: "success" } });
   b.push(220, { type: EventType.CUSTOM, name: "suggestions", value: c.suggestions });
 
-  return b.list;
+  return stretchEvents(b.list, 22_000);
 }

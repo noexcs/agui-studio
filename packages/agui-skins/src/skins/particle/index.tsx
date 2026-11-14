@@ -13,6 +13,7 @@ import type {
   ToolEntry,
 } from "../../contract";
 import { Markdown, clock, timeOf } from "../../shared/Markdown";
+import { ProtocolDrawer } from "../../shared/ProtocolDrawer";
 import { ToolResult } from "../../shared/ToolResult";
 import { planRawText, planView } from "../../shared/plan";
 import { displayText, entriesOf, isEmptyState, safeJson } from "../../shared/safe";
@@ -92,6 +93,7 @@ export function ParticlePage() {
         <div className="pt-main">
           <main className="pt-transcript" ref={scroller} role="log" aria-live="polite" aria-label="Conversation">
             {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
+            <div className="pt-feed">
             {visible.map((entry) => {
               const row = renderEntry(entry, {
                 zh,
@@ -106,13 +108,18 @@ export function ParticlePage() {
                 approve,
                 plugins,
               });
-              return row ? <div key={entry.id}>{row}</div> : null;
+              return row ? (
+                <div key={entry.id} className="pt-entry" data-kind={entry.kind}>
+                  {row}
+                </div>
+              ) : null;
             })}
             {!c.entries.length && (
               <p className="pt-empty">
                 {zh ? "问点什么，粒子会先替你把答案聚拢。" : "Ask something — the field will gather the answer first."}
               </p>
             )}
+            </div>
           </main>
 
           <aside className="pt-aside">
@@ -214,6 +221,7 @@ export function ParticlePage() {
           </div>
         </footer>
       </div>
+      <ProtocolDrawer />
     </div>
   );
 }

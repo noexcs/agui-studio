@@ -11,47 +11,64 @@
   width: 100%;
 }
 
-/* ── text animation (applies to markdown blocks as they appear) ──── */
-/* markdown blocks + text blocks opted in by the skins (data-skin-text) */
-.sk-tune[data-sk-text-anim="fade"] :is(.md > *, [data-skin-text]:not(.md)) {
-  animation: sk-text-fade calc(0.34s * var(--sk-motion, 1)) ease both;
+/* ── universal text output (token-level, works while streaming) ──── */
+.sk-text-token {
+  display: inline-block;
+  white-space: pre-wrap;
 }
 
-.sk-tune[data-sk-text-anim="rise"] :is(.md > *, [data-skin-text]:not(.md)) {
-  animation: sk-text-rise calc(0.36s * var(--sk-motion, 1)) cubic-bezier(0.2, 0.7, 0.2, 1) both;
+.sk-tune[data-sk-text-anim="fade"] .sk-text-token {
+  animation: sk-token-fade calc(0.3s * var(--sk-motion, 1)) ease both;
 }
 
-.sk-tune[data-sk-text-anim="blur"] :is(.md > *, [data-skin-text]:not(.md)) {
-  animation: sk-text-blur calc(0.42s * var(--sk-motion, 1)) ease both;
+.sk-tune[data-sk-text-anim="rise"] .sk-text-token {
+  animation: sk-token-rise calc(0.32s * var(--sk-motion, 1)) cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-.sk-tune[data-sk-text-anim="typewriter"] :is(.md > *, [data-skin-text]:not(.md)) {
-  animation: sk-text-type calc(0.5s * var(--sk-motion, 1)) steps(18, end) both;
-  will-change: clip-path;
+.sk-tune[data-sk-text-anim="blur"] .sk-text-token {
+  animation: sk-token-blur calc(0.36s * var(--sk-motion, 1)) ease both;
 }
 
-@keyframes sk-text-fade {
+.sk-tune[data-sk-text-anim="typewriter"] .sk-text-token {
+  animation: sk-token-type calc(0.26s * var(--sk-motion, 1)) steps(2, end) both;
+}
+
+/* non-markdown text blocks still get a block-level reveal */
+.sk-tune[data-sk-text-anim="fade"] [data-skin-text]:not(.md) {
+  animation: sk-token-fade calc(0.3s * var(--sk-motion, 1)) ease both;
+}
+.sk-tune[data-sk-text-anim="rise"] [data-skin-text]:not(.md) {
+  animation: sk-token-rise calc(0.32s * var(--sk-motion, 1)) cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.sk-tune[data-sk-text-anim="blur"] [data-skin-text]:not(.md) {
+  animation: sk-token-blur calc(0.36s * var(--sk-motion, 1)) ease both;
+}
+.sk-tune[data-sk-text-anim="typewriter"] [data-skin-text]:not(.md) {
+  animation: sk-token-type calc(0.26s * var(--sk-motion, 1)) steps(2, end) both;
+}
+
+@keyframes sk-token-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes sk-text-blur {
-  from { opacity: 0; filter: blur(7px); transform: translateY(2px); }
-  to { opacity: 1; filter: blur(0); transform: none; }
-}
-
-@keyframes sk-text-type {
-  from { clip-path: inset(0 100% 0 0); opacity: 0.8; }
-  to { clip-path: inset(0 0 0 0); opacity: 1; }
-}
-
-@keyframes sk-text-rise {
+@keyframes sk-token-rise {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 
+@keyframes sk-token-blur {
+  from { opacity: 0; filter: blur(6px); transform: translateY(1px); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+
+@keyframes sk-token-type {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .sk-tune :is(.md > *, [data-skin-text]) { animation: none !important; }
+  .sk-tune :is(.md > *, [data-skin-text], .sk-text-token) { animation: none !important; }
 }
 
 /* ── density ─────────────────────────────────────────────────────── */

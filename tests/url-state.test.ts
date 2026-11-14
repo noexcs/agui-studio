@@ -38,8 +38,8 @@ describe("buildAppQuery", () => {
   });
 
   it("carries a non-default demo scenario", () => {
-    expect(buildAppQuery({ ...base, scenario: "approvals", tuning: {} })).toBe(
-      "skin=classic&lang=zh&scenario=approvals"
+    expect(buildAppQuery({ ...base, scenario: "travel", tuning: {} })).toBe(
+      "skin=classic&lang=zh&scenario=travel"
     );
     expect(buildAppQuery({ ...base, scenario: "agents", tuning: {} })).toBe("skin=classic&lang=zh");
   });

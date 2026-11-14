@@ -247,13 +247,14 @@ describe("Fix C: dead buttons", () => {
     expect(container.querySelector('button[title="Close"]')).toBeNull();
   });
 
-  it("aurora: Retry replays the run (aligned with classic)", () => {
+  it("aurora: replay/retry is owned by the outer shell, not the skin", () => {
     const store = track(makeFixture() as unknown as ConversationStore);
-    const spy = vi.spyOn(store, "replay").mockImplementation(() => {});
     const { container } = renderSkin("aurora", store, "en");
-    fireEvent.click(buttonByText(container, t("chat.retry")));
-    expect(spy).toHaveBeenCalledTimes(1);
-    spy.mockRestore();
+    const retryButtons = Array.from(container.querySelectorAll("button")).filter((button) =>
+      (button.textContent ?? "").includes(t("chat.retry"))
+    );
+    expect(retryButtons).toHaveLength(0);
+    expect(container.querySelector('[title="Replay run"]')).toBeNull();
   });
 });
 

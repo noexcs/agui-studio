@@ -321,11 +321,10 @@ export default function App() {
   const inlineCustomize = (
     <CustomizePanel
       variant="inline"
-      open={customizeOpen}
+      open={true}
       skinName={getSkin(skinId).name}
       tuning={tuning}
       onChange={updateTuning}
-      onClose={() => setCustomizeOpen(false)}
     />
   );
 
@@ -350,8 +349,13 @@ export default function App() {
         <div className={`studio-full lang-${lang}`}>
           <div className="stage-full">{skinStage}</div>
           <div className="dock" role="toolbar" aria-label="Studio">
-            <button className="dock-btn" onClick={() => setFull(false)} title={zh ? "回到首页" : "Back to landing"}>
-              <Icon name="layers" size={14} />
+            <button
+              className="dock-btn dock-btn--label"
+              onClick={() => setFull(false)}
+              title={zh ? "退出全屏（Esc）" : "Exit full screen (Esc)"}
+            >
+              <Icon name="arrow-left" size={14} />
+              <span>{zh ? "退出" : "exit"}</span>
             </button>
             <span className="dock-sep" />
             {skins.map((s) => (
@@ -415,12 +419,11 @@ export default function App() {
           scenario={scenario}
           onScenario={setScenario}
           health={health}
-          onCustomize={() => setCustomizeOpen((v) => !v)}
-          customizing={customizeOpen}
           agentEndpoint={agentEndpoint?.url}
           onConfigureAgent={configureAgent}
           customize={inlineCustomize}
           onRunInfo={() => setRunInfoOpen(true)}
+          onReplay={() => store.replay()}
           onDocs={() => window.open("https://docs.ag-ui.com/introduction", "_blank", "noreferrer")}
           onFullscreen={openFullscreen}
         >

@@ -1027,3 +1027,6 @@
   border: 1px solid var(--hairline-subtle);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
 }
+
+.dock-btn--label { width: auto; gap: 6px; padding: 0 10px; }
+.dock-btn--label span { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }

@@ -11,6 +11,7 @@ import { Icon } from "../../shared/Icon";
 import { t } from "../../i18n";
 import { useSkinBranding } from "../../host";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { ProtocolDrawer } from "../../shared/ProtocolDrawer";
 import { pendingInterrupts } from "../../shared/interrupts";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
@@ -333,6 +334,7 @@ export function PaperPage() {
           </div>
         </footer>
       </div>
+      <ProtocolDrawer />
     </div>
   );
 }

@@ -1,6 +1,8 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useSkinTuning } from "../host";
+import { createTextTokenRehype } from "./textEffect";
 
 /**
  * Assistant markdown, rendered by react-markdown + remark-gfm instead of a
@@ -18,10 +20,17 @@ export const Markdown = memo(function Markdown({
   text: string;
   className?: string;
 }) {
+  const effect = useSkinTuning().textAnim ?? "none";
+  const rehypePlugins = useMemo(
+    () => (effect === "none" ? [] : [createTextTokenRehype(effect === "typewriter" ? "char" : "word")]),
+    [effect]
+  );
+
   return (
     <div className={className} data-skin-text="">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={rehypePlugins as never}
         components={{
           a: (props) => <a {...props} target="_blank" rel="noreferrer" />,
         }}

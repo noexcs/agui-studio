@@ -491,7 +491,7 @@ pnpm test
 - **子 agent 事件**：`SUBAGENT_STARTED / FINISHED / ERROR` 映射为 `subagent` entry；Aurora/Terminal 渲染在对话流里，Classic 有独立样式，Paper/Brutalist 忽略不报错；
 - **activityType 可插拔**：`PlanEntry` 保留原始 `content`；非 PLAN 类型（如 SEARCH）在 Aurora/Classic 里回退为原始 JSON 展示，而不是只显示空步骤；
 - **加密推理**：`REASONING_ENCRYPTED_VALUE` 挂到 reasoning entry 的 `encryptedValue`，Aurora 在思考面板标注 `encrypted`；
-- **多中断按卡定位**：五套皮肤的批准/拒绝/修改按钮现在都传 `entry.id`，可以跳着处理并行审批卡。
+- **多中断按卡定位**：皮肤的批准/拒绝/修改按钮现在都传 `entry.id`，可以跳着处理并行审批卡（当前示例脚本已精简为单个中断）。
 
 契约同步新增：`SkinCapabilities`、`SubagentEntry`、`PlanEntry.content`、`ReasoningEntry.encryptedValue`。
 
@@ -614,12 +614,11 @@ npx serve dist   # 或任意静态服务器
 
 ## 2026-11-14 皮肤层第六轮：协议事件演示场景
 
-首页工具条新增**场景选择器**（多智能体 / 并行审批 / 行程规划，默认「多智能体」），每段脚本都是真实 AG-UI 事件流，由 mock 后端回放；`?scenario=approvals` 可直达。
+首页工具条新增**场景选择器**（多智能体 / 行程规划，默认「多智能体」），每段脚本都是真实 AG-UI 事件流，由 mock 后端回放；`?scenario=travel` 可直达。
 
 | 场景 | 覆盖的事件 / 视图 |
 |---|---|
 | 多智能体 | RUN_STARTED + metadata、STEP_STARTED/FINISHED、REASONING_*、REASONING_ENCRYPTED_VALUE、CUSTOM handoff/artifact/suggestions、SUBAGENT_STARTED/FINISHED/ERROR、TOOL_CALL_*、**工具失败**（TOOL_CALL_RESULT 带 error）、ACTIVITY_SNAPSHOT、STATE_SNAPSHOT/DELTA、TEXT_MESSAGE_* |
-| 并行审批 | 两个 interrupt（含 expiresAt / responseSchema）的 RUN_FINISHED、逐卡审批、全部解决后一次性 resume；混合决策的恢复文本与状态补丁 |
 | 行程规划 | 原有演示：state patch、plan activity、单中断与恢复 |
 
 顺带修复：`loadScene("done")` 以前会对没有中断的脚本错误地追加 travel resume；现在只有存在 pending interrupt 时才执行恢复，并新增回归测试。

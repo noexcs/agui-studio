@@ -17,6 +17,7 @@ export interface SkinHostValue {
   lang: Lang;
   branding: SkinBranding;
   plugins: SkinPlugins;
+  tuning: SkinTuning;
   t: (key: string) => string;
 }
 
@@ -63,13 +64,13 @@ export function SkinHostProvider(props: {
   setOverrides({ ...getDict(lang), ...(props.messages ?? {}) });
 
   const plugins = props.plugins ?? {};
+  const tuning = props.tuning ?? {};
   const t = useCallback((key: string) => moduleT(key as never), [lang, props.messages]);
   const value = useMemo<SkinHostValue>(
-    () => ({ conversation: props.conversation, lang, branding, plugins, t }),
-    [props.conversation, lang, branding, plugins, t]
+    () => ({ conversation: props.conversation, lang, branding, plugins, tuning, t }),
+    [props.conversation, lang, branding, plugins, tuning, t]
   );
 
-  const tuning = props.tuning ?? {};
   // Validate before injecting: a malformed ?accent= must not turn the skin's
   // accent variables into invalid CSS (which silently drops the skin color).
   // Derived guard variables (computed by color2k):
@@ -140,3 +141,8 @@ export const useSkinBranding = (): SkinBranding => useSkinHost().branding;
 export const useSkinPlugins = (): SkinPlugins => useSkinHost().plugins;
 export const useSkinLang = (): Lang => useSkinHost().lang;
 export const useSkinT = (): ((key: string) => string) => useSkinHost().t;
+
+/** Optional accessor: shared components (e.g. Markdown) can render outside a host in tests. */
+export function useSkinTuning(): SkinTuning {
+  return useContext(SkinHostContext)?.tuning ?? {};
+}

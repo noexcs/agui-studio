@@ -8,6 +8,7 @@ import { ToolResult } from "../../shared/ToolResult";
 import { planView, planRawText } from "../../shared/plan";
 import { asArray, asRecord, displayText, isEmptyState, safeJson } from "../../shared/safe";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { ProtocolDrawer } from "../../shared/ProtocolDrawer";
 import { pendingInterrupts } from "../../shared/interrupts";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
@@ -59,25 +60,11 @@ export function BrutalistPage() {
       <div className="bru-body">
         <aside className="bru-index">
           <div className="bru-label">{t("bru.index")}</div>
-          {[
-            ["01", t("thread.trip"), true],
-            ["02", t("thread.auth"), false],
-            ["03", t("thread.digest"), false],
-            ["04", t("thread.budget"), false],
-          ].map(([n, title, active]) => (
-            <button key={String(n)} className={`bru-item ${active ? "is-active" : ""}`}>
-              <span className="bru-item-no">{n}</span>
-              <span>{title}</span>
-            </button>
-          ))}
-          <button className="bru-new" onClick={() => c.replay()}>
-            <span>{t("bru.newThread")}</span>
-          </button>
           <div className="bru-index-foot">
             <span>agent</span>
             <span className="bru-strong">{brand.agentName}</span>
             <span>transport</span>
-            <span className="bru-strong">SSE · mock</span>
+            <span className="bru-strong">{c.transport}</span>
           </div>
         </aside>
 
@@ -85,7 +72,7 @@ export function BrutalistPage() {
           <div className="bru-chat-head">
             <div>
               <h1>{brand.agentName}</h1>
-              <p className="bru-sub">{brand.modelLabel} · tools (4) · reasoning · state · interrupts</p>
+              <p className="bru-sub">{brand.modelLabel} · {c.transport} · reasoning · state · interrupts</p>
             </div>
             <div className="bru-run">
               <span className="bru-run-label">run</span>
@@ -111,7 +98,6 @@ export function BrutalistPage() {
                 <div className="bru-summary">
                   <span>■ {t("bru.endOfRun")}</span>
                   <span>{formatDuration(c.duration())} / {c.tokens} tok / {c.events.length} events</span>
-                  <button className="bru-replay" onClick={() => c.replay()}>{t("bru.replay")}</button>
                 </div>
               )}
             </div>
@@ -193,6 +179,7 @@ export function BrutalistPage() {
           </div>
         </aside>
       </div>
+      <ProtocolDrawer />
     </div>
   );
 }

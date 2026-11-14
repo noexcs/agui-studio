@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Braces,
@@ -59,6 +60,7 @@ const map: Record<string, LucideIcon> = {
   paperclip: Paperclip,
   pause: Pause,
   "arrow-up-right": ArrowUpRight,
+  "arrow-left": ArrowLeft,
   "arrow-right": ArrowRight,
   command: Command,
   terminal: Terminal,

@@ -136,94 +136,11 @@ export function AuroraPage() {
               <span className="run-pill-text">{t(("status." + c.status) as never)}{pendingInterrupts(c.entries).length > 1 ? ` ×${pendingInterrupts(c.entries).length}` : ""}</span>
               <span className="run-pill-meta mono">{c.status === "idle" ? "" : formatDuration(c.duration())}</span>
             </div>
-            <button className="icon-btn" title="Replay run" onClick={() => c.replay()}>
-              <Icon name="refresh" />
-            </button>
             <div className="avatar" title="noexcs">N</div>
           </div>
         </header>
 
         <div className="workspace">
-          {/* sidebar */}
-          <aside className="panel sidebar">
-            <div className="side-top">
-              <button className="new-thread" onClick={() => c.replay()}>
-                <Icon name="plus" />
-                {t("chat.newThread")}
-                <kbd className="kbd">⌘N</kbd>
-              </button>
-              <label className="search">
-                <Icon name="search" />
-                <input type="text" placeholder={t("chat.search")} />
-              </label>
-            </div>
-
-            <div className="side-scroll">
-              <div className="side-group">
-                <div className="side-label">{t("chat.threads")}</div>
-                {[
-                  [t("thread.trip"), "thread_01J9F2 · now", "mint", true],
-                  [t("thread.auth"), "thread_01J9C7 · 1h", "violet", false],
-                  [t("thread.digest"), "thread_01J8QX · 3h", "cyan", false],
-                  [t("thread.budget"), "thread_01J7M1 · Tue", "amber", false],
-                ].map(([title, meta, tone, active]) => (
-                  <button key={String(title)} className={`thread ${active ? "is-active" : ""}`}>
-                    <span className={`thread-dot thread-dot--${tone}`} />
-                    <span className="thread-body">
-                      <span className="thread-title">{title}</span>
-                      <span className="thread-meta mono">{meta}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="side-group">
-                <div className="side-label">{t("chat.agents")}</div>
-                <div className="agent-row is-active">
-                  <div className="agent-orb agent-orb--mint" />
-                  <div className="agent-body">
-                    <span className="agent-name">{brand.agentName}</span>
-                    <span className="agent-meta mono">langgraph · sse</span>
-                  </div>
-                  <span className="agent-badge">{t("chat.live")}</span>
-                </div>
-                <div className="agent-row">
-                  <div className="agent-orb agent-orb--violet" />
-                  <div className="agent-body">
-                    <span className="agent-name">Research Scout</span>
-                    <span className="agent-meta mono">mastra · sse</span>
-                  </div>
-                </div>
-                <div className="agent-row">
-                  <div className="agent-orb agent-orb--amber" />
-                  <div className="agent-body">
-                    <span className="agent-name">Ops Agent</span>
-                    <span className="agent-meta mono">adk · ws</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="side-foot">
-              <div className="usage">
-                <div className="usage-head">
-                  <span className="usage-label">{t("chat.context")}</span>
-                  <span className="usage-num mono">{c.tokens ? Math.round(c.tokens / 100) / 10 + "k" : "—"} / 200k</span>
-                </div>
-                <div className="usage-track">
-                  <span style={{ width: Math.min(100, 8 + c.tokens / 40) + "%" }} />
-                </div>
-              </div>
-              <div className="user-row">
-                <div className="avatar avatar--sm">N</div>
-                <div className="user-body">
-                  <span className="user-name">noexcs</span>
-                  <span className="user-plan">{t("chat.designPreview")}</span>
-                </div>
-                <button className="icon-btn icon-btn--sm" aria-label="More"><Icon name="more" /></button>
-              </div>
-            </div>
-          </aside>
 
           {/* chat */}
           <main className="panel chat">
@@ -540,9 +457,6 @@ function AssistantBlock({ entry }: { entry: AssistantEntry }) {
           <div className="msg-actions">
             <button className="msg-action" onClick={() => navigator.clipboard?.writeText(entry.text)}>
               <Icon name="copy" />{t("chat.copy")}
-            </button>
-            <button className="msg-action" onClick={() => c.replay()}>
-              <Icon name="refresh" />{t("chat.retry")}
             </button>
             <span className="msg-action mono" style={{ opacity: 0.6 }}>{estimateTokens(entry.text)} tok</span>
           </div>

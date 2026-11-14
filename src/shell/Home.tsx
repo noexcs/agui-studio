@@ -69,10 +69,9 @@ export function Home(props: {
   onLang: () => void;
   onBackend: (backend: StudioBackend) => void;
   onRunInfo: () => void;
+  onReplay: () => void;
   onDocs: () => void;
   onFullscreen: () => void;
-  onCustomize: () => void;
-  customizing?: boolean;
   customize?: ReactNode;
   scenario: DemoScenario;
   onScenario: (scenario: DemoScenario) => void;
@@ -210,7 +209,6 @@ export function Home(props: {
               <i className="embed-live" />
               <strong>{active.name}</strong>
               <span className="embed-tagline">{tagline(active)}</span>
-              <span className="embed-chip">{zh ? "实时嵌入" : "live embed"}</span>
             </div>
             <div className="embed-actions">
               <ScenarioMenu scenario={props.scenario} lang={props.lang} onScenario={props.onScenario} />
@@ -230,22 +228,15 @@ export function Home(props: {
                 <Icon name="globe" size={13} />
                 {zh ? "中" : "EN"}
               </button>
+              {(props.staticDemo || props.backend === "mock") && (
+                <button className="embed-btn" onClick={props.onReplay} title={zh ? "从头开始演示" : "Replay from the start"}>
+                  <Icon name="refresh" size={13} />
+                  {zh ? "重播" : "replay"}
+                </button>
+              )}
               <button className="embed-btn" onClick={props.onRunInfo} title={zh ? "运行详情" : "Run details"}>
                 <Icon name="braces" size={13} />
-                {zh ? "运行" : "run"}
-              </button>
-              <button
-              className="embed-btn"
-              onClick={props.onCustomize}
-              title={zh ? "自定义外观" : "Customize"}
-              data-active={props.customizing || undefined}
-            >
-              <Icon name="sliders" size={13} />
-              {zh ? "自定义" : "Customize"}
-            </button>
-            <button className="embed-btn" onClick={props.onFullscreen} title={zh ? "全屏打开" : "Open full screen"}>
-                <Icon name="arrow-up-right" size={13} />
-                {zh ? "全屏" : "full"}
+                {zh ? "详情" : "details"}
               </button>
             </div>
           </div>

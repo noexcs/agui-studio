@@ -10,6 +10,7 @@ import { t, isZh } from "../../i18n";
 import { useSkinBranding } from "../../host";
 import { Icon } from "../../shared/Icon";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { ProtocolDrawer } from "../../shared/ProtocolDrawer";
 import { pendingInterrupts } from "../../shared/interrupts";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
@@ -103,63 +104,8 @@ export function ClassicPage() {
     setEditingId(null);
   }
 
-  const threadTitle = zh ? "里斯本三日" : "Lisbon in three days";
-
   return (
     <div className="skin-classic">
-      {/* ── navigation ─────────────────────────────────────────────── */}
-      <aside className="cl-nav">
-        <div className="cl-nav-head">
-          <div className="cl-logo">
-            <span className="cl-logo-mark">AG</span>
-            <span className="cl-logo-text">Assistant</span>
-          </div>
-        </div>
-
-        <button className="cl-new">
-          <Icon name="plus" size={14} />
-          {t("chat.newThread")}
-        </button>
-
-        <div className="cl-search">
-          <Icon name="search" size={13} />
-          <input placeholder={t("chat.search")} aria-label={t("chat.search")} />
-        </div>
-
-        <nav className="cl-nav-body">
-          <div className="cl-nav-label">{t("chat.threads")}</div>
-          {[
-            [threadTitle, "thread_01J9F2", true],
-            [zh ? "鉴权中间件重构" : "Auth middleware refactor", "thread_01J9C7", false],
-            [zh ? "每周研究简报" : "Weekly research digest", "thread_01J8QX", false],
-            [zh ? "Q2 预算复盘" : "Q2 budget review", "thread_01J7M1", false],
-          ].map(([title, id, active]) => (
-            <button key={String(id)} className={`cl-thread ${active ? "is-active" : ""}`}>
-              <span className="cl-thread-title">{title}</span>
-              <span className="cl-thread-id mono">{id}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="cl-nav-foot">
-          <div className="cl-usage">
-            <div className="cl-usage-head">
-              <span>{t("chat.context")}</span>
-              <span className="mono">{c.tokens ? `${(c.tokens / 1000).toFixed(1)}k` : "—"} / 200k</span>
-            </div>
-            <div className="cl-meter">
-              <span style={{ width: `${Math.min(100, 6 + c.tokens / 40)}%` }} />
-            </div>
-          </div>
-          <div className="cl-user">
-            <span className="cl-avatar">N</span>
-            <span className="cl-user-body">
-              <span className="cl-user-name">noexcs</span>
-              <span className="cl-user-plan">{t("chat.designPreview")}</span>
-            </span>
-          </div>
-        </div>
-      </aside>
 
       {/* ── conversation ──────────────────────────────────────────── */}
       <main className="cl-main">
@@ -178,10 +124,6 @@ export function ClassicPage() {
               <i />
               {statusText}
             </span>
-            <button className="cl-btn cl-btn--ghost" onClick={() => c.replay()}>
-              <Icon name="refresh" size={13} />
-              {zh ? "重新运行" : "Run again"}
-            </button>
           </div>
         </header>
 
@@ -226,10 +168,6 @@ export function ClassicPage() {
                           <button onClick={() => navigator.clipboard?.writeText(entry.text)}>
                             <Icon name="copy" size={12} />
                             {t("chat.copy")}
-                          </button>
-                          <button onClick={() => c.replay()}>
-                            <Icon name="refresh" size={12} />
-                            {t("chat.retry")}
                           </button>
                         </div>
                       )}
@@ -578,6 +516,7 @@ export function ClassicPage() {
           )}
         </section>
       </aside>
+      <ProtocolDrawer />
     </div>
   );
 }

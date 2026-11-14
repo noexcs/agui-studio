@@ -21,7 +21,7 @@ function applyScenario(scenario: Parameters<typeof buildScenarioRun>[0]) {
 
 describe("demo scenarios", () => {
   it("exposes three scenarios with a default", () => {
-    expect(SCENARIOS.map((item) => item.id)).toEqual(["agents", "approvals", "travel"]);
+    expect(SCENARIOS.map((item) => item.id)).toEqual(["agents", "travel"]);
     expect(DEFAULT_SCENARIO).toBe("agents");
     expect(scenarioName("agents", "zh")).toBe("多智能体");
     expect(isDemoScenario("travel")).toBe(true);
@@ -48,13 +48,22 @@ describe("demo scenarios", () => {
     expect(s.status).toBe("done");
   });
 
-  it("parallel-approval run suspends with two pending interrupts", () => {
-    const s = applyScenario("approvals");
-    const pending = s.pendingInterrupts();
-    expect(pending).toHaveLength(2);
-    expect(pending.map((entry) => entry.id).sort()).toEqual(["int_hold", "int_price"]);
-    expect(pending.find((entry) => entry.id === "int_hold")?.expiresAt).toBeTruthy();
-    expect(s.status).toBe("interrupted");
+  it("streams long CJK text incrementally and leaves body text between tools", () => {
+    const events = buildScenarioRun("agents", "t", "r", "zh");
+    const textEvents = events.filter((item) => item.event.type === EventType.TEXT_MESSAGE_CONTENT);
+    const longest = Math.max(...textEvents.map((item) => String((item.event as { delta?: string }).delta ?? "").length));
+    const total = events.at(-1)?.at ?? 0;
+    const s = applyScenario("agents");
+    const assistantChars = s.entries
+      .filter((entry) => entry.kind === "assistant")
+      .reduce((sum, entry) => sum + (entry as { text: string }).text.length, 0);
+    const toolCount = s.entries.filter((entry) => entry.kind === "tool").length;
+
+    expect(total).toBeGreaterThan(35_000);
+    expect(textEvents.length).toBeGreaterThan(300);
+    expect(longest).toBeLessThanOrEqual(6);
+    expect(assistantChars).toBeGreaterThan(600);
+    expect(toolCount).toBeGreaterThanOrEqual(4);
   });
 
   it("travel scenario keeps the single-interrupt shape", () => {
@@ -64,16 +73,16 @@ describe("demo scenarios", () => {
   });
 
   it("loadScene honours the configured scenario", () => {
-    const s = createStudio({ autoplay: false, scenario: "approvals" });
+    const s = createStudio({ autoplay: false, scenario: "travel" });
     store = s;
     s.loadScene("interrupted");
-    expect(s.pendingInterrupts()).toHaveLength(2);
+    expect(s.pendingInterrupts()).toHaveLength(1);
 
-    const done = createStudio({ autoplay: false, scenario: "approvals" });
+    const done = createStudio({ autoplay: false, scenario: "travel" });
     store = done;
     done.loadScene("done");
     expect(done.pendingInterrupts()).toHaveLength(0);
-    expect(done.lastResume).toHaveLength(2);
+    expect(done.lastResume).toHaveLength(1);
   });
 
   it("does not replay a resume phase for scripts without interrupts", () => {
