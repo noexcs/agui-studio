@@ -11,7 +11,7 @@
 - 命令：
   ```bash
   pnpm install --no-frozen-lockfile
-  pnpm test        # vitest，当前 73 个用例，必须全绿
+  pnpm test        # vitest，当前 256 个用例，必须全绿
   pnpm build       # 普通构建
   # 静态演示构建（线上就是这个）：
   VITE_STATIC_DEMO=1 VITE_BASE=/agui-studio/ pnpm build
@@ -27,12 +27,12 @@
 
 | # | 任务 | 为什么 | 涉及文件 | 验收标准 | 规模 |
 |---|---|---|---|---|---|
-| P0-1 | CI 增加测试 job | 目前 workflow 只 build+deploy，测试没跑 | `.github/workflows/`（新增 `test.yml` 或在 deploy 前加 step） | push/PR 跑 `pnpm test`，失败阻止部署；状态徽章可加在 README | S |
-| P0-2 | ✅ 桥接层单测(c254bbe+f30a812，31 例) | `pi-map.mjs` / bridge SSE 零测试，映射错了发现不了 | `server/pi-map.mjs`、`server/bridge.mjs`、`tests/` | 单测覆盖 pi 记录 → AG-UI 事件映射(29 例)；bridge 真实子进程+动态端口+fixture 后端 SSE 序列断言(10 例)；顺带修复 4 个映射缺陷(id 回填/坏行容错/去重/守卫) | M |
+| P0-1 | ✅ CI 增加测试 job（f78ef9b，test job+needs 链+PR 触发，覆盖率门生效） | 目前 workflow 只 build+deploy，测试没跑 | `.github/workflows/`（新增 `test.yml` 或在 deploy 前加 step） | push/PR 跑 `pnpm test`，失败阻止部署；状态徽章可加在 README | S |
+| P0-2 | ✅ 桥接层单测(c254bbe+f30a812，39 例：29 mapper + 10 bridge) | `pi-map.mjs` / bridge SSE 零测试，映射错了发现不了 | `server/pi-map.mjs`、`server/bridge.mjs`、`tests/` | 单测覆盖 pi 记录 → AG-UI 事件映射(29 例)；bridge 真实子进程+动态端口+fixture 后端 SSE 序列断言(10 例)；顺带修复 4 个映射缺陷(id 回填/坏行容错/去重/守卫) | M |
 | P0-3 | ✅ SSE 传输单测(96acad0,12 例) | `HttpAgentTransport` 的解析、取消、错误路径没测 | `src/core/transport.ts`、`tests/` | 覆盖 CRLF、多行 data、半帧/粘包、无 `type` 帧丢弃、abort 后不再回调;含 CRLF 容错与无 type 帧丢弃两处实现修正 | M |
 | P0-4 | ✅ 录制回放端到端（21714d1，playback.test 8 例） | 现在 fixture 是手写事件流，缺少真实录制链路 | `server/fixtures/pi-run.jsonl`、`tests/fixture.ts` | 用录制 JSONL → mapper → events → `ConversationStore` → 皮肤渲染，断言最终文本/工具/状态 | M |
 | P0-5 | ✅ npm 包产物（d7ef218，外部 Vite 项目 install 实测） | `agui-skins` exports 指向 TS 源码，不能直接 `npm publish` | `packages/agui-skins/package.json`、新增 `tsup.config.ts` | 构建出 `dist/*.js + *.d.ts`，exports 指向 dist；`npm pack` 后能在独立 Vite 项目 install 使用 | M |
-| P0-6 | 覆盖率门槛 | 回归靠人肉 | `vitest.config.ts`、CI | 配置 coverage，设最低阈值（建议 lines 70%），CI 低于阈值失败 | S |
+| P0-6 | ✅ 覆盖率门槛（f78ef9b，v8 provider，lines 85.43%→阈值 70，functions 实测 floor 59） | 回归靠人肉 | `vitest.config.ts`、CI | 配置 coverage，设最低阈值（建议 lines 70%），CI 低于阈值失败 | S |
 
 ## 2. P1 — 协议完整性
 
@@ -67,18 +67,19 @@
 
 ## 5. 已知问题（接手时注意）
 
-1. **过期/拒绝文案**：expired 中断在皮肤里显示为「已拒绝」，语义可再细化；
-2. **审批按钮**已支持按 `entry.id` 定位（多中断可跳着点），但「编辑参数」仍作用于最老的一张 pending；
+1. **过期/拒绝文案**：✅ 已修（Fix A：五套皮肤统一「已过期/Expired」呈现+`--expired` 修饰类）；残余：expired 卡被处理后卡头仍为「已处理/RESOLVED」标签（语义成立，打磨项）；
+2. **审批按钮**：✅ 已修——按 `entry.id` 定位 + 每张中断卡独立编辑器（Fix B 隔离编辑态；Fix C 补 terminal 编辑入口）；
 3. **i18n 单例**：`t()` 依赖模块级当前语言，多 Host 不同语言同页会串（P1-5）；
 4. **静态模式**：`?backend=pi` 在线上无效果（演示模式强制 mock），本地才有 pi；
 5. **pi 模式**为手动发送（不自动首条消息），mock 模式自动播放；
 6. **headless 截图**里 CSS 动画会停在首帧（`--virtual-time-budget` 冻结），不是 bug；
-7. **截图目录**只提交了 `shots/contact-sheet.png`，其余已被 gitignore。
+7. **截图目录**只提交了 `shots/contact-sheet.png`，其余已被 gitignore；
+8. **遗留小项**（2026-11-14 修复批记账，未立项）：aurora inspector 硬编码英文（"Shared state" 等，下批文案）；QuickStart Copy for AI 下拉缺箭头键导航与焦点回归；复制失败静默无反馈；`--accent-soft` 12% 底默认蓝 4.37:1 与 paper/brutalist 对比度映射未接（Fix E 机制可平移）；full 模式 64px dock 预留条在浅色皮肤下露深底；terminal `openEdit` 缺 tool 时预填 `{}` 边界；registry 全量 import 使 optional peers 实为硬依赖（包 README 需注明）；构建项：index chunk 未拆（ts grammar 几十 KB）+ tsup 已停止维护（观察 tsdown）；runFixture/runPi 数组行守卫不对称。
 
 ## 6. 交接完成定义
 
-- [ ] `pnpm test` 全绿，且 CI 有测试 job（P0-1）
-- [ ] `pnpm build` 与静态构建均通过
-- [ ] 新增/修改行为有对应测试
-- [ ] README 与 `docs/BACKLOG.md` 同步更新
+- [x] `pnpm test` 全绿，且 CI 有测试 job（P0-1）
+- [x] `pnpm build` 与静态构建均通过
+- [x] 新增/修改行为有对应测试
+- [x] README 与 `docs/BACKLOG.md` 同步更新
 - [ ] push 后 Pages 部署成功（Actions run 绿色）

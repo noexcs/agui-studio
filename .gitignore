@@ -12,3 +12,7 @@ shots/*
 
 # vitest coverage output
 coverage/
+
+# ad-hoc verification screenshot dirs (evidence stays local)
+shots-fix*/
+shots-task*/

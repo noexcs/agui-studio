@@ -7,7 +7,7 @@
 > **一个协议内核 + 多种彼此独立的视觉风格（skin）**。
 > 每种风格都是自包含的页面，套用时只需要换一个文件夹；接上真实 agent 时，所有风格一起生效。
 
-![四种风格](shots/contact-sheet.png)
+![五种风格](shots/contact-sheet.png)
 
 ## 快速开始
 
@@ -25,7 +25,7 @@ URL 参数方便分享/截图：
 | `?scene=done` | 直接渲染"已批准 + 生成完毕"的完整对话（跳过流式动画） |
 | `?scene=interrupted` | 停在人工审批这一刻（展示 interrupt UI） |
 
-快捷键：`1…4` 切换风格，`R` 重放。
+快捷键：`1…5` 切换风格，`R` 重放。
 
 ## 目录结构
 
@@ -116,7 +116,7 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 
 `HttpAgentTransport` 已实现 POST + SSE 的 `BaseEvent` 流解析，形状见
 `src/core/demo.ts` 生成的演示事件。`ConversationStore` 对来源完全无知：
-把 `dispatch(event)` 接到真实流上，四种风格会同时变成生产界面。
+把 `dispatch(event)` 接到真实流上，五套皮肤会同时变成生产界面。
 
 ## 设计说明
 
@@ -138,7 +138,7 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 
 ## 接入 pi（earendil-works/pi）
 
-四种皮肤已经可以直接跑在 **pi** 上：`server/bridge.mjs` 起一个本地桥，
+五套皮肤已经可以直接跑在 **pi** 上：`server/bridge.mjs` 起一个本地桥，
 把 `pi --mode rpc` 的 JSONL 事件流翻译成 AG-UI 事件（`server/pi-map.mjs`），
 再以 SSE 推给浏览器。皮肤侧只认识 AG-UI。
 
@@ -234,7 +234,7 @@ JsonView 只负责 JSON 的展开折叠与转义，字体大小写在皮肤样�
 - 单条事件处理失败不会打断流（`try/catch` + 日志）；
 - 订阅者异常互相隔离，一个渲染出错不影响其他；
 - **错误边界**：任何一套皮肤抛错只替换该皮肤这一帧，外壳/其他皮肤/事件流照常可用，并提供「重试 / 复制错误」；
-- 自测入口：`?crash-test=1` 会故意抛错，用来验证错误边界（见 `shots/crash-boundary.png`）；
+- 自测入口：`?crash-test=1` 会故意抛错，用来验证错误边界；
 - 手写解析器已移除，之前的死循环类型问题不再存在。
 
 ### 还没换的（按需）
@@ -253,7 +253,7 @@ Radix Popover、`sonner` toast、`react-virtuoso` 虚拟列表（事件数上千
 
 这些都在工作室外壳层，皮肤完全不需要知道它们存在；视觉样式仍写在 `app.css` 的 `.cmdk-*` / `.run-dialog-*` / `.tip` 里。
 
-- 快捷键：⌘K / Ctrl+K 打开命令面板；`1–4` 切皮肤；`R` 重播；`L` 切语言；
+- 快捷键：⌘K / Ctrl+K 打开命令面板；`1–5` 切皮肤；`R` 重播；`L` 切语言；
 - 设计评审用 URL：`?palette=1` 直接打开面板，`?run-info=1` 直接打开运行详情。
 
 ### 分包
@@ -353,7 +353,7 @@ import { ClassicPage } from "./skins/classic";
 ### 已验证
 
 `?full=1&skin=classic&agent=Tripilot&model=gpt-4.1` 可在不改一行代码的情况下，
-把 Classic 皮肤的品牌名与模型名换成 `Tripilot / gpt-4.1`（见 `shots/brand-injected.png`）。
+把 Classic 皮肤的品牌名与模型名换成 `Tripilot / gpt-4.1`。
 
 ### 迁移一个文件夹到别的系统
 
@@ -396,6 +396,7 @@ npm i agui-skins react react-dom react-markdown remark-gfm lucide-react
 
 ```tsx
 import { SkinHostProvider, skins, Icon } from "agui-skins";
+import "agui-skins/index.css"; // 皮肤样式随包分发，需显式引入
 
 const Page = skins.find((s) => s.id === "classic")!.ChatPage;
 
@@ -426,9 +427,10 @@ pnpm test
 
 ### 发布状态
 
-- 包已可被 workspace 消费，`pnpm pack` 可产出 tarball；
-- 目前 exports 指向 TS 源码（依赖宿主 bundler 转译）；正式发布前建议加 `tsup` 构建出 `dist/*.js + .d.ts`，并把 exports 指向 dist；
-- 后续：Storybook、CSS 产物导出（`agui-skins/styles/*.css`）、changeset 版本管理。
+- `exports` 已指向 `dist/`（tsup 构建：主入口 + i18n + contract + 5 皮肤子入口，js + d.ts + 稳定命名 CSS）；
+- `npm pack` 已在独立 Vite + React 18 项目安装实测通过（含 `tsc --noEmit` 零错误与 i18n 单例验证）；
+- CSS 随包分发：消费方显式 `import "agui-skins/index.css"`（整包）或按皮肤 `agui-skins/skins/paper.css`；
+- 后续：包 README、changesets 版本管理、Storybook。
 
 ## 协议覆盖现状（P0 已补）
 
@@ -436,10 +438,10 @@ pnpm test
 - ✅ 并行中断：每张卡独立 pending，全部解决后才一次性提交 `resume[]`，`lastResume` 可在测试中检查；
 - ✅ 过期中断：`expiresAt` 到期后不提交 resume，标记 `expired`；
 - ✅ schema 校验：`responseSchema.required` 与 boolean/string/number/object 类型不匹配时拒绝并提示；
-- ⏳ 仍缺（P1/P2）：capabilities 发现、子 agent 事件、`REASONING_ENCRYPTED_VALUE`、`RAW`、二进制/WebSocket 传输、activityType 可插拔渲染、皮肤按钮按 interruptId 定位（当前按顺序 resolve）。
+- ⏳ 仍缺（P1/P2）：capabilities 发现、子 agent 事件、`REASONING_ENCRYPTED_VALUE`、`RAW`、二进制/WebSocket 传输、activityType 可插拔渲染。
 
 新增 `tests/protocol.test.ts`：覆盖快照重建、chunk 合并、工具失败、并行中断、schema 拒绝、过期中断；
-`pnpm test` 现在共 **68 个用例（3 个文件）**。
+`pnpm test` 现在共 **256 个用例（16 个文件）**。
 
 
 ## P1 已补（协议表达力）
@@ -463,13 +465,23 @@ pnpm test
 | L1 顺序与幂等 | CONTENT 先于 START、重复 START、重复 RUN_FINISHED、二次 resolve、未知 tool id、未知 activity、CUSTOM usage | ✅ |
 | L1 状态机 | idle → running → done、RUN_ERROR 落 error entry | ✅ |
 | L3 端到端 | `tests/fixture.ts` 改为「派发真实事件 → ConversationStore → 皮肤」，皮肤测试不再用手写 entries；流式重绘测试也走真实 dispatch | ✅ |
-| L2 适配器 | pi-map / bridge SSE 解析 | ❌ 待补 |
-| L4 传输 | SSE 分帧、取消、重连 | ❌ 待补 |
+| L2 适配器 | `tests/pi-map.test.ts`（29 例）+ `tests/bridge.test.ts`（10 例，真实子进程+动态端口） | ✅ |
+| L4 传输 | `tests/transport.test.ts`（12 例：CRLF、半帧/粘包、abort） | ✅ |
 | L5 实时冒烟 | 真实 pi + DeepSeek（凭据开关） | ❌ 待补 |
 
-现在 `pnpm test` 共 **68 个用例 / 3 个文件**。剩余最大的空白是 L2/L4：
-桥接层和传输层仍然只有人工验证。
+现在 `pnpm test` 共 **256 个用例 / 16 个文件**，CI 每次推送跑测试+覆盖率门（lines ≥70%）。剩余最大的空白是 L5：
+真实 pi + DeepSeek 的实时冒烟仍只有人工验证（凭据开关，P0 未含）。
 
+
+## 外壳 v4 与快速上手（2026-11 换血）
+
+首页外壳整体升级到一套 violet 设计 token 体系（参考 gradientdeck / cult-ui / reactbits 的公共语言）：
+
+- **hero**：大标题 640 字重 + -0.04em 紧字距，标题混排衬线斜体词（en "protocol." / zh「协议」）；Grid Motion 背景改为深紫黑底 + violet 光带 + 四角暗角；
+- **皮肤展示区**：卡片 mono slug + 皮肤名 + 调色板 swatch 圆点行（每套皮肤的主题色一眼可读），is-current 卡 violet 描边；
+- **Customize**：elevated 大圆角容器，label mono uppercase；
+- **QuickStart**：最小上手路径（安装 / 最小示例 / 接 agent 三张代码卡，跟随当前选中皮肤动态生成，highlight.js 高亮 + 一键复制）+ 皮肤一览（Copy for AI 下拉：prompt / 配置代码 / 安装命令 / Open in ChatGPT|Claude|v0）；
+- 交互细节全站统一：150/250ms 两档动效、按压反馈、`prefers-reduced-motion` 兜底、focus-visible accent ring。
 
 ## 在线演示（GitHub Pages）
 
