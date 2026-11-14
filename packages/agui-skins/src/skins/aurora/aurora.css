@@ -781,3 +781,16 @@ svg { display: block; }
   font-size: 9.5px;
   color: var(--text-2);
 }
+
+.ev-more {
+  margin: 10px auto;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.ev-more:hover { color: var(--text-1); border-color: rgba(255, 255, 255, 0.22); }

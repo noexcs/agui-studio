@@ -547,7 +547,7 @@ npx serve dist   # 或任意静态服务器
 - **并行待办**：`pendingInterrupts()` 统一；Aurora/Terminal/Brutalist 顶部在多于一个待处理时显示 `×N`；
 - **未知 entry kind 安全兜底**：Aurora/Terminal 不再把未来新增的 entry 当 assistant 渲染，统一忽略；
 - **性能**：`Markdown` 组件 memo 化，流式更新时未变化的历史消息不再重复解析 markdown；
-- 测试增至 **368 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
+- 测试增至 **372 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
 
 
 ## 2026-11-14 皮肤层第三轮
@@ -557,7 +557,7 @@ npx serve dist   # 或任意静态服务器
 - **协议视图模型**：新增 `StepEntry`（STEP_STARTED/FINISHED）与 `CustomEntry`（未归类的 CUSTOM），store 负责归约，Aurora/Classic/Terminal 渲染，Paper/Brutalist 安全忽略；
 - **可维护性**：新 entry 类型统一在 contract/store/fixture 三处声明并有测试；`data-skin-text` 成为皮肤参与自定义层的显式契约（不再靠 `.md` 类名隐式约定）；
 - 依赖卫生：workspace 包固定 devDeps React 18 + Vite `resolve.dedupe`，避免包内 lucide 解析到 React 19 副本导致图标跨版本渲染（曾造成 71 个测试失败）；
-- 测试增至 **368 个用例**。
+- 测试增至 **372 个用例**。
 
 ## 2026-11-14 皮肤层第四轮
 
@@ -565,13 +565,13 @@ npx serve dist   # 或任意静态服务器
 - **CUSTOM 可插拔渲染**：契约新增 `SkinPlugins.custom(entry) => ReactNode`，`SkinHostProvider plugins` 注入；Aurora/Classic/Terminal 在默认 JSON 视图前优先调用插件，未提供时保持原有渲染；
 - 新增 `tests/plugins-metadata.test.tsx`（metadata 聚合、Classic/Aurora 展示、三套皮肤的插件覆盖 + 无插件回退）；
 - 修复过程中发现并修正了两个实现细节：Terminal 的 hook 不能条件调用、host 中 `plugins` 必须在 context value 之前声明；
-- 测试增至 **368 个用例（20 文件）**。
+- 测试增至 **372 个用例（20 文件）**。
 
 ## 2026-11-14 皮肤层第五轮
 
 - **阅读字号**：`SkinTuning.textScale`（compact/normal/large）通过 `zoom` 作用于所有 `data-skin-text` 文本块，避免逐皮肤重写 px 字号；面板、URL 分享、预设对比同步；
 - **长会话窗口化**：新增共享 `windowEntries` / `useVisibleEntries` / `HistoryMore`（`agui-skins` 导出），五套皮肤只渲染最新 60 条并显示「加载更早的消息 · N」；点击按 60 条增量回补，DOM 不再随历史线性增长；
-- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **368 个用例（21 文件）**；
+- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **372 个用例（21 文件）**；
 - 说明：这是 tail window 而不是完整虚拟列表——五套皮肤行高差异极大，tail window 在保持各皮肤视觉的前提下最稳，后续如需可再逐皮肤升级为虚拟滚动。
 
 ## 2026-11-14 皮肤层第六轮：协议事件演示场景
@@ -672,3 +672,13 @@ http://127.0.0.1:5178/?agui=http://127.0.0.1:5180/agui&autosend=1&lang=zh
 - **工程闸门**：`tsc --noEmit` 修复并加入 CI；新增直连多轮/resume/快照/窗口/通用 payload 回归测试；当前 27 文件 368 用例。
 
 仍未做（review P1/P2）：事件 inspector 窗口化、store notify 批处理、Paper 窄屏 rail、Aurora 多 interrupt 的 CSS 锁、schema 驱动的 resume payload、CUSTOM 默认折叠。
+
+### 第二批：真实流性能与响应式
+
+- Aurora inspector 只渲染最近 200 条，可「更早」追加；JsonView 仅在选中行挂载，时间戳 offset 每帧只算一次；
+- Terminal trace 用 memo 缓存过滤结果，避免每个 token 全量重扫事件；
+- store 事件日志封顶 2000 条（seq 继续递增），重复 `STATE_SNAPSHOT` 不再 bump stateVersion，非法 `STATE_DELTA` 只 warn、不把整轮打成 error；
+- Paper 在 ≤1180px 把 margin rail 叠到正文下方，不再隐藏工具/推理/plan；
+- Aurora 并行审批卡去掉 `is-busy` 的 pointer-events 锁，多张卡都能直接操作。
+
+新增回归：inspector 窗口 200→400、事件日志封顶、snapshot 去重、坏 patch 不杀 run；当前 28 文件 372 用例。

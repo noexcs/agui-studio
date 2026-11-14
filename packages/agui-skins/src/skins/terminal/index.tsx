@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useConversation, useSkinPlugins } from "../../host";
 import type { AssistantEntry, CustomEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, StepEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
@@ -43,10 +43,14 @@ export function TerminalPage() {
   const [showDeltas, setShowDeltas] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
   const running = c.status === "running";
-  const traceEvents = (showDeltas
-    ? c.events
-    : c.events.filter(({ event }) => !/CONTENT$|ARGS$/.test(event.type))
-  ).slice(-400);
+  const traceEvents = useMemo(
+    () =>
+      (showDeltas
+        ? c.events
+        : c.events.filter(({ event }) => !/CONTENT$|ARGS$/.test(event.type))
+      ).slice(-400),
+    [c.events.length, showDeltas, c.getVersion()]
+  );
   const pending = pendingInterrupts(c.entries)[0];
 
   useEffect(() => {

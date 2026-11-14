@@ -707,8 +707,17 @@
 .pap-mono { font-family: var(--mono); }
 
 @media (max-width: 1180px) {
-  .pap-body { grid-template-columns: minmax(0, 1fr); }
-  .pap-rail { display: none; }
+  .pap-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  /* tools / reasoning / plan live only in the rail — stack it below instead
+     of hiding every protocol artefact on laptop widths. */
+  .pap-rail {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    max-height: 36vh;
+  }
 }
 
 /* small legibility fixes */

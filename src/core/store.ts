@@ -186,6 +186,8 @@ const usageTokens = (usage: unknown): number => {
 
 const uid = (prefix: string) => prefix + "_" + Math.random().toString(36).slice(2, 7);
 
+const MAX_EVENTS = 2000;
+
 const DEFAULT_CAPABILITIES = {
   tools: { supported: true, items: [{ name: "web.search" }, { name: "booking.hold" }] },
   reasoning: { supported: true },
@@ -691,6 +693,7 @@ export class ConversationStore {
       this.metadata = { ...this.metadata, ...(meta as Record<string, unknown>) };
     }
     this.events.push({ seq: ++this.seq, at: Date.now(), event });
+    if (this.events.length > MAX_EVENTS) this.events.splice(0, this.events.length - MAX_EVENTS);
     try {
       this.reduce(event);
     } catch (err) {
@@ -1049,15 +1052,24 @@ export class ConversationStore {
       }
 
       case EventType.STATE_SNAPSHOT:
-        this.sharedState = (event.snapshot as Record<string, unknown>) ?? {};
-        this.stateVersion += 1;
-        this.touchedPaths = ["*"];
+        const snapshot = (event.snapshot as Record<string, unknown>) ?? {};
+        const isSameState = JSON.stringify(snapshot) === JSON.stringify(this.sharedState);
+        if (!isSameState) {
+          this.sharedState = snapshot;
+          this.stateVersion += 1;
+          this.touchedPaths = ["*"];
+        }
         return;
 
       case EventType.STATE_DELTA: {
-        const touched = applyPatch(this.sharedState, event.delta as JsonPatchOp[]);
-        this.stateVersion += 1;
-        this.touchedPaths = touched;
+        try {
+          const touched = applyPatch(this.sharedState, event.delta as JsonPatchOp[]);
+          this.stateVersion += 1;
+          this.touchedPaths = touched;
+        } catch (error) {
+          // A bad patch from a third-party producer must not kill the run.
+          console.warn("[agui] ignoring invalid STATE_DELTA", error);
+        }
         return;
       }
 

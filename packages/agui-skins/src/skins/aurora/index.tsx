@@ -72,6 +72,7 @@ export function AuroraPage() {
   const [tab, setTab] = useState<"events" | "state">("events");
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<number | null>(null);
+  const [evLimit, setEvLimit] = useState(200);
   const [draft, setDraft] = useState("");
   const scroller = useStickToBottom<HTMLDivElement>();
   // Inspector event list pins to the newest event with the same contract as
@@ -84,7 +85,10 @@ export function AuroraPage() {
     () => (filter === "all" ? c.events : c.events.filter((e) => categoryOf(e.event.type) === filter)),
     [c.events.length, filter, c.getVersion()]
   );
-
+  // Real streams can be thousands of events; render a bounded tail and let the
+  // inspector opt into earlier history instead of mounting one JsonView per row.
+  const visibleEvents = events.slice(-evLimit);
+  const firstTs = Date.parse(String(c.events[0]?.event.timestamp ?? ""));
   const running = c.status === "running";
   const interrupt = pendingInterrupts(c.entries)[0];
 
@@ -367,7 +371,7 @@ export function AuroraPage() {
                     ["reasoning", t("filter.reasoning")],
                     ["special", t("filter.special")],
                   ].map(([id, label]) => (
-                    <button key={id} className={`filter ${filter === id ? "is-active" : ""}`} onClick={() => setFilter(id)}>
+                    <button key={id} className={`filter ${filter === id ? "is-active" : ""}`} onClick={() => { setFilter(id); setEvLimit(200); }}>
                       {id !== "all" && <i className={`fdot fdot--${id.slice(0, 4)}`} />}
                       {label}
                     </button>
@@ -375,9 +379,17 @@ export function AuroraPage() {
                 </div>
 
                 <div className="ev-list" ref={eventList}>
-                  {events.map(({ seq, event, at }) => {
+                  {events.length > visibleEvents.length && (
+                    <button
+                      type="button"
+                      className="ev-more"
+                      onClick={() => setEvLimit((limit) => limit + 200)}
+                    >
+                      {t("history.more")} · {events.length - visibleEvents.length}
+                    </button>
+                  )}
+                  {visibleEvents.map(({ seq, event }) => {
                     const cat = categoryOf(event.type);
-                    const firstTs = Date.parse(String(c.events[0]?.event.timestamp ?? ""));
                     const evTs = Date.parse(String(event.timestamp ?? ""));
                     const offset = isFinite(firstTs) && isFinite(evTs) ? "+" + ((evTs - firstTs) / 1000).toFixed(2) + "s" : "";
                     const toggle = () => setSelected(selected === seq ? null : seq);
@@ -403,7 +415,11 @@ export function AuroraPage() {
                             <span className="ev-time">{offset}</span>
                           </div>
                           <div className="ev-preview">{eventPreview(event as Record<string, unknown>)}</div>
-                          <div className="ev-json"><JsonView data={event as Record<string, unknown>} style={darkStyles} shouldExpandNode={(level) => level < 3} /></div>
+                          {selected === seq && (
+                            <div className="ev-json">
+                              <JsonView data={event as Record<string, unknown>} style={darkStyles} shouldExpandNode={(level) => level < 3} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -411,7 +427,9 @@ export function AuroraPage() {
                 </div>
 
                 <div className="insp-foot">
-                  <span className="mono">{events.length} events</span>
+                  <span className="mono">
+                    {events.length} events{events.length > visibleEvents.length ? ` · ${visibleEvents.length} shown` : ""}
+                  </span>
                   <span className="mono">mock SSE · {c.tokens || 0} tokens</span>
                 </div>
             </RadixTabs.Content>
@@ -709,7 +727,7 @@ function InterruptBlock(props: {
 
   return (
     <div className="block">
-      <div className={`interrupt ${pending ? "" : entry.expired ? "interrupt--expired" : "interrupt--resolved"} ${!live && pending ? "is-busy" : ""}`}>
+      <div className={`interrupt ${pending ? "" : entry.expired ? "interrupt--expired" : "interrupt--resolved"}`}>
         <div className="interrupt-head">
           <span className="interrupt-icon"><Icon name={pending ? "shield" : entry.expired ? "clock" : "check"} /></span>
           <span className="interrupt-kicker">{pending ? t("intr.paused") : t("intr.resolved")}</span>

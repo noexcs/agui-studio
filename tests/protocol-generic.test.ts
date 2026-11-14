@@ -107,6 +107,36 @@ describe("generic AG-UI streams (no demo dialect)", () => {
     ).not.toThrow();
   });
 
+  it("does not bump the state version for a repeated identical snapshot", () => {
+    const store = make();
+    store.dispatch({ type: EventType.STATE_SNAPSHOT, snapshot: { todos: [] } } as never);
+    store.dispatch({ type: EventType.STATE_SNAPSHOT, snapshot: { todos: [] } } as never);
+    expect(store.stateVersion).toBe(1);
+    store.dispatch({ type: EventType.STATE_SNAPSHOT, snapshot: { todos: [{ id: 1 }] } } as never);
+    expect(store.stateVersion).toBe(2);
+  });
+
+  it("bounds the raw event log for long third-party streams", () => {
+    const store = make();
+    for (let i = 0; i < 2100; i += 1) {
+      store.dispatch({ type: EventType.RAW, event: { i } } as never);
+    }
+    expect(store.events).toHaveLength(2000);
+    expect(store.events.at(-1)?.seq).toBe(2100);
+  });
+
+  it("ignores an invalid STATE_DELTA instead of failing the run", () => {
+    const store = make();
+    store.dispatch({ type: EventType.RUN_STARTED, threadId: "t", runId: "r" } as never);
+    expect(() =>
+      store.dispatch({
+        type: EventType.STATE_DELTA,
+        delta: [{ op: "replace", path: "/missing/deep", value: 1 }],
+      } as never)
+    ).not.toThrow();
+    expect(store.status).toBe("running");
+  });
+
   it("maps cancelled runs to stopped and reads usage from terminal events", () => {
     const a = make();
     a.dispatch({ type: EventType.RUN_STARTED, threadId: "t", runId: "r" } as never);
