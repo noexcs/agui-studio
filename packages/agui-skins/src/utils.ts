@@ -12,15 +12,31 @@ const escapeHtml = (s: string) =>
 
 export const escapeText = escapeHtml;
 
-/** Markdown → plain text for compact previews (tool titles, alerts). */
-export function plainText(src: string, max = 120): string {
-  const text = src
+/**
+ * Markdown → plain text for compact previews (tool titles, alerts).
+ *
+ * Total by design: third-party streams put `null`, objects and numbers where
+ * the demo contract promises strings, and the old `.replace` implementation
+ * threw on every one of them. Non-text values fall back to "" (or a safe
+ * coercion for scalar primitives) instead of crashing a skin.
+ */
+export function plainText(src: unknown, max = 120): string {
+  let text: string;
+  if (typeof src === "string") {
+    text = src;
+  } else if (typeof src === "number" || typeof src === "boolean" || typeof src === "bigint") {
+    text = String(src);
+  } else {
+    return "";
+  }
+  const limit = typeof max === "number" && Number.isFinite(max) && max >= 0 ? Math.floor(max) : 120;
+  text = text
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/[#*_>`|]/g, "")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
-  return text.length > max ? text.slice(0, max).trimEnd() + "…" : text;
+  return text.length > limit ? text.slice(0, limit).trimEnd() + "…" : text;
 }
 
 export const estimateTokens = (text: string) => Math.round((text || "").length / 4);

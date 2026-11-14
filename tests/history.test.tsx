@@ -33,6 +33,56 @@ function longStore(count = 80) {
   return store;
 }
 
+describe("live appends into a mounted window", () => {
+  it("starts windowing when a short mounted thread grows past the limit", () => {
+    const ClassicPage = skins.find((skin) => skin.id === "classic")!.ChatPage;
+    const store = makeStore();
+    for (let i = 0; i < 5; i += 1) {
+      act(() => {
+        store.entries.push({ kind: "user", id: `seed_${i}`, at: i, text: `seed-${i}` });
+      });
+    }
+    const { container, rerender } = render(
+      <SkinHostProvider conversation={store} lang="en" branding={BRANDING}>
+        <ClassicPage />
+      </SkinHostProvider>
+    );
+    act(() => {
+      for (let i = 0; i < 80; i += 1) {
+        store.entries.push({ kind: "user", id: `live_${i}`, at: 100 + i, text: `live-tail-${i}` });
+      }
+      store.touch();
+    });
+    rerender(
+      <SkinHostProvider conversation={store} lang="en" branding={BRANDING}>
+        <ClassicPage />
+      </SkinHostProvider>
+    );
+    expect(container.textContent).toContain("live-tail-79");
+    expect(container.textContent).not.toContain("seed-0");
+  });
+
+  it("reveals newly appended entries on an already long mounted thread", () => {
+    const ClassicPage = skins.find((skin) => skin.id === "classic")!.ChatPage;
+    const store = longStore(80);
+    const { container, rerender } = render(
+      <SkinHostProvider conversation={store} lang="en" branding={BRANDING}>
+        <ClassicPage />
+      </SkinHostProvider>
+    );
+    act(() => {
+      store.entries.push({ kind: "user", id: "late", at: 999, text: "late-answer" });
+      store.touch();
+    });
+    rerender(
+      <SkinHostProvider conversation={store} lang="en" branding={BRANDING}>
+        <ClassicPage />
+      </SkinHostProvider>
+    );
+    expect(container.textContent).toContain("late-answer");
+  });
+});
+
 describe("long transcript windowing in a real skin", () => {
   it("renders a bounded tail with a show-earlier control that reveals history", () => {
     const ClassicPage = skins.find((skin) => skin.id === "classic")!.ChatPage;

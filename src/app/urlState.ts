@@ -2,7 +2,9 @@ import { safeAccent } from "agui-skins";
 import { DEFAULT_SCENARIO, type DemoScenario } from "../core/demo-scenarios";
 import type { Lang, SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTuning } from "agui-skins";
 
-export type AppBackend = "mock" | "pi" | "fixture";
+import type { StudioBackend } from "../core/store";
+
+export type AppBackend = StudioBackend;
 
 const TEXT_ANIMS: SkinTextAnim[] = ["none", "fade", "rise"];
 const DENSITIES: SkinDensity[] = ["comfortable", "compact"];

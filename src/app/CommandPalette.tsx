@@ -2,7 +2,9 @@ import { Command } from "cmdk";
 import { Icon } from "../shared/Icon";
 import { t, type Lang } from "../i18n";
 
-export type ShellBackend = "mock" | "pi" | "fixture";
+import type { StudioBackend } from "../core/store";
+
+export type ShellBackend = StudioBackend;
 export interface PaletteSkin {
   id: string;
   name: string;

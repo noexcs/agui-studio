@@ -3,6 +3,9 @@ import { useConversation, useSkinPlugins } from "../../host";
 import type { Entry, InterruptEntry, PlanEntry, ReasoningEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
 import { plainText } from "../../utils";
+import { ToolResult } from "../../shared/ToolResult";
+import { planView, planRawText } from "../../shared/plan";
+import { displayText, entriesOf, isEmptyState, safeJson } from "../../shared/safe";
 import { t, isZh } from "../../i18n";
 import { useSkinBranding } from "../../host";
 import { Icon } from "../../shared/Icon";
@@ -35,6 +38,14 @@ export function ClassicPage() {
   const plans = c.entries.filter((e): e is PlanEntry => e.kind === "plan");
   const interrupts = c.entries.filter((e): e is InterruptEntry => e.kind === "interrupt");
   const lastAssistant = [...c.entries].reverse().find((e) => e.kind === "assistant");
+  // A shared-state snapshot is not guaranteed to be a plain object. `entriesOf`
+  // returns [] for scalars and index keys for arrays; the scalar row keeps real
+  // data visible without ever calling Object.keys on a non-object.
+  const stateRows: [string, unknown][] = (() => {
+    const entries = entriesOf(c.sharedState);
+    if (entries.length > 0) return entries;
+    return isEmptyState(c.sharedState) ? [] : [["state", c.sharedState]];
+  })();
 
   const statusText = running
     ? zh
@@ -330,7 +341,7 @@ export function ClassicPage() {
                     <span className="cl-avatar cl-avatar--sm"><Icon name="layers" size={12} /></span>
                     <div className="cl-msg">
                       <div className="cl-subagent">
-                        <strong>{entry.name}</strong>
+                        <strong>{displayText(entry.name)}</strong>
                         <span className={`cl-subagent-status cl-subagent-status--${entry.status}`}>{entry.status}</span>
                         {entry.detail && <span className="cl-muted">{entry.detail}</span>}
                       </div>
@@ -345,7 +356,7 @@ export function ClassicPage() {
                     <span className="cl-avatar cl-avatar--sm"><Icon name="activity" size={12} /></span>
                     <div className="cl-msg">
                       <div className="cl-subagent">
-                        <strong>{entry.name}</strong>
+                        <strong>{displayText(entry.name)}</strong>
                         <span className={`cl-subagent-status cl-subagent-status--${entry.status === "running" ? "running" : entry.status === "failed" ? "error" : "done"}`}>
                           {entry.status}
                         </span>
@@ -367,8 +378,8 @@ export function ClassicPage() {
                 return (
                   <div key={entry.id} className="cl-row cl-row--wide">
                     <div className="cl-custom">
-                      <span className="cl-custom-name mono">{entry.name}</span>
-                      <pre className="cl-custom-args" data-skin-text="">{JSON.stringify(entry.value, null, 2)}</pre>
+                      <span className="cl-custom-name mono">{displayText(entry.name)}</span>
+                      <pre className="cl-custom-args" data-skin-text="">{safeJson(entry.value, 2)}</pre>
                     </div>
                   </div>
                 );
@@ -500,21 +511,28 @@ export function ClassicPage() {
         <section className="cl-panel">
           <h3>{zh ? "计划" : "Plan"}</h3>
           {plans.length ? (
-            plans.map((plan) => (
-              <div key={plan.id} className="cl-plan-block">
-                <div className="cl-plan-title mono">{plan.title}</div>
-                <ul className="cl-plan">
-                  {plan.steps.map((step) => (
-                    <li key={step.id} data-state={step.state}>
-                      <span className="cl-check">
-                        {step.state === "done" ? <Icon name="check" size={10} /> : null}
-                      </span>
-                      {step.label}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))
+            plans.map((plan) => {
+              const view = planView(plan);
+              return (
+                <div key={plan.id} className="cl-plan-block">
+                  <div className="cl-plan-title mono">{displayText(plan.title)}</div>
+                  {view.rawOnly ? (
+                    <pre className="cl-plan-raw" data-skin-text="">{planRawText(view)}</pre>
+                  ) : (
+                    <ul className="cl-plan">
+                      {view.steps.map((step) => (
+                        <li key={step.id} data-state={step.state}>
+                          <span className="cl-check">
+                            {step.state === "done" ? <Icon name="check" size={10} /> : null}
+                          </span>
+                          {step.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })
           ) : (
             <p className="cl-muted">{zh ? "暂无计划" : "No plan yet"}</p>
           )}
@@ -522,9 +540,9 @@ export function ClassicPage() {
 
         <section className="cl-panel">
           <h3>{zh ? "共享状态" : "Shared state"}</h3>
-          {Object.keys(c.sharedState).length ? (
+          {stateRows.length ? (
             <dl className="cl-kv">
-              {Object.entries(c.sharedState).map(([key, value]) => (
+              {stateRows.map(([key, value]) => (
                 <div key={key}>
                   <dt className="mono">{key}</dt>
                   <dd className="mono">
@@ -532,7 +550,7 @@ export function ClassicPage() {
                       ? Array.isArray(value)
                         ? `[${value.length}]`
                         : `{${Object.keys(value).length}}`
-                      : String(value)}
+                      : displayText(value)}
                   </dd>
                 </div>
               ))}
@@ -585,7 +603,6 @@ function ReasoningRow({ entry, open, onToggle }: { entry: ReasoningEntry; open: 
 
 function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; onToggle: () => void }) {
   const zh = isZh();
-  const result = entry.result as { results?: { title: string; url: string }[]; reservation?: string; status?: string } | undefined;
   return (
     <div className="cl-row cl-row--assistant">
       <span className="cl-avatar cl-avatar--sm">
@@ -594,7 +611,7 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
       <div className="cl-msg">
         <div className={`cl-tool ${open ? "is-open" : ""}`}>
           <button className="cl-tool-head" onClick={onToggle}>
-            <span className="cl-tool-name mono">{entry.name}</span>
+            <span className="cl-tool-name mono">{displayText(entry.name)}</span>
             <span className={`cl-tool-status cl-tool-status--${entry.status}`}>
               {entry.status === "args"
                 ? zh
@@ -619,25 +636,8 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
             <span className="cl-tool-time mono">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
             <Icon name="chevron" size={11} className="cl-chev" />
           </button>
-          {entry.status === "error" && (
-            <p className="cl-tool-error" role="alert">
-              {entry.error ?? (zh ? "工具执行失败" : "Tool failed")}
-            </p>
-          )}
-          {open && <pre className="cl-tool-args" data-skin-text="">{entry.argsRaw || "…"}</pre>}
-          {entry.status === "done" && result?.results && (
-            <ul className="cl-sources">
-              {result.results.map((r, i) => (
-                <li key={r.url}>
-                  <span className="mono">{String(i + 1).padStart(2, "0")}</span>
-                  <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a>
-                </li>
-              ))}
-            </ul>
-          )}
-          {entry.status === "done" && result?.reservation && (
-            <p className="cl-tool-note mono">{zh ? "已预留" : "Held"} · {result.reservation}</p>
-          )}
+          {open && <pre className="cl-tool-args" data-skin-text="">{displayText(entry.argsRaw) || "…"}</pre>}
+          <ToolResult entry={entry} variant="classic" />
         </div>
       </div>
     </div>
@@ -646,6 +646,7 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
 
 function PlanRow({ entry }: { entry: PlanEntry }) {
   const zh = isZh();
+  const view = planView(entry);
   return (
     <div className="cl-row cl-row--assistant">
       <span className="cl-avatar cl-avatar--sm">
@@ -654,22 +655,26 @@ function PlanRow({ entry }: { entry: PlanEntry }) {
       <div className="cl-msg">
         <div className="cl-plan-card">
           <div className="cl-plan-head">
-            <strong>{entry.title}</strong>
+            <strong>{displayText(entry.title)}</strong>
             <span className="mono">
-              {entry.steps.filter((s) => s.state === "done").length}/{entry.steps.length}
+              {view.steps.filter((s) => s.state === "done").length}/{view.steps.length}
             </span>
           </div>
-          <ul className="cl-plan">
-            {entry.steps.map((step) => (
-              <li key={step.id} data-state={step.state}>
-                <span className="cl-check">
-                  {step.state === "done" ? <Icon name="check" size={10} /> : null}
-                </span>
-                {step.label}
-                {step.state === "active" && <em className="cl-plan-active">{zh ? "进行中" : "in progress"}</em>}
-              </li>
-            ))}
-          </ul>
+          {view.rawOnly ? (
+            <pre className="cl-plan-raw" data-skin-text="">{planRawText(view)}</pre>
+          ) : (
+            <ul className="cl-plan">
+              {view.steps.map((step) => (
+                <li key={step.id} data-state={step.state}>
+                  <span className="cl-check">
+                    {step.state === "done" ? <Icon name="check" size={10} /> : null}
+                  </span>
+                  {step.label}
+                  {step.state === "active" && <em className="cl-plan-active">{zh ? "进行中" : "in progress"}</em>}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

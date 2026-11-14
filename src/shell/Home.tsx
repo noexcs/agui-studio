@@ -6,6 +6,7 @@ import { LazyMount } from "../shared/LazyMount";
 import { ScenarioMenu } from "./ScenarioMenu";
 import { BackendMenu } from "./BackendMenu";
 import type { BridgeHealth } from "../core/pi";
+import type { StudioBackend } from "../core/store";
 import type { DemoScenario } from "../core/demo-scenarios";
 import type { Lang } from "../i18n";
 
@@ -58,14 +59,14 @@ const GRID_ITEMS = [
 export function Home(props: {
   skins: HomeSkin[];
   lang: Lang;
-  backend: "mock" | "pi" | "fixture";
+  backend: StudioBackend;
   piNote: string;
   staticDemo?: boolean;
   activeSkin: string;
   onSkin: (id: string) => void;
   onPalette: () => void;
   onLang: () => void;
-  onBackend: (backend: "mock" | "pi") => void;
+  onBackend: (backend: StudioBackend) => void;
   onRunInfo: () => void;
   onDocs: () => void;
   onFullscreen: () => void;

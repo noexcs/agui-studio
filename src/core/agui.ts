@@ -6,7 +6,8 @@
    backend contract. This module owns the request/response shapes only; the
    store reduces the events.
    ───────────────────────────────────────────────────────────────────── */
-import type { BaseEvent, Entry } from "./events";
+import type { BaseEvent } from "./events";
+import type { Entry } from "./store";
 import { HttpAgentTransport } from "./transport";
 
 export interface AgentEndpoint {
@@ -53,6 +54,10 @@ export function newRunId(prefix = "run"): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
+export function newThreadId(): string {
+  return `thread_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /* ── RunAgentInput messages from the normalized view model ─────────── */
 
 export interface AgUiMessage {
@@ -81,26 +86,30 @@ export function messagesFromEntries(entries: Entry[]): AgUiMessage[] {
     } else if (entry.kind === "assistant") {
       messages.push({ id: entry.id, role: "assistant", content: entry.text });
     } else if (entry.kind === "tool") {
-      messages.push({
-        id: `${entry.id}_call`,
-        role: "assistant",
-        content: "",
-        toolCalls: [
-          {
-            id: entry.id,
-            type: "function",
-            function: { name: entry.name, arguments: entry.argsRaw || "{}" },
-          },
-        ],
-      });
+      // Only completed calls belong in protocol history; an interrupted or
+      // still-running tool must not be projected as a successful result.
+      if (entry.status !== "done" && entry.status !== "error") continue;
+      const toolCall = {
+        id: entry.id,
+        type: "function" as const,
+        function: { name: entry.name, arguments: entry.argsRaw || "{}" },
+      };
+      const owner = [...messages].reverse().find((message) => message.role === "assistant");
+      if (owner) {
+        owner.toolCalls = [...(owner.toolCalls ?? []), toolCall];
+      } else {
+        messages.push({ id: `${entry.id}_call`, role: "assistant", content: "", toolCalls: [toolCall] });
+      }
+      const content = entry.error
+        ? `error: ${entry.error}`
+        : typeof entry.result === "string"
+        ? entry.result
+        : JSON.stringify(entry.result ?? {});
       messages.push({
         id: `${entry.id}_result`,
         role: "tool",
         toolCallId: entry.id,
-        content:
-          typeof entry.result === "string"
-            ? entry.result
-            : JSON.stringify(entry.result ?? (entry.error ? { error: entry.error } : {})),
+        content,
       });
     }
   }
@@ -140,12 +149,13 @@ export function buildResumeInput(options: {
   threadId: string;
   runId: string;
   state: Record<string, unknown>;
+  messages?: AgUiMessage[];
   decisions: { interruptId: string; approved: boolean; editedArgs?: Record<string, unknown> }[];
 }): RunAgentInput {
   return {
     threadId: options.threadId,
     runId: options.runId,
-    messages: [],
+    messages: options.messages ?? [],
     tools: [],
     context: [],
     state: options.state,
@@ -153,7 +163,13 @@ export function buildResumeInput(options: {
     resume: options.decisions.map((decision) => ({
       interruptId: decision.interruptId,
       status: decision.approved ? "resolved" : "cancelled",
-      payload: decision.editedArgs ? { approved: decision.approved, editedArgs: decision.editedArgs } : { approved: decision.approved },
+      ...(decision.approved
+        ? {
+            payload: decision.editedArgs
+              ? { approved: true, editedArgs: decision.editedArgs }
+              : { approved: true },
+          }
+        : {}),
     })),
   };
 }

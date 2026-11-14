@@ -55,6 +55,8 @@ export type ToolStatus = "args" | "executing" | "interrupted" | "done" | "error"
 
 export interface ToolEntry extends BaseEntry {
   kind: "tool";
+  /** REASONING_ENCRYPTED_VALUE with subtype "tool_call" */
+  encryptedValue?: string;
   name: string;
   argsRaw: string;
   args: unknown;

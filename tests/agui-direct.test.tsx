@@ -27,16 +27,16 @@ function sendEvent(res: ServerResponse, event: Record<string, unknown>) {
 describe("standard RunAgentInput", () => {
   it("keeps only protocol messages and pairs tool entries with an assistant call", () => {
     const messages = messagesFromEntries(entries);
-    expect(messages.map((message) => message.role)).toEqual(["user", "assistant", "assistant", "tool"]);
-    expect(messages[2].toolCalls?.[0]).toMatchObject({ id: "tc1", type: "function", function: { name: "search", arguments: '{"q":"x"}' } });
-    expect(messages[3]).toMatchObject({ role: "tool", toolCallId: "tc1" });
+    expect(messages.map((message) => message.role)).toEqual(["user", "assistant", "tool"]);
+    expect(messages[1].toolCalls?.[0]).toMatchObject({ id: "tc1", type: "function", function: { name: "search", arguments: '{"q":"x"}' } });
+    expect(messages[2]).toMatchObject({ role: "tool", toolCallId: "tc1" });
     expect(messages.some((message) => message.role === "reasoning" as never)).toBe(false);
   });
 
   it("builds a standard input with thread/run/state/tools/context", () => {
     const input = buildAgentInput({ threadId: "t1", runId: "r1", entries, state: { a: 1 } });
     expect(input).toMatchObject({ threadId: "t1", runId: "r1", state: { a: 1 }, tools: [], context: [] });
-    expect(input.messages).toHaveLength(4);
+    expect(input.messages).toHaveLength(3);
     expect(input.resume).toBeUndefined();
   });
 
@@ -57,7 +57,7 @@ describe("standard RunAgentInput", () => {
       state: {},
       decisions: [{ interruptId: "int_2", approved: false }],
     });
-    expect(declined.resume?.[0]).toMatchObject({ status: "cancelled", payload: { approved: false } });
+    expect(declined.resume?.[0]).toEqual({ interruptId: "int_2", status: "cancelled" });
   });
 });
 
@@ -113,6 +113,49 @@ describe("direct AG-UI endpoint (no bridge contract)", () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
+  it("keeps history and shared state across direct-mode turns", async () => {
+    const bodies: Record<string, any>[] = [];
+    let turn = 0;
+    const server = createServer(async (req, res) => {
+      bodies.push(await readBody(req));
+      turn += 1;
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      sendEvent(res, { type: "RUN_STARTED", threadId: "thread_multi", runId: `run_${turn}` });
+      sendEvent(res, { type: "STATE_SNAPSHOT", snapshot: { turn } });
+      sendEvent(res, { type: "TEXT_MESSAGE_START", messageId: `m${turn}`, role: "assistant" });
+      sendEvent(res, { type: "TEXT_MESSAGE_CONTENT", messageId: `m${turn}`, delta: `answer ${turn}` });
+      sendEvent(res, { type: "TEXT_MESSAGE_END", messageId: `m${turn}` });
+      sendEvent(res, { type: "RUN_FINISHED", outcome: { type: "success" } });
+      res.end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = (server.address() as { port: number }).port;
+
+    const store = new ConversationStore(false);
+    store.setBackend("agui");
+    store.setAgentEndpoint({ url: `http://127.0.0.1:${port}/agui` });
+    store.send("first");
+    for (let i = 0; i < 100 && store.status !== "done"; i += 1) await new Promise((r) => setTimeout(r, 20));
+    store.send("second");
+    for (let i = 0; i < 100 && store.status !== "done"; i += 1) await new Promise((r) => setTimeout(r, 20));
+
+    expect(bodies).toHaveLength(2);
+    const second = bodies[1];
+    expect(second.state).toEqual({ turn: 1 });
+    expect(second.messages.map((message: { role: string }) => message.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+    ]);
+    expect(second.messages[0].content).toBe("first");
+    expect(second.messages[1].content).toBe("answer 1");
+    expect(second.messages[2].content).toBe("second");
+    expect(store.entries.filter((entry) => entry.kind === "user")).toHaveLength(2);
+    expect(store.entries.some((entry) => entry.kind === "assistant" && entry.text === "answer 2")).toBe(true);
+
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
   it("sends a standard resume payload when an interrupt is resolved", async () => {
     const bodies: Record<string, unknown>[] = [];
     let call = 0;
@@ -160,6 +203,10 @@ describe("direct AG-UI endpoint (no bridge contract)", () => {
       { interruptId: "int_9", status: "resolved", payload: { approved: true } },
     ]);
     expect(store.lastAgentResume?.[0]).toMatchObject({ interruptId: "int_9", status: "resolved" });
+    // resuming must not clear the transcript or the interrupt card
+    expect(store.entries.filter((entry) => entry.kind === "user")).toHaveLength(1);
+    expect(store.entries.some((entry) => entry.kind === "interrupt" && entry.id === "int_9")).toBe(true);
+    expect(bodies[1].messages?.length).toBeGreaterThan(0);
 
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });

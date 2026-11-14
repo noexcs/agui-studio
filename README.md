@@ -547,7 +547,7 @@ npx serve dist   # 或任意静态服务器
 - **并行待办**：`pendingInterrupts()` 统一；Aurora/Terminal/Brutalist 顶部在多于一个待处理时显示 `×N`；
 - **未知 entry kind 安全兜底**：Aurora/Terminal 不再把未来新增的 entry 当 assistant 渲染，统一忽略；
 - **性能**：`Markdown` 组件 memo 化，流式更新时未变化的历史消息不再重复解析 markdown；
-- 测试增至 **303 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
+- 测试增至 **368 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
 
 
 ## 2026-11-14 皮肤层第三轮
@@ -557,7 +557,7 @@ npx serve dist   # 或任意静态服务器
 - **协议视图模型**：新增 `StepEntry`（STEP_STARTED/FINISHED）与 `CustomEntry`（未归类的 CUSTOM），store 负责归约，Aurora/Classic/Terminal 渲染，Paper/Brutalist 安全忽略；
 - **可维护性**：新 entry 类型统一在 contract/store/fixture 三处声明并有测试；`data-skin-text` 成为皮肤参与自定义层的显式契约（不再靠 `.md` 类名隐式约定）；
 - 依赖卫生：workspace 包固定 devDeps React 18 + Vite `resolve.dedupe`，避免包内 lucide 解析到 React 19 副本导致图标跨版本渲染（曾造成 71 个测试失败）；
-- 测试增至 **303 个用例**。
+- 测试增至 **368 个用例**。
 
 ## 2026-11-14 皮肤层第四轮
 
@@ -565,13 +565,13 @@ npx serve dist   # 或任意静态服务器
 - **CUSTOM 可插拔渲染**：契约新增 `SkinPlugins.custom(entry) => ReactNode`，`SkinHostProvider plugins` 注入；Aurora/Classic/Terminal 在默认 JSON 视图前优先调用插件，未提供时保持原有渲染；
 - 新增 `tests/plugins-metadata.test.tsx`（metadata 聚合、Classic/Aurora 展示、三套皮肤的插件覆盖 + 无插件回退）；
 - 修复过程中发现并修正了两个实现细节：Terminal 的 hook 不能条件调用、host 中 `plugins` 必须在 context value 之前声明；
-- 测试增至 **303 个用例（20 文件）**。
+- 测试增至 **368 个用例（20 文件）**。
 
 ## 2026-11-14 皮肤层第五轮
 
 - **阅读字号**：`SkinTuning.textScale`（compact/normal/large）通过 `zoom` 作用于所有 `data-skin-text` 文本块，避免逐皮肤重写 px 字号；面板、URL 分享、预设对比同步；
 - **长会话窗口化**：新增共享 `windowEntries` / `useVisibleEntries` / `HistoryMore`（`agui-skins` 导出），五套皮肤只渲染最新 60 条并显示「加载更早的消息 · N」；点击按 60 条增量回补，DOM 不再随历史线性增长；
-- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **303 个用例（21 文件）**；
+- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **368 个用例（21 文件）**；
 - 说明：这是 tail window 而不是完整虚拟列表——五套皮肤行高差异极大，tail window 在保持各皮肤视觉的前提下最稳，后续如需可再逐皮肤升级为虚拟滚动。
 
 ## 2026-11-14 皮肤层第六轮：协议事件演示场景
@@ -658,3 +658,17 @@ http://127.0.0.1:5178/?agui=http://127.0.0.1:5180/agui&autosend=1&lang=zh
 **已验证**：`tests/agui-direct.test.tsx` 起一个真实 Node SSE 服务，用 store 的 `agui` 后端跑通「发送 → 流式渲染 → 工具结果 / MESSAGES_SNAPSHOT / 标准 resume」；`?agui=` 直连在浏览器里跑通（`shots/agui-direct.png`）。
 
 **限制**：浏览器直连需要服务端允许 CORS；若不能，需要像 `server/deepagent.mjs` 这样的 sidecar 转发。AG-UI 事件之外的非标准语义（例如自定义 CUSTOM 含义）不会自动获得专属 UI，会以通用 custom/step/activity 卡片呈现。
+
+## 2026-11-14 双 review 后的 P0 修复
+
+两位 review agent 的结论：视觉层强，协议/核心层偏 demo 方言。已修复第一批 P0：
+
+- **直连多轮不再失忆**：`startAgent` 不再 reset，按 turn 保留 entries/sharedState；resume 携带历史 messages + 当前 state，且只收集当前 run 的 interrupt；interrupted 时禁止新发送。
+- **MESSAGES_SNAPSHOT 不再吞掉审批/计划**：按消息重建，但保留 interrupt/plan/step/custom/subagent 与未被快照覆盖的 reasoning；重连后仍可继续 resume。
+- **窗口失效修复**：`useVisibleEntries` 依赖 entries 长度，长会话越界后出现「更早」、挂载后新消息也能显示。
+- **配置通路修复**：Home 收到 `agentEndpoint/onConfigureAgent`；首次配置不再递归弹窗，直接切到 `agui`；URL 重写保留 `?agui/?agent/...` 参数。
+- **皮肤安全渲染**（另一个 agent）：新增 `shared/ToolResult`、`planView`、`safe.ts`，五套皮肤对任意工具结果/activity/state 不再崩溃；`plainText` 变为全函数。
+- **协议字段对齐**：`subagentRunId`、`suspended`、`REASONING_MESSAGE_CHUNK`、`entityId/encryptedValue`、chunk-only 文本/工具、`RUN_FINISHED(cancelled)`、`usage`、numeric timestamp。
+- **工程闸门**：`tsc --noEmit` 修复并加入 CI；新增直连多轮/resume/快照/窗口/通用 payload 回归测试；当前 27 文件 368 用例。
+
+仍未做（review P1/P2）：事件 inspector 窗口化、store notify 批处理、Paper 窄屏 rail、Aurora 多 interrupt 的 CSS 锁、schema 驱动的 resume payload、CUSTOM 默认折叠。

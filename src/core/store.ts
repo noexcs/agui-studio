@@ -16,7 +16,9 @@ import {
   buildAgentInput,
   buildResumeInput,
   getAgentEndpoint,
+  messagesFromEntries,
   newRunId,
+  newThreadId,
   streamAgentRun,
   type AgentEndpoint,
 } from "./agui";
@@ -59,6 +61,8 @@ export type ToolStatus = "args" | "executing" | "interrupted" | "done" | "error"
 
 export interface ToolEntry extends BaseEntry {
   kind: "tool";
+  /** REASONING_ENCRYPTED_VALUE with subtype "tool_call" */
+  encryptedValue?: string;
   name: string;
   argsRaw: string;
   args: unknown;
@@ -109,7 +113,7 @@ export interface ErrorEntry extends BaseEntry {
 export interface SubagentEntry extends BaseEntry {
   kind: "subagent";
   name: string;
-  status: "running" | "done" | "error";
+  status: "running" | "done" | "error" | "suspended";
   detail?: string;
 }
 
@@ -146,21 +150,54 @@ const safeHost = (url: string): string => {
   }
 };
 
-const ts = (event: BaseEvent): number =>
-  event.timestamp ? Date.parse(String(event.timestamp)) || Date.now() : Date.now();
+export type StudioBackend = "mock" | PiBackend | "agui";
+
+const ts = (event: BaseEvent): number => {
+  if (typeof event.timestamp === "number") return event.timestamp;
+  if (event.timestamp) return Date.parse(String(event.timestamp)) || Date.now();
+  return Date.now();
+};
+
+const normalizeSteps = (raw: unknown): PlanStep[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item, index) => {
+    const step = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+    const rawState = String(step.state ?? step.status ?? "pending");
+    const state: PlanStep["state"] =
+      rawState === "active" || rawState === "in_progress"
+        ? "active"
+        : rawState === "done" || rawState === "completed"
+        ? "done"
+        : rawState === "cancelled" || rawState === "canceled"
+        ? "cancelled"
+        : "pending";
+    return {
+      id: String(step.id ?? `step_${index}`),
+      label: String(step.label ?? step.description ?? step.title ?? `Step ${index + 1}`),
+      state,
+    };
+  });
+};
+
+const usageTokens = (usage: unknown): number => {
+  if (!Array.isArray(usage)) return 0;
+  return usage.reduce((sum, item) => sum + (Number((item as { totalTokens?: number })?.totalTokens) || 0), 0);
+};
 
 const uid = (prefix: string) => prefix + "_" + Math.random().toString(36).slice(2, 7);
 
+const DEFAULT_CAPABILITIES = {
+  tools: { supported: true, items: [{ name: "web.search" }, { name: "booking.hold" }] },
+  reasoning: { supported: true },
+  state: { supported: true },
+  humanInTheLoop: { supported: true, interrupts: true },
+  subagents: { supported: true },
+};
+
 export class ConversationStore {
-  threadId = THREAD_ID;
+  threadId = newThreadId();
   /** Declared capabilities; a host can override after construction. */
-  capabilities = {
-    tools: { supported: true, items: [{ name: "web.search" }, { name: "booking.hold" }] },
-    reasoning: { supported: true },
-    state: { supported: true },
-    humanInTheLoop: { supported: true, interrupts: true },
-    subagents: { supported: true },
-  };
+  capabilities = { ...DEFAULT_CAPABILITIES };
 
   entries: Entry[] = [];
   sharedState: Record<string, unknown> = {};
@@ -175,7 +212,7 @@ export class ConversationStore {
   /** metadata aggregated from every dispatched event (latest key wins) */
   metadata: Record<string, unknown> = {};
   lang: Lang = "en";
-  backend: "mock" | PiBackend | "agui" = "mock";
+  backend: StudioBackend = "mock";
   /** direct AG-UI endpoint (POST RunAgentInput -> SSE) */
   agentEndpoint: AgentEndpoint | null = getAgentEndpoint();
   piStatus: "unknown" | "ready" | "fixture" | "unavailable" = "unknown";
@@ -184,6 +221,11 @@ export class ConversationStore {
   lastResume: Decision[] = [];
   /** exact standard RunAgentInput.resume sent to a direct AG-UI endpoint */
   lastAgentResume: ReturnType<typeof buildResumeInput>["resume"] = [];
+  /** interrupts that belong to the currently suspended run */
+  private runInterruptIds: string[] = [];
+  /** last open stream ids, for chunk events that omit messageId */
+  private currentAssistantId = "";
+  private currentReasoningId = "";
 
   tokens = 0;
   startedAt = 0;
@@ -223,15 +265,24 @@ export class ConversationStore {
   /* ── run control ─────────────────────────────────────────────────── */
   replay() {
     this.stopPlay();
+    this.stop();
     if (this.backend !== "mock") {
-      // pi mode is user-driven: replay just clears the thread, the prompt
-      // comes from the composer
+      // real backends are user-driven: replay only clears the thread
       this.prepareIdle();
       return;
     }
     this.reset();
     this.beginRun();
     this.startEvents(buildScenarioRun(this.scenario, this.threadId, RUN_FIRST, this.lang));
+  }
+
+  /** Explicit "new thread": ends the current run and mints a fresh thread id. */
+  newThread() {
+    this.stop();
+    this.reset();
+    this.threadId = newThreadId();
+    this.runId = RUN_FIRST;
+    this.notify();
   }
 
   /** public nudge so external probes can refresh the UI */
@@ -249,18 +300,20 @@ export class ConversationStore {
     this.notify();
   }
 
-  /** Clear the thread and wait for the user's first message (pi mode). */
+  /** Clear the thread and wait for the user's first message (real backends). */
   prepareIdle() {
+    this.stop();
     this.reset();
   }
 
-  setBackend(backend: "mock" | PiBackend | "agui") {
+  setBackend(backend: StudioBackend) {
     this.backend = backend;
     if (backend === "agui") {
       // a generic AG-UI agent declares nothing beyond its events
       this.capabilities = {} as typeof this.capabilities;
       this.transport = this.agentEndpoint ? "AG-UI · " + safeHost(this.agentEndpoint.url) : "AG-UI";
     } else {
+      this.capabilities = { ...DEFAULT_CAPABILITIES };
       this.transport =
         backend === "mock"
           ? "mock SSE"
@@ -277,7 +330,13 @@ export class ConversationStore {
 
   /** Point the store at a standard AG-UI HTTP endpoint. */
   setAgentEndpoint(endpoint: AgentEndpoint | null) {
+    const changed = endpoint?.url !== this.agentEndpoint?.url;
     this.agentEndpoint = endpoint;
+    if (changed) {
+      // a different service must not inherit the previous thread
+      this.threadId = newThreadId();
+      this.runId = RUN_FIRST;
+    }
     if (this.backend === "agui") {
       this.transport = endpoint ? "AG-UI · " + safeHost(endpoint.url) : "AG-UI";
       this.notify();
@@ -287,6 +346,8 @@ export class ConversationStore {
   send(text: string) {
     const body = text.trim();
     if (!body || this.status === "running") return;
+    // a suspended AG-UI run must be resumed (or cancelled), not abandoned
+    if (this.status === "interrupted" && this.pendingInterrupts().length) return;
     if (this.backend === "agui") {
       void this.startAgent(body);
       return;
@@ -323,6 +384,7 @@ export class ConversationStore {
     const payload: Record<string, unknown> = { approved, ...(editedArgs ? { editedArgs } : {}) };
     if (!this.validateInterruptPayload(entry, payload)) {
       this.errorMessage = "resume payload does not match responseSchema";
+      this.entries.push({ kind: "error", id: uid("err"), message: this.errorMessage, at: Date.now() });
       this.notify();
       return;
     }
@@ -337,7 +399,11 @@ export class ConversationStore {
   /** AG-UI rule: a resume must address every open interrupt of the run. */
   private resumeWhenResolved() {
     if (this.pendingInterrupts().length) return;
-    const interrupts = this.entries.filter((entry): entry is InterruptEntry => entry.kind === "interrupt");
+    const scope = new Set(this.runInterruptIds);
+    const interrupts = this.entries.filter(
+      (entry): entry is InterruptEntry =>
+        entry.kind === "interrupt" && (scope.size ? scope.has(entry.id) : true) && (entry.status === "approved" || entry.status === "denied")
+    );
     const decisions: Decision[] = interrupts.map((entry) => ({
       approved: entry.status === "approved",
       editedArgs: entry.editedArgs,
@@ -381,7 +447,7 @@ export class ConversationStore {
     if (this.abort) {
       this.abort.abort();
       this.abort = null;
-      void stopPiRun();
+      if (this.backend === "pi" || this.backend === "fixture") void stopPiRun();
     }
     if (this.handle) {
       this.handle.cancel();
@@ -389,6 +455,7 @@ export class ConversationStore {
     }
     if (this.status === "running" || this.status === "interrupted") {
       this.status = "stopped";
+      this.endedAt = Date.now();
       this.entries.forEach((e) => {
         if ((e.kind === "assistant" || e.kind === "reasoning") && e.streaming) e.streaming = false;
         // Same rule as the interrupt path below: a run that stops mid-tool will
@@ -411,12 +478,14 @@ export class ConversationStore {
   private async startAgent(prompt: string, resume?: { interruptId: string; approved: boolean; editedArgs?: Record<string, unknown> }[]) {
     const endpoint = this.agentEndpoint;
     this.stop();
-    this.reset();
+    this.beginAgentTurn();
     const controller = new AbortController();
     this.abort = controller;
     if (!endpoint) {
+      controller.abort();
+      this.abort = null;
       this.status = "error";
-      this.errorMessage = "AG-UI endpoint is not configured (set ?agent=<url> or via the backend menu)";
+      this.errorMessage = "AG-UI endpoint is not configured (set ?agui=<url> or via the backend menu)";
       this.entries.push({ kind: "error", id: uid("err"), message: this.errorMessage, at: Date.now() });
       this.notify();
       return;
@@ -424,15 +493,19 @@ export class ConversationStore {
     if (prompt.trim()) {
       this.entries.push({ kind: "user", id: uid("user"), text: prompt.trim(), at: Date.now() });
     }
-    this.status = "running";
-    this.startedAt = Date.now();
     this.notify();
 
     const runId = newRunId("run");
     this.runId = runId;
     try {
       const input = resume && resume.length
-        ? buildResumeInput({ threadId: this.threadId, runId, state: this.sharedState, decisions: resume })
+        ? buildResumeInput({
+            threadId: this.threadId,
+            runId,
+            state: this.sharedState,
+            messages: messagesFromEntries(this.entries),
+            decisions: resume,
+          })
         : buildAgentInput({
             threadId: this.threadId,
             runId,
@@ -453,9 +526,33 @@ export class ConversationStore {
         this.entries.push({ kind: "error", id: uid("err"), message: this.errorMessage, at: Date.now() });
       }
     } finally {
-      this.abort = null;
+      if (this.abort === controller) this.abort = null;
       this.notify();
     }
+  }
+
+  /**
+   * Start a new direct-mode turn. Keeps the transcript and shared state (AG-UI
+   * runs are turns of one thread) and only resets per-run scaffolding.
+   */
+  private beginAgentTurn() {
+    this.abort?.abort();
+    this.abort = null;
+    this.status = "running";
+    this.startedAt = Date.now();
+    this.endedAt = 0;
+    this.tokens = 0;
+    this.suggestions = [];
+    this.errorMessage = "";
+    this.metadata = {};
+    this.events = [];
+    this.seq = 0;
+    this.touchedPaths = [];
+    this.lastAgentResume = [];
+    this.runInterruptIds = [];
+    this.currentAssistantId = "";
+    this.currentReasoningId = "";
+    this.notify();
   }
 
   private startAgentResume(decisions: { interruptId: string; approved: boolean; editedArgs?: Record<string, unknown> }[]) {
@@ -500,7 +597,7 @@ export class ConversationStore {
   loadScene(scene: "interrupted" | "done") {
     this.stopPlay();
     this.reset();
-    this.entries.push({ kind: "user", id: uid("user"), text: promptFor(this.lang), at: ts({ timestamp: new Date().toISOString() }) });
+    this.entries.push({ kind: "user", id: uid("user"), text: promptFor(this.lang), at: Date.now() });
     this.beginRun();
     this.dispatchAll(buildScenarioRun(this.scenario, this.threadId, RUN_FIRST, this.lang));
     if (scene === "done") {
@@ -558,6 +655,10 @@ export class ConversationStore {
 
   private reset() {
     this.stopPlay();
+    if (this.abort) {
+      this.abort.abort();
+      this.abort = null;
+    }
     this.entries = [];
     this.sharedState = {};
     this.stateVersion = 0;
@@ -571,6 +672,11 @@ export class ConversationStore {
     this.suggestions = [];
     this.status = "idle";
     this.errorMessage = "";
+    this.metadata = {};
+    this.lastAgentResume = [];
+    this.runInterruptIds = [];
+    this.currentAssistantId = "";
+    this.currentReasoningId = "";
     this.notify();
   }
 
@@ -669,9 +775,59 @@ export class ConversationStore {
           streaming: false,
           tokens: Math.round(textOf(message).length / 4),
         });
+      } else if (role === "activity") {
+        const raw = message.content;
+        const content =
+          raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+        entries.push({
+          kind: "plan",
+          id,
+          at: time,
+          title:
+            typeof content.title === "string" && content.title
+              ? content.title
+              : String(message.activityType || "Activity"),
+          activityType: String(message.activityType || "ACTIVITY"),
+          steps: normalizeSteps(content.steps),
+          content: raw,
+        });
       }
     }
-    this.entries = entries;
+    // A MESSAGES_SNAPSHOT is authoritative for messages, but it cannot carry
+    // client-only entries (pending approvals, plans/activity, steps, custom
+    // rows). Preserve those so a reconnect does not lose the suspended run.
+    const preserved = this.entries.filter(
+      (entry) =>
+        entry.kind === "interrupt" ||
+        entry.kind === "plan" ||
+        entry.kind === "step" ||
+        entry.kind === "custom" ||
+        entry.kind === "subagent"
+    );
+    const preservedReasoning = this.entries.filter(
+      (entry) => entry.kind === "reasoning" && !entries.some((nextEntry) => nextEntry.kind === "reasoning")
+    );
+    for (const entry of entries) {
+      if (entry.kind === "tool" && (entry.status === "args" || entry.status === "executing")) {
+        entry.status = "done";
+      }
+    }
+    this.entries = [...entries, ...preservedReasoning, ...preserved];
+  }
+
+  /** Close anything that would otherwise keep spinning after a terminal event. */
+  private closeOpenEntries(time: number, toolState: "done" | "error" | "interrupted", closeTools = true) {
+    for (const entry of this.entries) {
+      if ((entry.kind === "assistant" || entry.kind === "reasoning") && entry.streaming) {
+        entry.streaming = false;
+      }
+      if (closeTools && entry.kind === "tool" && (entry.status === "args" || entry.status === "executing")) {
+        entry.status = toolState;
+      }
+      if (entry.kind === "subagent" && entry.status === "running") {
+        entry.status = toolState === "error" ? "error" : "done";
+      }
+    }
   }
 
   private reduce(event: BaseEvent) {
@@ -683,25 +839,27 @@ export class ConversationStore {
         this.runId = String(event.runId ?? this.runId);
         if (!this.startedAt) this.startedAt = time;
         this.endedAt = 0;
+        this.runInterruptIds = [];
         return;
 
       case EventType.RUN_FINISHED: {
         const outcome = event.outcome as { type?: string; interrupts?: any[] } | undefined;
         this.endedAt = time;
-        if (outcome?.type === "interrupt") {
+        this.tokens = usageTokens((event as { usage?: unknown }).usage) || this.tokens;
+        const terminal = outcome?.type === "interrupt" ? "interrupt" : outcome?.type === "cancelled" ? "cancelled" : "success";
+        if (terminal === "interrupt") {
           this.status = "interrupted";
           // The run is suspended: no further events will arrive for open tool
           // calls until resume, so they must not keep reading as in flight.
-          for (const entry of this.entries) {
-            if (entry.kind === "tool" && (entry.status === "args" || entry.status === "executing")) {
-              entry.status = "interrupted";
-            }
-          }
-          for (const intr of outcome.interrupts ?? []) {
-            if (!intr || this.entries.some((e) => e.kind === "interrupt" && e.id === intr.id)) continue;
+          this.closeOpenEntries(time, "interrupted");
+          for (const intr of outcome?.interrupts ?? []) {
+            if (!intr) continue;
+            const id = intr.id || uid("int");
+            this.runInterruptIds.push(id);
+            if (this.entries.some((e) => e.kind === "interrupt" && e.id === id)) continue;
             this.entries.push({
               kind: "interrupt",
-              id: intr.id || uid("int"),
+              id,
               at: time,
               message: intr.message || "The agent needs your input to continue.",
               description: intr.description,
@@ -714,21 +872,29 @@ export class ConversationStore {
               metadata: intr.metadata,
             });
           }
+        } else if (terminal === "cancelled") {
+          this.status = "stopped";
+          this.closeOpenEntries(time, "interrupted");
         } else {
           this.status = "done";
+          this.closeOpenEntries(time, "done", false);
         }
         return;
       }
 
       case EventType.RUN_ERROR:
         this.status = "error";
+        this.endedAt = time;
+        this.tokens = usageTokens((event as { usage?: unknown }).usage) || this.tokens;
         this.errorMessage = String(event.message || "Run failed");
+        this.closeOpenEntries(time, "error");
         this.entries.push({ kind: "error", id: uid("err"), message: this.errorMessage, at: time });
         return;
 
       case EventType.REASONING_START:
       case EventType.REASONING_MESSAGE_START: {
-        const id = String(event.messageId || "reasoning");
+        const id = String(event.messageId || this.currentReasoningId || "reasoning");
+        this.currentReasoningId = id;
         if (!this.findReasoning(id)) {
           this.entries.push({ kind: "reasoning", id, at: time, text: "", streaming: true, tokens: 0 });
         } else {
@@ -738,8 +904,10 @@ export class ConversationStore {
         return;
       }
 
+      case EventType.REASONING_MESSAGE_CHUNK:
       case EventType.REASONING_MESSAGE_CONTENT: {
-        const id = String(event.messageId || "reasoning");
+        const id = String(event.messageId || this.currentReasoningId || "reasoning");
+        this.currentReasoningId = id;
         const entry = this.findReasoning(id) ?? (() => {
           const fresh: ReasoningEntry = { kind: "reasoning", id, at: time, text: "", streaming: true, tokens: 0 };
           this.entries.push(fresh);
@@ -752,15 +920,23 @@ export class ConversationStore {
       }
 
       case EventType.REASONING_ENCRYPTED_VALUE: {
-        const id = String(event.messageId || "reasoning");
+        const subtype = String(event.subtype || "message");
+        const value = event.encryptedValue ?? event.value;
+        if (typeof value !== "string") return;
+        if (subtype === "tool_call") {
+          const tool = this.findTool(String(event.entityId || event.toolCallId || ""));
+          if (tool) tool.encryptedValue = value;
+          return;
+        }
+        const id = String(event.entityId || event.messageId || this.currentReasoningId || "reasoning");
         const entry = this.findReasoning(id);
-        if (entry && typeof event.value === "string") entry.encryptedValue = event.value;
+        if (entry) entry.encryptedValue = value;
         return;
       }
 
       case EventType.REASONING_MESSAGE_END:
       case EventType.REASONING_END: {
-        const id = String(event.messageId || "reasoning");
+        const id = String(event.messageId || this.currentReasoningId || "reasoning");
         const entry = this.findReasoning(id);
         if (entry) {
           entry.streaming = false;
@@ -783,7 +959,22 @@ export class ConversationStore {
 
       case EventType.TOOL_CALL_CHUNK:
       case EventType.TOOL_CALL_ARGS: {
-        const tool = this.findTool(String(event.toolCallId));
+        let tool = this.findTool(String(event.toolCallId));
+        if (!tool && event.type === EventType.TOOL_CALL_CHUNK) {
+          const name = event.toolCallName || event.name;
+          if (typeof name === "string" && name) {
+            tool = {
+              kind: "tool",
+              id: String(event.toolCallId),
+              at: time,
+              name,
+              argsRaw: "",
+              args: {},
+              status: "args",
+            };
+            this.entries.push(tool);
+          }
+        }
         if (!tool) return;
         tool.argsRaw += String(event.delta ?? "");
         try {
@@ -831,9 +1022,11 @@ export class ConversationStore {
       }
 
       case EventType.SUBAGENT_STARTED: {
+        const id = String(event.subagentRunId || event.subagentId || event.id || uid("subagent"));
+        if (this.entries.some((entry) => entry.kind === "subagent" && entry.id === id)) return;
         this.entries.push({
           kind: "subagent",
-          id: String(event.subagentId || event.id || uid("subagent")),
+          id,
           at: time,
           name: String(event.name || event.subagentName || "subagent"),
           status: "running",
@@ -844,10 +1037,12 @@ export class ConversationStore {
 
       case EventType.SUBAGENT_FINISHED:
       case EventType.SUBAGENT_ERROR: {
-        const id = String(event.subagentId || event.id || "");
+        const id = String(event.subagentRunId || event.subagentId || event.id || "");
         const entry = this.entries.find((item): item is SubagentEntry => item.kind === "subagent" && item.id === id);
         if (entry) {
-          entry.status = event.type === EventType.SUBAGENT_ERROR ? "error" : "done";
+          const outcome = String(event.outcome || "");
+          entry.status =
+            event.type === EventType.SUBAGENT_ERROR ? "error" : outcome === "suspended" ? "suspended" : "done";
           entry.detail = typeof event.message === "string" ? event.message : entry.detail;
         }
         return;
@@ -868,16 +1063,21 @@ export class ConversationStore {
 
       case EventType.ACTIVITY_SNAPSHOT: {
         const id = String(event.messageId);
-        const content = (event.content as { title?: string; steps?: PlanStep[] }) ?? {};
+        const raw = event.content;
+        const content =
+          raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
         const existing = this.findPlan(id);
         const next: PlanEntry = {
           kind: "plan",
           id,
           at: time,
-          title: content.title || String(event.activityType || "Plan"),
+          title:
+            typeof content.title === "string" && content.title
+              ? content.title
+              : String(event.activityType || "Plan"),
           activityType: String(event.activityType || "PLAN"),
-          steps: (content.steps || []).map((s) => ({ ...s })),
-          content,
+          steps: normalizeSteps(content.steps),
+          content: raw,
         };
         if (existing) Object.assign(existing, next);
         else this.entries.push(next);
@@ -897,7 +1097,8 @@ export class ConversationStore {
       }
 
       case EventType.TEXT_MESSAGE_START: {
-        const id = String(event.messageId);
+        const id = String(event.messageId || uid("msg"));
+        this.currentAssistantId = id;
         if (!this.findAssistant(id)) {
           this.entries.push({
             kind: "assistant",
@@ -913,7 +1114,8 @@ export class ConversationStore {
 
       case EventType.TEXT_MESSAGE_CHUNK:
       case EventType.TEXT_MESSAGE_CONTENT: {
-        const id = String(event.messageId);
+        const id = String(event.messageId || this.currentAssistantId || uid("msg"));
+        this.currentAssistantId = id;
         const assistant =
           this.findAssistant(id) ??
           (() => {
@@ -930,7 +1132,7 @@ export class ConversationStore {
       }
 
       case EventType.TEXT_MESSAGE_END: {
-        const entry = this.findAssistant(String(event.messageId));
+        const entry = this.findAssistant(String(event.messageId || this.currentAssistantId));
         if (entry) entry.streaming = false;
         return;
       }

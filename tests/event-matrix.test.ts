@@ -42,6 +42,7 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
   REASONING_START: { messageId: "r1" },
   REASONING_MESSAGE_START: { messageId: "r1", role: "reasoning" },
   REASONING_MESSAGE_CONTENT: { messageId: "r1", delta: "think" },
+  REASONING_MESSAGE_CHUNK: { messageId: "r1", delta: "think" },
   REASONING_MESSAGE_END: { messageId: "r1" },
   REASONING_END: { messageId: "r1" },
   REASONING_ENCRYPTED_VALUE: { messageId: "r1", value: "enc" },
@@ -57,7 +58,7 @@ describe("event matrix", () => {
     const declared = Object.values(EventType);
     const missing = declared.filter((type) => !(type in MINIMAL));
     expect(missing).toEqual([]);
-    expect(declared).toHaveLength(30);
+    expect(declared).toHaveLength(31);
   });
 
   it.each(Object.values(EventType))("handles %s without crashing", (type) => {

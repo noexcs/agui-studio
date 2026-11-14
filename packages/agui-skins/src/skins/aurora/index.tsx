@@ -1,8 +1,11 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useConversation, useSkinPlugins } from "../../host";
 import type { AssistantEntry, CustomEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, StepEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration, estimateTokens } from "../../utils";
 import { Icon } from "../../shared/Icon";
+import { ToolResult } from "../../shared/ToolResult";
+import { planView, planRawText } from "../../shared/plan";
+import { displayText, isEmptyState, safeJson } from "../../shared/safe";
 import { t } from "../../i18n";
 import { useSkinBranding } from "../../host";
 import * as RadixTabs from "@radix-ui/react-tabs";
@@ -422,7 +425,7 @@ export function AuroraPage() {
                   <span className="state-version mono">v{c.stateVersion}</span>
                 </div>
                 <div className="state-tree">
-                  {Object.keys(c.sharedState).length === 0 ? (
+                  {isEmptyState(c.sharedState) ? (
                     <div className="state-empty">
                       <Icon name="braces" />
                       No snapshot yet
@@ -561,17 +564,17 @@ function ReasoningBlock({ entry, open, onToggle }: { entry: ReasoningEntry; open
 }
 
 function ToolBlock({ entry }: { entry: ToolEntry }) {
-  const dot = entry.name.lastIndexOf(".");
-  const ns = dot > -1 ? entry.name.slice(0, dot + 1) : "";
-  const name = dot > -1 ? entry.name.slice(dot + 1) : entry.name;
-  const result = entry.result as { results?: { title: string; url: string; detail?: string }[]; reservation?: string; status?: string } | undefined;
+  const name = displayText(entry.name);
+  const dot = name.lastIndexOf(".");
+  const ns = dot > -1 ? name.slice(0, dot + 1) : "";
+  const shortName = dot > -1 ? name.slice(dot + 1) : name;
 
   return (
     <div className="block">
       <div className="tool" data-status={entry.status}>
         <div className="tool-head">
           <div className="tool-icon"><Icon name="wrench" /></div>
-          <span className="tool-name"><span className="tool-namespace">{ns}</span>{name}</span>
+          <span className="tool-name"><span className="tool-namespace">{ns}</span>{shortName}</span>
           <div className="tool-meta">
             <span className="mono">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
             <span className="tool-status">
@@ -584,27 +587,8 @@ function ToolBlock({ entry }: { entry: ToolEntry }) {
           </div>
         </div>
         <div className="tool-body">
-          {entry.argsRaw && <div className="tool-args" data-skin-text="">{JSON.stringify(entry.args ?? entry.argsRaw, null, 2)}</div>}
-          {result?.results && (
-            <div className="tool-result">
-              <div className="tool-result-head"><Icon name="globe" />{result.results.length} {t("chat.sources")}</div>
-              <div className="tool-result-list">
-                {result.results.map((r, i) => (
-                  <a key={r.url} className="tool-source" href={r.url} target="_blank" rel="noreferrer">
-                    <span className="tool-source-num">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="tool-source-title">{r.title}</span>
-                    <Icon name="arrow-up-right" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          {result && !result.results && (
-            <div className="tool-result">
-              <div className="tool-result-head"><Icon name="check" />{t("chat.result")}</div>
-              <div className="tool-args" data-skin-text="">{JSON.stringify(result, null, 2)}</div>
-            </div>
-          )}
+          {entry.argsRaw && <div className="tool-args" data-skin-text="">{safeJson(entry.args ?? entry.argsRaw, 2)}</div>}
+          <ToolResult entry={entry} variant="aurora" />
         </div>
       </div>
     </div>
@@ -617,7 +601,7 @@ function SubagentRow({ entry }: { entry: SubagentEntry }) {
       <div className="reason">
         <div className="reason-toggle">
           <Icon name="layers" className="icon-brain" />
-          <span className="reason-label">{entry.name}</span>
+          <span className="reason-label">{displayText(entry.name)}</span>
           <span className="reason-meta mono">{entry.status}</span>
         </div>
         {entry.detail && <div className="reason-body" data-skin-text="">{entry.detail}</div>}
@@ -632,7 +616,7 @@ function StepRow({ entry }: { entry: StepEntry }) {
       <div className="reason">
         <div className="reason-toggle">
           <Icon name="activity" className="icon-brain" />
-          <span className="reason-label">{entry.name}</span>
+          <span className="reason-label">{displayText(entry.name)}</span>
           <span className="reason-meta mono">{entry.status}</span>
         </div>
       </div>
@@ -649,8 +633,8 @@ function CustomRow({ entry }: { entry: CustomEntry }) {
       <div className="reason">
         <div className="reason-toggle">
           <Icon name="braces" className="icon-brain" />
-          <span className="reason-label">{entry.name}</span>
-          <span className="reason-meta mono">{JSON.stringify(entry.value)}</span>
+          <span className="reason-label">{displayText(entry.name)}</span>
+          <span className="reason-meta mono">{safeJson(entry.value, 0)}</span>
         </div>
       </div>
     </div>
@@ -658,21 +642,22 @@ function CustomRow({ entry }: { entry: CustomEntry }) {
 }
 
 function PlanBlock({ entry }: { entry: PlanEntry }) {
-  const done = entry.steps.filter((s) => s.state === "done").length;
-  const pct = entry.steps.length ? Math.round((done / entry.steps.length) * 100) : 0;
+  const view = planView(entry);
+  const done = view.steps.filter((s) => s.state === "done").length;
+  const pct = view.steps.length ? Math.round((done / view.steps.length) * 100) : 0;
   return (
     <div className="block">
       <div className="plan">
         <div className="plan-head">
           <span className="plan-icon"><Icon name="activity" /></span>
-          <span className="plan-title">{entry.title}</span>
-          <span className="plan-tag">ACTIVITY · {entry.activityType}</span>
+          <span className="plan-title">{displayText(entry.title)}</span>
+          <span className="plan-tag">ACTIVITY · {displayText(entry.activityType)}</span>
         </div>
-        {entry.steps.length === 0 && entry.content ? (
-          <pre className="tool-args" data-skin-text="">{JSON.stringify(entry.content, null, 2)}</pre>
+        {view.rawOnly ? (
+          <pre className="tool-args" data-skin-text="">{planRawText(view)}</pre>
         ) : (
         <div className="plan-steps">
-          {entry.steps.map((step) => (
+          {view.steps.map((step) => (
             <div key={step.id} className="plan-step" data-state={step.state}>
               <span className="plan-check">{step.state === "done" && <Icon name="check" />}</span>
               <span className="plan-step-label">{step.label}</span>

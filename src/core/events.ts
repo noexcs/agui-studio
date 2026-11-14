@@ -27,6 +27,7 @@ export const EventType = {
   REASONING_START: "REASONING_START",
   REASONING_MESSAGE_START: "REASONING_MESSAGE_START",
   REASONING_MESSAGE_CONTENT: "REASONING_MESSAGE_CONTENT",
+  REASONING_MESSAGE_CHUNK: "REASONING_MESSAGE_CHUNK",
   REASONING_MESSAGE_END: "REASONING_MESSAGE_END",
   REASONING_END: "REASONING_END",
   REASONING_ENCRYPTED_VALUE: "REASONING_ENCRYPTED_VALUE",
@@ -43,7 +44,7 @@ export interface BaseEvent {
   type: EventTypeName;
   threadId?: string;
   runId?: string;
-  timestamp?: string;
+  timestamp?: string | number;
   metadata?: Record<string, unknown>;
   [key: string]: unknown;
 }

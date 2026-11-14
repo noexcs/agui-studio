@@ -16,7 +16,13 @@ export function windowEntries(entries: Entry[], limit: number): { visible: Entry
 
 export function useVisibleEntries(entries: Entry[], initial = 60, step = 60) {
   const [limit, setLimit] = useState(initial);
-  const { visible, hidden } = useMemo(() => windowEntries(entries, limit), [entries, limit]);
+  // entries is mutated in place by the store; length is the append signal that
+  // the memo must observe (otherwise a live thread never starts windowing and a
+  // long mounted thread freezes on its initial slice).
+  const { visible, hidden } = useMemo(
+    () => windowEntries(entries, limit),
+    [entries, entries.length, limit]
+  );
   const showEarlier = useCallback(() => setLimit((current) => current + step), [step]);
   return { visible, hidden, showEarlier };
 }

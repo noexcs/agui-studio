@@ -4,6 +4,9 @@ import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, 
 import { formatDuration } from "../../utils";
 import { plainText } from "../../utils";
 import { toolStage } from "../../shared/toolStatus";
+import { ToolResult } from "../../shared/ToolResult";
+import { planView, planRawText } from "../../shared/plan";
+import { asArray, asRecord, displayText, isEmptyState, safeJson } from "../../shared/safe";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
@@ -20,6 +23,17 @@ export function BrutalistPage() {
   const [draft, setDraft] = useState("");
   const running = c.status === "running";
   const pending = pendingInterrupts(c.entries)[0];
+  // Shared state is typed as a record, but a third-party stream can send a
+  // scalar/array snapshot. Never call Object.keys on it and never read `.trip`
+  // off null: fall back to raw JSON when it is not our demo object.
+  const shared = asRecord(c.sharedState);
+  const trip = asRecord(shared?.trip);
+  const budget = asRecord(shared?.budget);
+  const itinerary = asArray(shared?.itinerary);
+  const bookings = asArray(shared?.bookings);
+  const hasDemoState =
+    !!shared && ["trip", "budget", "itinerary", "bookings"].some((key) => Object.prototype.hasOwnProperty.call(shared, key));
+  const showRawState = !isEmptyState(c.sharedState) && !hasDemoState;
 
   function send() {
     const text = draft.trim();
@@ -140,12 +154,22 @@ export function BrutalistPage() {
         <aside className="bru-side">
           <div className="bru-side-block">
             <div className="bru-label bru-label--light">{t("bru.sharedState")}</div>
-            <div className="bru-stat">
-              <span>budget</span><b>€{(c.sharedState as any).trip?.budget ?? "—"}</b>
-            </div>
-            <div className="bru-stat"><span>spent</span><b>€{(c.sharedState as any).budget?.total ?? 0}</b></div>
-            <div className="bru-stat"><span>days</span><b>{((c.sharedState as any).itinerary ?? []).length}</b></div>
-            <div className="bru-stat"><span>bookings</span><b>{((c.sharedState as any).bookings ?? []).length}</b></div>
+            {showRawState ? (
+              <pre className="bru-tool-args" data-skin-text="" style={{ color: "var(--paper)" }}>{safeJson(c.sharedState)}</pre>
+            ) : (
+              <>
+                <div className="bru-stat">
+                  <span>budget</span>
+                  <b>€{trip?.budget === undefined || trip?.budget === null ? "—" : displayText(trip.budget)}</b>
+                </div>
+                <div className="bru-stat">
+                  <span>spent</span>
+                  <b>€{budget?.total === undefined || budget?.total === null ? 0 : displayText(budget.total)}</b>
+                </div>
+                <div className="bru-stat"><span>days</span><b>{itinerary.length}</b></div>
+                <div className="bru-stat"><span>bookings</span><b>{bookings.length}</b></div>
+              </>
+            )}
             <div className="bru-stat"><span>state ver.</span><b>v{c.stateVersion}</b></div>
           </div>
 
@@ -205,8 +229,8 @@ function BruSubagent({ entry }: { entry: SubagentEntry }) {
     <div className="bru-subagent" data-status={entry.status}>
       <div className="bru-subagent-head">
         <span className="bru-subagent-tag">{t("bru.subagent")}</span>
-        <span className="bru-subagent-name">{entry.name}</span>
-        <span className="bru-subagent-status">{entry.status.toUpperCase()}</span>
+        <span className="bru-subagent-name">{displayText(entry.name)}</span>
+        <span className="bru-subagent-status">{displayText(entry.status).toUpperCase()}</span>
       </div>
       {entry.detail && <p className="bru-subagent-detail">{entry.detail}</p>}
     </div>
@@ -236,43 +260,38 @@ function BruReasoning({ entry }: { entry: ReasoningEntry }) {
 
 function BruTool({ entry }: { entry: ToolEntry }) {
   const stage = toolStage(entry.status);
-  const result = entry.result as { results?: { title: string; url: string }[]; reservation?: string } | undefined;
   return (
     <div className="bru-tool">
       <div className="bru-tool-head">
-        <span className="bru-tool-name">{entry.name.toUpperCase()}</span>
+        <span className="bru-tool-name">{displayText(entry.name).toUpperCase()}</span>
         <span className="bru-tool-status">
-          {stage === "done" ? "■ DONE" : stage === "interrupted" ? "‖ INTERRUPTED" : stage === "error" ? "✕ ERROR" : "▶ " + entry.status.toUpperCase()}
+          {stage === "done" ? "■ DONE" : stage === "interrupted" ? "‖ INTERRUPTED" : stage === "error" ? "✕ ERROR" : "▶ " + displayText(entry.status).toUpperCase()}
         </span>
       </div>
-      <pre className="bru-tool-args" data-skin-text="">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
-      {result?.results && (
-        <div className="bru-tool-results">
-          {result.results.map((r, i) => (
-            <a key={r.url} href={r.url} target="_blank" rel="noreferrer">
-              {String(i + 1).padStart(2, "0")} {plainText(r.title, 54)} ↗
-            </a>
-          ))}
-        </div>
-      )}
-      {result?.reservation && <div className="bru-tool-results">{t("bru.held")} · {result.reservation}</div>}
+      <pre className="bru-tool-args" data-skin-text="">{entry.argsRaw ? safeJson(entry.args ?? entry.argsRaw, 1) : "…"}</pre>
+      <ToolResult entry={entry} variant="brutalist" />
     </div>
   );
 }
 
 function BruPlan({ entry }: { entry: PlanEntry }) {
+  const view = planView(entry);
   return (
     <div className="bru-plan">
       <div className="bru-plan-head">
         <span>{t("bru.plan")}</span>
-        <span>{entry.title.toUpperCase()}</span>
+        <span>{displayText(entry.title).toUpperCase()}</span>
       </div>
-      {entry.steps.map((s) => (
-        <div key={s.id} className="bru-step" data-state={s.state}>
-          <span className="bru-box">{s.state === "done" ? "■" : s.state === "active" ? "▣" : "□"}</span>
-          {s.label.toUpperCase()}
-        </div>
-      ))}
+      {view.rawOnly ? (
+        <pre className="bru-tool-args" data-skin-text="">{planRawText(view)}</pre>
+      ) : (
+        view.steps.map((s) => (
+          <div key={s.id} className="bru-step" data-state={s.state}>
+            <span className="bru-box">{s.state === "done" ? "■" : s.state === "active" ? "▣" : "□"}</span>
+            {s.label.toUpperCase()}
+          </div>
+        ))
+      )}
     </div>
   );
 }

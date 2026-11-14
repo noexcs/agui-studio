@@ -33,6 +33,9 @@ jobs:
       # are enforced here; a red run blocks build and deploy via `needs`.
       # NOTE: `pnpm test -- --coverage` is NOT equivalent — the literal `--`
       # makes vitest treat --coverage as a filter, silently skipping the gate.
+      - name: Typecheck
+        run: pnpm typecheck
+
       - name: Test with coverage gate
         run: pnpm vitest run --coverage
 

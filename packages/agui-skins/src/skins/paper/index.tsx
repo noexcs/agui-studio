@@ -1,9 +1,12 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useConversation } from "../../host";
 import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration, estimateTokens } from "../../utils";
 import { plainText } from "../../utils";
 import { toolStage } from "../../shared/toolStatus";
+import { ToolResult, hasToolResultContent } from "../../shared/ToolResult";
+import { planView, planRawText } from "../../shared/plan";
+import { asArray, asRecord, displayText, isEmptyState, safeJson } from "../../shared/safe";
 import { Icon } from "../../shared/Icon";
 import { t } from "../../i18n";
 import { useSkinBranding } from "../../host";
@@ -31,6 +34,17 @@ export function PaperPage() {
   const input = useRef<HTMLTextAreaElement>(null);
   const running = c.status === "running";
   const pending = pendingInterrupts(c.entries)[0];
+  // The demo state is an object; a third-party snapshot may be a scalar/array.
+  // Read it through the guards so `.trip?.budget` never runs on null and the
+  // panel shows raw JSON rather than fabricated defaults for an unknown shape.
+  const shared = asRecord(c.sharedState);
+  const sharedTrip = asRecord(shared?.trip);
+  const sharedBudget = asRecord(shared?.budget);
+  const itinerary = asArray(shared?.itinerary);
+  const bookings = asArray(shared?.bookings);
+  const hasDemoState =
+    !!shared && ["trip", "budget", "itinerary", "bookings"].some((key) => Object.prototype.hasOwnProperty.call(shared, key));
+  const showRawState = !isEmptyState(c.sharedState) && !hasDemoState;
 
   const letters = visibleEntries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt" || e.kind === "error");
   const notes = visibleEntries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan" || e.kind === "subagent");
@@ -50,10 +64,10 @@ export function PaperPage() {
     ? progressNote.kind === "reasoning"
       ? t("paper.thinking")
       : progressNote.kind === "tool"
-      ? `${t("paper.toolCall")} · ${progressNote.name}`
+      ? `${t("paper.toolCall")} · ${displayText(progressNote.name)}`
       : progressNote.kind === "plan"
-      ? `${t("paper.plan")} · ${progressNote.title}`
-      : `${t("paper.subagent")} · ${progressNote.name}`
+      ? `${t("paper.plan")} · ${displayText(progressNote.title)}`
+      : `${t("paper.subagent")} · ${displayText(progressNote.name)}`
     : "";
 
   function send() {
@@ -257,23 +271,27 @@ export function PaperPage() {
                 </div>
               ))}
 
-              {Object.keys(c.sharedState).length > 0 && (
+              {!isEmptyState(c.sharedState) && (
                 <div className="pap-note">
                   <span className="pap-note-no">§</span>
                   <div className="pap-note-body">
                     <div className="pap-note-label">{t("paper.sharedState")} · v{c.stateVersion}</div>
-                    <dl className="pap-dl">
-                      <dt>budget</dt>
-                      <dd>€{(c.sharedState as any).trip?.budget ?? "—"}</dd>
-                      <dt>lodging</dt>
-                      <dd>€{(c.sharedState as any).budget?.lodging ?? 0}</dd>
-                      <dt>total</dt>
-                      <dd>€{(c.sharedState as any).budget?.total ?? 0}</dd>
-                      <dt>days</dt>
-                      <dd>{((c.sharedState as any).itinerary ?? []).length}</dd>
-                      <dt>bookings</dt>
-                      <dd>{((c.sharedState as any).bookings ?? []).length}</dd>
-                    </dl>
+                    {showRawState ? (
+                      <pre className="pap-args" data-skin-text="">{safeJson(c.sharedState)}</pre>
+                    ) : (
+                      <dl className="pap-dl">
+                        <dt>budget</dt>
+                        <dd>€{sharedTrip?.budget === undefined || sharedTrip?.budget === null ? "—" : displayText(sharedTrip.budget)}</dd>
+                        <dt>lodging</dt>
+                        <dd>€{sharedBudget?.lodging === undefined || sharedBudget?.lodging === null ? 0 : displayText(sharedBudget.lodging)}</dd>
+                        <dt>total</dt>
+                        <dd>€{sharedBudget?.total === undefined || sharedBudget?.total === null ? 0 : displayText(sharedBudget.total)}</dd>
+                        <dt>days</dt>
+                        <dd>{itinerary.length}</dd>
+                        <dt>bookings</dt>
+                        <dd>{bookings.length}</dd>
+                      </dl>
+                    )}
                   </div>
                 </div>
               )}
@@ -332,58 +350,50 @@ function ReasoningNote({ entry }: { entry: ReasoningEntry }) {
 
 function ToolNote({ entry }: { entry: ToolEntry }) {
   const stage = toolStage(entry.status);
-  const result = entry.result as { results?: { title: string; url: string }[]; reservation?: string; status?: string } | undefined;
+  const hasResult = hasToolResultContent(entry);
   return (
     <div className="pap-note-body">
       <div className="pap-note-label">
-        {t("paper.toolCall")} <span className="pap-mono pap-toolname">{entry.name}</span>
+        {t("paper.toolCall")} <span className="pap-mono pap-toolname">{displayText(entry.name)}</span>
       </div>
-      <pre className="pap-args" data-skin-text="">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
-      {stage === "error" ? (
-        <div className="pap-note-meta pap-note-meta--error">
-          <span className="pap-fail">✗</span> {entry.error ?? t("status.error")}
-        </div>
-      ) : stage !== "done" ? (
+      <pre className="pap-args" data-skin-text="">{entry.argsRaw ? safeJson(entry.args ?? entry.argsRaw, 1) : "…"}</pre>
+      {stage !== "done" && stage !== "error" && (
         <div className="pap-note-meta">
           {stage === "streaming" ? t("chat.streamingArgs") : stage === "interrupted" ? t("chat.interrupted") : t("chat.executing")}
         </div>
-      ) : (
+      )}
+      <ToolResult entry={entry} variant="paper" />
+      {stage === "done" && !hasResult && (
         <div className="pap-result">
           <span className="pap-check">✓</span>
-          {result?.results
-            ? `${result.results.length} ${t("chat.sources")}`
-            : result?.reservation
-            ? `${t("chat.held")} · ${result.reservation}`
-            : t("chat.done")}
+          {t("chat.done")}
           <span className="pap-note-meta">{formatDuration(entry.durationMs ?? 0)}</span>
         </div>
-      )}
-      {result?.results && (
-        <ol className="pap-sources">
-          {result.results.map((r) => (
-            <li key={r.url}><a href={r.url} target="_blank" rel="noreferrer">{plainText(r.title, 46)}</a></li>
-          ))}
-        </ol>
       )}
     </div>
   );
 }
 
 function PlanNote({ entry }: { entry: PlanEntry }) {
-  const done = entry.steps.filter((s) => s.state === "done").length;
+  const view = planView(entry);
+  const done = view.steps.filter((s) => s.state === "done").length;
   return (
     <div className="pap-note-body">
       <div className="pap-note-label">
-        {t("paper.plan")} <span className="pap-note-meta">{done}/{entry.steps.length}</span>
+        {t("paper.plan")} <span className="pap-note-meta">{done}/{view.steps.length}</span>
       </div>
-      <ul className="pap-plan">
-        {entry.steps.map((s) => (
-          <li key={s.id} data-state={s.state}>
-            <span className="pap-plan-box">{s.state === "done" ? "×" : s.state === "active" ? "~" : ""}</span>
-            {s.label}
-          </li>
-        ))}
-      </ul>
+      {view.rawOnly ? (
+        <pre className="pap-args" data-skin-text="">{planRawText(view)}</pre>
+      ) : (
+        <ul className="pap-plan">
+          {view.steps.map((s) => (
+            <li key={s.id} data-state={s.state}>
+              <span className="pap-plan-box">{s.state === "done" ? "×" : s.state === "active" ? "~" : ""}</span>
+              {s.label}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -392,7 +402,7 @@ function SubagentNote({ entry }: { entry: SubagentEntry }) {
   return (
     <div className="pap-note-body">
       <div className="pap-note-label">
-        {t("paper.subagent")} <span className="pap-mono pap-toolname">{entry.name}</span>
+        {t("paper.subagent")} <span className="pap-mono pap-toolname">{displayText(entry.name)}</span>
         <span className="pap-note-meta">{entry.status}</span>
       </div>
       {entry.detail && <p className="pap-quote">{plainText(entry.detail, 220)}</p>}

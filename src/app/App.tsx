@@ -3,10 +3,10 @@ import { SkinHostProvider } from "agui-skins";
 import type { SkinTuning } from "agui-skins";
 import { CustomizePanel } from "./CustomizePanel";
 import { buildAppQuery, sanitizeTuning } from "./urlState";
-import { createStudio, type ConversationStore } from "../core/store";
+import { createStudio, type ConversationStore, type StudioBackend } from "../core/store";
 import { DEFAULT_SCENARIO, isDemoScenario, type DemoScenario } from "../core/demo-scenarios";
 import { getAgentEndpoint, setAgentEndpoint as persistAgentEndpoint, type AgentEndpoint } from "../core/agui";
-import { checkBridge, type BridgeHealth, type PiBackend } from "../core/pi";
+import { checkBridge, type BridgeHealth } from "../core/pi";
 import { getSkin, skins } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
 import { setLang as setI18nLang, type Lang } from "../i18n";
@@ -20,7 +20,7 @@ import "./app.css";
 import "../shell/shell.css";
 
 type Scene = "live" | "interrupted" | "done";
-type Backend = "mock" | PiBackend | "agui";
+type Backend = StudioBackend;
 
 const readParams = () => new URLSearchParams(window.location.search);
 
@@ -110,7 +110,9 @@ export default function App() {
       if (!alive) return;
       setHealth(result);
       store.piStatus = result.reachable ? (result.pi ? "ready" : "fixture") : "unavailable";
-      store.transport = result.pi ? "pi rpc" : result.reachable ? "pi fixture" : "mock SSE";
+      if (store.backend !== "agui") {
+        store.transport = result.pi ? "pi rpc" : result.reachable ? "pi fixture" : "mock SSE";
+      }
       store.touch();
     });
     return () => {
@@ -153,7 +155,15 @@ export default function App() {
       scenario,
       tuning: tuningBySkin[skinId] ?? {},
     });
-    window.history.replaceState(null, "", "?" + query);
+    const next = new URLSearchParams(query);
+    const managed = new Set([
+      "skin", "lang", "backend", "scene", "full", "scenario",
+      "accent", "anim", "density", "motion", "radius", "scale",
+    ]);
+    for (const [key, value] of new URLSearchParams(window.location.search)) {
+      if (!managed.has(key)) next.set(key, value);
+    }
+    window.history.replaceState(null, "", "?" + next.toString());
   }, [skinId, lang, backend, scene, full, scenario, tuningBySkin]);
 
   // design-review hook: jump to the inline skins section
@@ -193,7 +203,7 @@ export default function App() {
   }
 
   function configureAgent() {
-    const current = agentEndpoint?.url ?? "http://127.0.0.1:8080/agui";
+    const current = agentEndpoint?.url ?? "http://127.0.0.1:5180/agui";
     const url = window.prompt(
       zh
         ? "输入 AG-UI 端点 URL（POST RunAgentInput，返回 text/event-stream）："
@@ -204,8 +214,11 @@ export default function App() {
     const endpoint = { url: url.trim().replace(/\/$/, "") };
     setAgentEndpointState(endpoint);
     persistAgentEndpoint(endpoint);
+    store.stop();
     store.setAgentEndpoint(endpoint);
-    chooseBackend("agui");
+    store.setBackend("agui");
+    store.prepareIdle();
+    setBackend("agui");
   }
 
   function chooseBackend(next: Backend) {
@@ -214,6 +227,7 @@ export default function App() {
       configureAgent();
       return;
     }
+    if (store.status === "running" || store.status === "interrupted") store.stop();
     setBackend(next);
     store.setBackend(next);
     if (next === "mock") store.replay();
@@ -403,6 +417,8 @@ export default function App() {
           health={health}
           onCustomize={() => setCustomizeOpen((v) => !v)}
           customizing={customizeOpen}
+          agentEndpoint={agentEndpoint?.url}
+          onConfigureAgent={configureAgent}
           customize={inlineCustomize}
           onRunInfo={() => setRunInfoOpen(true)}
           onDocs={() => window.open("https://docs.ag-ui.com/introduction", "_blank", "noreferrer")}

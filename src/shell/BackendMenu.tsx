@@ -2,8 +2,9 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Icon } from "../shared/Icon";
 import type { Lang } from "../i18n";
 import type { BridgeHealth } from "../core/pi";
+import type { StudioBackend } from "../core/store";
 
-type BackendId = "mock" | "pi" | "deepseek" | "deepagent" | "agui";
+type BackendId = StudioBackend;
 
 export function BackendMenu(props: {
   backend: BackendId;

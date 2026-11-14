@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:package": "pnpm --filter agui-skins build && node scripts/verify-package.mjs",
-    "agui:echo": "node server/agui-echo.mjs"
+    "agui:echo": "node server/agui-echo.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ag-ui/langgraph": "^0.0.45",

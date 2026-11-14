@@ -1,9 +1,11 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useConversation, useSkinPlugins } from "../../host";
 import type { AssistantEntry, CustomEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, StepEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
-import { plainText } from "../../utils";
 import { Icon } from "../../shared/Icon";
+import { ToolResult } from "../../shared/ToolResult";
+import { planView, planRawText } from "../../shared/plan";
+import { displayText, safeJson } from "../../shared/safe";
 import { t } from "../../i18n";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
@@ -262,7 +264,7 @@ function LogEntry({
   if (entry.kind === "subagent") {
     return (
       <div className="term-line term-dim">
-        <span className="term-prompt">↳</span> [{entry.name}] {entry.status}
+        <span className="term-prompt">↳</span> [{displayText(entry.name)}] {entry.status}
         {entry.detail ? ` · ${entry.detail}` : ""}
       </div>
     );
@@ -270,7 +272,7 @@ function LogEntry({
   if (entry.kind === "step") {
     return (
       <div className="term-line term-dim">
-        <span className="term-prompt">›</span> step · {entry.name} · {entry.status}
+        <span className="term-prompt">›</span> step · {displayText(entry.name)} · {entry.status}
       </div>
     );
   }
@@ -280,7 +282,7 @@ function LogEntry({
     if (custom !== undefined) return <>{custom}</>;
     return (
       <div className="term-line term-dim">
-        <span className="term-prompt">›</span> custom · {entry.name} · {JSON.stringify(entry.value)}
+        <span className="term-prompt">›</span> custom · {displayText(entry.name)} · {safeJson(entry.value, 0)}
       </div>
     );
   }
@@ -393,64 +395,50 @@ function AssistantLine({ entry }: { entry: AssistantEntry }) {  return (
 
 function ToolLine({ entry }: { entry: ToolEntry }) {
   const [open, setOpen] = useState(false);
-  const result = entry.result as { results?: { title: string; url: string }[]; reservation?: string } | undefined;
   return (
     <div className="term-tool">
       <button className="term-tool-head" onClick={() => setOpen(!open)}>
         <span className="term-tool-mark">
           {entry.status === "done" ? "✓" : entry.status === "error" ? "✗" : entry.status === "interrupted" ? "‖" : "⟳"}
         </span>
-        <span className="term-tool-name">{entry.name}</span>
-        <span className="term-dim term-tool-args" data-skin-text="">{entry.argsRaw.slice(0, 52)}</span>
+        <span className="term-tool-name">{displayText(entry.name)}</span>
+        <span className="term-dim term-tool-args" data-skin-text="">{displayText(entry.argsRaw).slice(0, 52)}</span>
         <span className="term-dim term-tool-time">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
       </button>
       {open && (
-        <pre className="term-tool-json">{JSON.stringify(entry.args ?? entry.argsRaw, null, 2)}</pre>
+        <pre className="term-tool-json">{safeJson(entry.args ?? entry.argsRaw, 2)}</pre>
       )}
-      {entry.status === "done" && result?.results && (
-        <div className="term-tool-result">
-          {result.results.map((r, i) => (
-            <div key={r.url} className="term-tree">
-              <span className="term-dim">{i === result.results!.length - 1 ? "└" : "├"}</span>{" "}
-              <a href={r.url} target="_blank" rel="noreferrer">{plainText(r.title, 62)}</a>
-            </div>
-          ))}
-        </div>
-      )}
-      {entry.status === "done" && result?.reservation && (
-        <div className="term-tool-result">
-          <span className="term-dim">└</span> {t("chat.held")} · {result.reservation}
-        </div>
-      )}
+      <ToolResult entry={entry} variant="terminal" />
     </div>
   );
 }
 
 function PlanLine({ entry }: { entry: PlanEntry }) {
+  const view = planView(entry);
   // Non-PLAN activities may carry raw content and no steps at all — a 0/0
   // meter would read "NaN%", and entry.content would be silently dropped
   // (same fallback as aurora: render the raw content instead).
-  if (entry.steps.length === 0 && entry.content !== undefined) {
+  if (view.rawOnly) {
     return (
       <div className="term-plan">
         <div className="term-plan-head">
-          <span className="term-plan-title">▸ {t("term.plan")} · {entry.title.toLowerCase()}</span>
+          <span className="term-plan-title">▸ {t("term.plan")} · {displayText(entry.title).toLowerCase()}</span>
         </div>
-        <pre className="term-tool-json">{JSON.stringify(entry.content, null, 2)}</pre>
+        <pre className="term-tool-json">{planRawText(view)}</pre>
       </div>
     );
   }
-  const done = entry.steps.filter((s) => s.state === "done").length;
-  const total = entry.steps.length;
+  const done = view.steps.filter((s) => s.state === "done").length;
+  const total = view.steps.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
   const filled = total ? Math.round((done / total) * 12) : 0;
   return (
     <div className="term-plan">
       <div className="term-plan-head">
-        <span className="term-plan-title">▸ {t("term.plan")} · {entry.title.toLowerCase()}</span>
+        <span className="term-plan-title">▸ {t("term.plan")} · {displayText(entry.title).toLowerCase()}</span>
         <span className="term-bar-meter">[{"█".repeat(filled)}{"░".repeat(12 - filled)}] {pct}%</span>
       </div>
-      {entry.steps.map((s) => (
+      {view.steps.map((s) => (
         <div key={s.id} className="term-plan-step" data-state={s.state}>
           <span className="term-check">{s.state === "done" ? "[x]" : s.state === "active" ? "[~]" : "[ ]"}</span>
           {s.label}
