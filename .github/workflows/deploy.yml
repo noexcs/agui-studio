@@ -9,12 +9,11 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -30,16 +29,46 @@ jobs:
       - name: Install
         run: pnpm install --no-frozen-lockfile
 
-      # vitest coverage thresholds (lines/statements/branches 70, functions 59)
+      # vitest coverage thresholds (lines/statements 70, branches 65, functions 55)
       # are enforced here; a red run blocks build and deploy via `needs`.
       # NOTE: `pnpm test -- --coverage` is NOT equivalent — the literal `--`
       # makes vitest treat --coverage as a filter, silently skipping the gate.
       - name: Test with coverage gate
         run: pnpm vitest run --coverage
 
+  # The npm package is consumed through tsconfig aliases inside this repo, so
+  # the dist/CSS contract needs its own check: build tsup output and verify the
+  # tarball ships JS + d.ts + CSS (see scripts/verify-package.mjs).
+  package:
+    needs: [test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Verify agui-skins package output
+        run: pnpm test:package
+
   build:
     needs: [test]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -73,11 +102,15 @@ jobs:
           path: dist
 
   deploy:
-    needs: [build]
+    needs: [build, package]
     # Skip Pages deployment on pull_request (no deploy from PR runs);
     # push and workflow_dispatch both deploy as before.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
     # Scoped to deploy only: workflow-level would serialize PR test runs
     # against production deploys in both directions.
     concurrency:

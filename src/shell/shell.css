@@ -748,8 +748,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 8px;
-  container-type: inline-size; /* rows below adapt to their own track width */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  container-type: inline-size;
 }
+.qs-skin-item { display: block; min-width: 0; }
 .qs-skin-row {
   display: flex;
   align-items: center;
@@ -841,7 +845,7 @@
   .qs-skin-row.is-current .qs-skin-current { margin-left: auto; }
 }
 
-/* copy for ai dropdown */
+/* copy for ai dropdown — Radix DropdownMenu owns focus + positioning */
 .qs-copyai { position: relative; }
 .qs-copyai-btn {
   display: inline-flex;
@@ -863,11 +867,9 @@
 .qs-copyai-btn:active { transform: scale(0.98); }
 .qs-copyai-btn.is-copied { color: var(--accent-hover); border-color: var(--accent-line); background: var(--accent-dim); }
 .qs-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 40;
+  z-index: 90;
   min-width: 208px;
+  max-width: min(360px, calc(100vw - 32px));
   padding: 8px;
   border-radius: var(--r-md);
   border: 1px solid var(--hairline);
@@ -875,9 +877,13 @@
   box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.95);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
+  animation: qs-menu-in 120ms var(--ease);
 }
-.qs-menu button,
-.qs-menu a {
+@keyframes qs-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+.qs-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -892,11 +898,21 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  outline: none;
   transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
-.qs-menu button:hover,
-.qs-menu a:hover { background: rgba(255, 255, 255, 0.07); color: var(--fg); }
+.qs-menu-item:hover,
+.qs-menu-item[data-highlighted] { background: rgba(255, 255, 255, 0.07); color: var(--fg); }
+.qs-menu-item:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
 .qs-menu-sep { height: 1px; margin: 4px 8px; background: var(--hairline-subtle); }
+.qs-menu-note {
+  margin: 6px 12px 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--hairline-subtle);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
 
 /* ── footer ───────────────────────────────────────────────────────── */
 .home-foot {
@@ -1002,34 +1018,12 @@
   .dock { left: 10px; bottom: 10px; right: 10px; justify-content: center; }
 }
 
-@media (max-width: 1180px) {
-  /* the section head stacks here and the trigger sits at the left edge —
-     anchor the menu to the button's left so it can't leave the viewport */
-  .qs-menu { left: 0; right: auto; }
-}
-@media (max-width: 1080px) {
-  .qs-steps { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 700px) {
-  .embed-tagline { display: none; }
-}
-@media (max-width: 430px) {
-  .qs-code { padding: 12px; font-size: 12px; }
-  .qs-skin-tagline { white-space: normal; }
-  .qs-skin-row { flex-wrap: wrap; }
-}
 
-/* ── reduced motion: global backstop ──────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .home *,
-  .home *::before,
-  .home *::after,
-  .studio-full *,
-  .studio-full *::before,
-  .studio-full *::after {
-    animation-duration: 0.01s !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01s !important;
-  }
-  .hero-hint i { animation: none; }
+/* lazy-mounted below-the-fold section */
+.lazy-mount { display: block; }
+.qs-skeleton {
+  min-height: 420px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline-subtle);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
 }

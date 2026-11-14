@@ -480,7 +480,8 @@ pnpm test
 - **hero**：大标题 640 字重 + -0.04em 紧字距，标题混排衬线斜体词（en "protocol." / zh「协议」）；Grid Motion 背景改为深紫黑底 + violet 光带 + 四角暗角；
 - **皮肤展示区**：卡片 mono slug + 皮肤名 + 调色板 swatch 圆点行（每套皮肤的主题色一眼可读），is-current 卡 violet 描边；
 - **Customize**：elevated 大圆角容器，label mono uppercase；
-- **QuickStart**：最小上手路径（安装 / 最小示例 / 接 agent 三张代码卡，跟随当前选中皮肤动态生成，highlight.js 高亮 + 一键复制）+ 皮肤一览（Copy for AI 下拉：prompt / 配置代码 / 安装命令 / Open in ChatGPT|Claude|v0）；
+- **QuickStart**：最小上手路径（安装 / 最小示例 / 接 agent 三张代码卡，跟随当前选中皮肤与语言动态生成，highlight.js 高亮）；
+  Copy for AI 为 Radix DropdownMenu（键盘导航/焦点回归），预填 ChatGPT / Claude；段落通过 IntersectionObserver 懒加载（独立 chunk）；
 - 交互细节全站统一：150/250ms 两档动效、按压反馈、`prefers-reduced-motion` 兜底、focus-visible accent ring。
 
 ## 在线演示（GitHub Pages）
@@ -515,3 +516,16 @@ npx serve dist   # 或任意静态服务器
 - 预设：原始 / 冷调 / 暖调 / 紧凑，一键套用。
 
 实现位置：`packages/agui-skins/src/tuning.css`、`packages/agui-skins/src/host.tsx`（`tuning`/`skin` props）、`src/app/CustomizePanel.tsx`。
+
+
+## 2026-11-14 评审重构
+
+针对代码评审的修复：
+
+- **文档/打包一致性**：QuickStart 的安装卡改为本地 tarball 流程；最小示例与 AI prompt 显式 `import "agui-skins/index.css"`；transport 参考实现明确「不在包内」；新增 `scripts/verify-package.mjs` + CI `package` job + 包内 `prepublishOnly`；
+- **层级**：QuickStart 移到 `src/shell/quickstart`，`skin-swatches` 移到 `src/shared`，shell 不再 import app；
+- **配置**：`config/agui-aliases.ts` 单一别名源（vite/vitest 共用，指向 src）；修复了 tsconfig-paths 插件静默回退到 dist 的问题；
+- **无障碍**：皮肤选择改为 `aria-pressed` 切换组（不再假装 tablist）、QuickStart 列表改为真 `ul/li`、Copy for AI 换 Radix DropdownMenu、复制反馈加 `aria-live`、焦点样式覆盖 portal；
+- **性能**：QuickStart + highlight.js 懒加载（首屏 JS 206.87→167.35 KB，QuickStart 独立 44.80 KB chunk）；移除 Google Fonts 里重复的 Instrument Serif（已用 @fontsource 自托管）；
+- **测试**：`fix-b/c/d/e-*` 按行为重命名；quickstart 测试补齐 CSS import / 安装流程 / v0 移除 / 键盘菜单交互；
+- **覆盖率**：include 扩展到 `src/app/**`（App.tsx 除外），实测 lines 83.1% / branches 79.5% / functions 58.3%，阈值 70/65/55（保留余量）。

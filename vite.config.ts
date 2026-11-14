@@ -1,37 +1,11 @@
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { aguiAliases } from "./config/agui-aliases";
 
-/**
- * agui-skins is consumed from TS source inside this workspace, even though the
- * package's `exports` now point at dist/ (for npm publishing). These aliases
- * keep dev/test/build on src/ so the main site never depends on a built dist.
- * Keep in sync with tsconfig.json "paths" (they mirror the same subpaths).
- * Shared with vitest.config.ts.
- */
-export const skinsAliases = [
-  {
-    find: /^agui-skins$/,
-    replacement: fileURLToPath(new URL("./packages/agui-skins/src/index.ts", import.meta.url)),
-  },
-  {
-    find: /^agui-skins\/i18n$/,
-    replacement: fileURLToPath(new URL("./packages/agui-skins/src/i18n/index.ts", import.meta.url)),
-  },
-  {
-    find: /^agui-skins\/contract$/,
-    replacement: fileURLToPath(new URL("./packages/agui-skins/src/contract.ts", import.meta.url)),
-  },
-  {
-    find: /^agui-skins\/skins\/([\w-]+)$/,
-    replacement: fileURLToPath(new URL("./packages/agui-skins/src/skins/$1/index.tsx", import.meta.url)),
-  },
-];
-
-export default defineConfig({
+const config = defineConfig({
   plugins: [react()],
   base: process.env.VITE_BASE || "./",
-  resolve: { alias: skinsAliases },
+  resolve: { alias: aguiAliases },
   optimizeDeps: { exclude: ["agui-skins"] },
   server: {
     port: 5178,
@@ -49,10 +23,12 @@ export default defineConfig({
         manualChunks: {
           react: ["react", "react-dom"],
           markdown: ["react-markdown", "remark-gfm"],
-          radix: ["@radix-ui/react-tabs", "@radix-ui/react-tooltip", "@radix-ui/react-dialog"],
+          radix: ["@radix-ui/react-tabs", "@radix-ui/react-tooltip", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
           icons: ["lucide-react"],
         },
       },
     },
   },
 });
+
+export default config;

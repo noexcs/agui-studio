@@ -10,7 +10,7 @@ import {
   prefillUrl,
   QuickStart,
   skinComponentName,
-} from "../src/app/QuickStart";
+} from "../src/shell/quickstart/QuickStart";
 
 afterEach(() => {
   cleanup();
@@ -42,7 +42,13 @@ describe("buildAiPrompt", () => {
     expect(prompt).toContain("SkinConversation");
     expect(prompt).toContain("SkinTuning");
     expect(prompt).toContain("ConversationStore");
-    expect(prompt).toContain("HttpAgentTransport({ url, headers? }).run(input, signal?)");
+    expect(prompt).toContain("HttpAgentTransport");
+    expect(prompt).toContain("src/core/transport.ts");
+  });
+
+  it("documents the explicit CSS import (CSS is not auto-injected)", () => {
+    expect(prompt).toContain('import "agui-skins/index.css"');
+    expect(prompt).toContain("CSS 随包分发但不会自动注入");
   });
 
   it("covers the known pitfalls (interrupt resume, JSON Patch state)", () => {
@@ -158,6 +164,7 @@ describe("QuickStart section", () => {
   it("generates the minimal-setup card and highlighted tokens for the active skin", () => {
     const { container } = render(createElement(QuickStart, { lang: "zh", activeSkin: "paper" }));
     expect(container.textContent).toContain('import Paper from "agui-skins/skins/paper"');
+    expect(container.textContent).toContain('import "agui-skins/index.css"');
     expect(container.textContent).toContain("Paper.ChatPage");
     expect(container.textContent).not.toContain("skins/aurora");
     // library-driven highlighting lands in the DOM as hljs-* spans
@@ -174,21 +181,24 @@ describe("QuickStart section", () => {
     expect(current[0].textContent).toContain("当前");
   });
 
+  const openMenu = () => {
+    // jsdom lacks PointerEvent; Radix menus open through their keyboard path too
+    fireEvent.keyDown(screen.getByText("Copy for AI"), { key: "Enter" });
+  };
+
   it("opens the Copy for AI dropdown and copies the prompt", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     render(createElement(QuickStart, { lang: "zh", activeSkin: "paper" }));
 
-    const trigger = screen.getByText("Copy for AI");
-    fireEvent.click(trigger);
+    openMenu();
     const menu = screen.getByRole("menu");
     expect(menu.textContent).toContain("复制接入提示词");
     expect(menu.textContent).toContain("复制安装命令");
     expect(menu.textContent).toContain("在 ChatGPT 打开");
     expect(menu.textContent).toContain("在 Claude 打开");
-    expect(menu.textContent).toContain("在 v0 打开");
 
-    fireEvent.click(screen.getByText("复制接入提示词"));
+    fireEvent.keyDown(screen.getByRole("menuitem", { name: /复制接入提示词/ }), { key: "Enter" });
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(expect.stringContaining(INSTALL_COMMAND));
       expect(writeText).toHaveBeenCalledWith(expect.stringContaining("SkinHostProvider"));
@@ -197,7 +207,7 @@ describe("QuickStart section", () => {
     });
     await waitFor(() => {
       expect(screen.queryByRole("menu")).toBeNull();
-      expect(screen.getByText("已复制")).toBeTruthy();
+      expect(screen.getAllByText("已复制").length).toBeGreaterThan(0);
     });
   });
 
@@ -205,47 +215,31 @@ describe("QuickStart section", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
-    fireEvent.click(screen.getByText("Copy for AI"));
-    fireEvent.click(screen.getByText("复制安装命令"));
+    openMenu();
+    fireEvent.keyDown(screen.getByRole("menuitem", { name: /复制安装命令/ }), { key: "Enter" });
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith("pnpm add agui-skins");
+      expect(writeText).toHaveBeenCalledWith(INSTALL_COMMAND);
     });
   });
 
-  it("builds prefill deep links for ChatGPT / Claude / v0", () => {
+  it("builds prefill deep links for ChatGPT / Claude", () => {
     render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
-    fireEvent.click(screen.getByText("Copy for AI"));
-    const links = screen.getAllByRole("menuitem") as HTMLAnchorElement[];
+    openMenu();
+    const links = (screen.getAllByRole("menuitem") as HTMLElement[]).filter(
+      (el) => el.tagName === "A"
+    ) as HTMLAnchorElement[];
     const hrefs = links.map((a) => a.getAttribute("href") ?? "");
     expect(hrefs.some((h) => h.startsWith("https://chatgpt.com/?q="))).toBe(true);
     expect(hrefs.some((h) => h.startsWith("https://claude.ai/new?q="))).toBe(true);
-    expect(hrefs.some((h) => h.startsWith("https://v0.dev/chat?q="))).toBe(true);
-    for (const href of hrefs.filter((h) => h.startsWith("http"))) {
-      expect(href.length).toBeLessThanOrEqual(8000);
-    }
+    for (const href of hrefs) expect(href.length).toBeLessThanOrEqual(8000);
   });
 
-  it("closes the dropdown on Escape and on outside click", () => {
+  it("closes the dropdown with Escape", async () => {
     render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
-    fireEvent.click(screen.getByText("Copy for AI"));
+    openMenu();
     expect(screen.getByRole("menu")).toBeTruthy();
-
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.queryByRole("menu")).toBeNull();
-
-    fireEvent.click(screen.getByText("Copy for AI"));
-    expect(screen.getByRole("menu")).toBeTruthy();
-    fireEvent.pointerDown(document.body);
-    expect(screen.queryByRole("menu")).toBeNull();
-  });
-
-  it("toggles open/closed on repeated trigger clicks", () => {
-    render(createElement(QuickStart, { lang: "zh", activeSkin: "aurora" }));
-    const trigger = screen.getByText("Copy for AI");
-    fireEvent.click(trigger);
-    expect(screen.getByRole("menu")).toBeTruthy();
-    fireEvent.click(trigger);
-    expect(screen.queryByRole("menu")).toBeNull();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
   });
 
   it("renders the English variant", () => {

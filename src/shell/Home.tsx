@@ -1,8 +1,8 @@
-import { useRef, type CSSProperties, type ReactNode } from "react";
+import { lazy, Suspense, useRef, type CSSProperties, type ReactNode } from "react";
 import { GridMotion } from "./GridMotion";
-import { skinSwatches } from "./skin-swatches";
+import { skinSwatches } from "../shared/skin-swatches";
 import { Icon } from "../shared/Icon";
-import { QuickStart } from "../app/QuickStart";
+import { LazyMount } from "../shared/LazyMount";
 import type { Lang } from "../i18n";
 
 export interface HomeSkin {
@@ -24,6 +24,10 @@ const TAGLINE_ZH: Record<string, string> = {
     shipped, so the count is now derived from skins.length. */
 const NUM_EN = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const NUM_ZH = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+const QuickStart = lazy(() =>
+  import("./quickstart/QuickStart").then((module) => ({ default: module.QuickStart }))
+);
+
 export const skinCountWord = (n: number, zh: boolean): string => {
   if (n >= 0 && n <= 10) return zh ? NUM_ZH[n] : NUM_EN[n];
   return String(n);
@@ -157,14 +161,12 @@ export function Home(props: {
           </p>
         </div>
 
-        <div className="skin-tabs" role="tablist" aria-label={zh ? "皮肤" : "Skins"}>
+        <div className="skin-tabs" role="group" aria-label={zh ? "皮肤" : "Skins"}>
           {props.skins.map((skin, index) => {
             const isCurrent = skin.id === props.activeSkin;
             return (
               <button
-                key={skin.id}
-                role="tab"
-                aria-selected={isCurrent}
+                key={skin.id}                aria-pressed={isCurrent}
                 className={`skin-tab ${isCurrent ? "is-active" : ""}`}
                 style={{ "--skin-accent": skin.accent } as CSSProperties}
                 onClick={() => props.onSkin(skin.id)}
@@ -243,10 +245,21 @@ export function Home(props: {
           <button className="quick-btn" onClick={props.onLang}><Icon name="globe" size={14} />{zh ? "切换语言" : "Switch language"}<em>{zh ? "中 / EN" : "EN / 中文"}</em></button>
           <button className="quick-btn" onClick={props.onRunInfo}><Icon name="braces" size={14} />{zh ? "运行详情" : "Run details"}</button>
           <button className="quick-btn" onClick={props.onDocs}><Icon name="external-link" size={14} />{zh ? "协议文档" : "Protocol docs"}</button>
+          <button
+            className="quick-btn"
+            onClick={() => document.getElementById("quickstart")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            <Icon name="arrow-right" size={14} />
+            {zh ? "快速上手" : "Get started"}
+          </button>
           <span className="quick-note">{props.piNote}</span>
         </div>
 
-        <QuickStart lang={props.lang} activeSkin={props.activeSkin} />
+        <LazyMount minHeight={420}>
+          <Suspense fallback={<div className="qs-skeleton" aria-hidden="true" />}>
+            <QuickStart lang={props.lang} activeSkin={props.activeSkin} />
+          </Suspense>
+        </LazyMount>
 
         <footer className="home-foot">
           <span>AG-UI Studio · protocol 1.0</span>

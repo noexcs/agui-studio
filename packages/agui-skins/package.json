@@ -4,7 +4,9 @@
   "description": "Five reusable AG-UI conversation surfaces (Aurora, Paper, Terminal, Brutalist, Classic) for React.",
   "type": "module",
   "license": "MIT",
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -31,9 +33,12 @@
     "./index.css": "./dist/index.css",
     "./skins/*.css": "./dist/skins/*.css"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -45,8 +50,12 @@
     "react-json-view-lite": ">=2"
   },
   "peerDependenciesMeta": {
-    "@radix-ui/react-tabs": { "optional": true },
-    "react-json-view-lite": { "optional": true }
+    "@radix-ui/react-tabs": {
+      "optional": true
+    },
+    "react-json-view-lite": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@radix-ui/react-tabs": "^1.2.1",
