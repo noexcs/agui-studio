@@ -45,7 +45,6 @@ export function ParticlePage() {
   const running = c.status === "running";
   const stateEntries = entriesOf(c.sharedState);
   const metadata = entriesOf(c.metadata ?? {});
-  const plans = c.entries.filter((entry): entry is PlanEntry => entry.kind === "plan");
 
   function send() {
     const text = draft.trim();
@@ -128,32 +127,6 @@ export function ParticlePage() {
                     </div>
                   ))}
                 </dl>
-              </section>
-            )}
-
-            {!!plans.length && (
-              <section className="pt-panel">
-                <h3>{zh ? "计划" : "Plan"}</h3>
-                {plans.map((plan) => {
-                  const view = planView(plan);
-                  return (
-                    <div key={plan.id} className="pt-plan">
-                      <p className="pt-plan-title">{displayText(plan.title)}</p>
-                      {view.rawOnly ? (
-                        <pre className="pt-pre">{planRawText(view)}</pre>
-                      ) : (
-                        <ol>
-                          {view.steps.map((step) => (
-                            <li key={step.id} data-state={step.state}>
-                              <span className="pt-step-dot" />
-                              {step.label}
-                            </li>
-                          ))}
-                        </ol>
-                      )}
-                    </div>
-                  );
-                })}
               </section>
             )}
 
@@ -353,6 +326,15 @@ function ToolRow({
   zh: boolean;
 }) {
   const open = openTools[entry.id] ?? false;
+  const brief = (() => {
+    const args = entry.args;
+    if (!args || typeof args !== "object" || Array.isArray(args)) return "";
+    return Object.entries(args as Record<string, unknown>)
+      .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
+      .slice(0, 2)
+      .map(([key, value]) => `${key}=${String(value).slice(0, 28)}`)
+      .join(" · ");
+  })();
   const status =
     entry.status === "done" ? "done" : entry.status === "error" ? "error" : entry.status === "interrupted" ? "paused" : "running";
   return (
@@ -361,6 +343,7 @@ function ToolRow({
         <Icon name="wrench" size={12} />
         <span className="pt-tool-kicker">tool</span>
         <span className="pt-tool-name">{displayText(entry.name)}</span>
+        {brief && <span className="pt-tool-brief">{brief}</span>}
         <span className="pt-tool-status">{status}</span>
         <span className="pt-time">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
         <Icon name="chevron" size={11} className="pt-chev" />
@@ -427,11 +410,23 @@ function CustomRow({ entry, plugins }: { entry: CustomEntry; plugins: ReturnType
   if (entry.display === "debug") return null;
   const plugin = plugins.custom?.(entry);
   if (plugin) return <div className="pt-custom">{plugin}</div>;
+  const kind =
+    entry.value === null
+      ? "null"
+      : Array.isArray(entry.value)
+      ? `array[${entry.value.length}]`
+      : typeof entry.value === "object"
+      ? "object"
+      : typeof entry.value;
   return (
-    <div className="pt-custom">
-      <span className="pt-badge">{displayText(entry.name)}</span>
+    <details className="pt-custom">
+      <summary>
+        <span className="pt-badge">{displayText(entry.name)}</span>
+        <span className="pt-dim">{kind}</span>
+        <Icon name="chevron" size={11} className="pt-chev" />
+      </summary>
       <pre className="pt-pre">{safeJson(entry.value, 2)}</pre>
-    </div>
+    </details>
   );
 }
 
