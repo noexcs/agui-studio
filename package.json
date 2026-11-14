@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:package": "pnpm --filter agui-skins build && node scripts/verify-package.mjs"
+    "test:package": "pnpm --filter agui-skins build && node scripts/verify-package.mjs",
+    "agui:echo": "node server/agui-echo.mjs"
   },
   "dependencies": {
     "@ag-ui/langgraph": "^0.0.45",

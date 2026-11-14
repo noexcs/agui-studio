@@ -5,6 +5,7 @@ import { CustomizePanel } from "./CustomizePanel";
 import { buildAppQuery, sanitizeTuning } from "./urlState";
 import { createStudio, type ConversationStore } from "../core/store";
 import { DEFAULT_SCENARIO, isDemoScenario, type DemoScenario } from "../core/demo-scenarios";
+import { getAgentEndpoint, setAgentEndpoint as persistAgentEndpoint, type AgentEndpoint } from "../core/agui";
 import { checkBridge, type BridgeHealth, type PiBackend } from "../core/pi";
 import { getSkin, skins } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
@@ -19,7 +20,7 @@ import "./app.css";
 import "../shell/shell.css";
 
 type Scene = "live" | "interrupted" | "done";
-type Backend = "mock" | PiBackend;
+type Backend = "mock" | PiBackend | "agui";
 
 const readParams = () => new URLSearchParams(window.location.search);
 
@@ -32,7 +33,10 @@ export default function App() {
   });
   // static hosting (GitHub Pages) only ships the scripted demo agent
   const STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === "1";
-  const initialBackend = STATIC_DEMO ? "mock" : (params.get("backend") as Backend) || "mock";
+  const initialEndpoint = getAgentEndpoint();
+  const initialBackend = STATIC_DEMO
+    ? "mock"
+    : (params.get("backend") as Backend) || (initialEndpoint ? "agui" : "mock");
   const initialLang: Lang = params.get("lang") === "zh" ? "zh" : "en";
   const [jumpToSkins] = useState(() => params.get("section") === "skins");
   // white-label injection demo: ?agent=Acme%20Copilot&model=gpt-x
@@ -57,6 +61,7 @@ export default function App() {
   // the landing page shows the customizer inline and expanded by default
   const [customizeOpen, setCustomizeOpen] = useState(() => params.get("customize") !== "0" && !params.get("full"));
   const [backend, setBackend] = useState<Backend>(initialBackend);
+  const [agentEndpoint, setAgentEndpointState] = useState<AgentEndpoint | null>(initialEndpoint);
   const [lang, setLang] = useState<Lang>(initialLang);
   const [health, setHealth] = useState<BridgeHealth | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(params.get("palette") === "1");
@@ -68,6 +73,7 @@ export default function App() {
   if (!storeRef.current) {
     storeRef.current = createStudio({ autoplay: scene === "live" && initialBackend === "mock", scenario });
     storeRef.current.setLang(lang);
+    storeRef.current.setAgentEndpoint(initialEndpoint);
   }
   const store = storeRef.current;
   const skin = getSkin(skinId);
@@ -114,6 +120,7 @@ export default function App() {
 
   useEffect(() => {
     if (initialBackend === "mock") return;
+    store.setAgentEndpoint(agentEndpoint);
     store.setBackend(initialBackend);
     store.prepareIdle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,8 +192,28 @@ export default function App() {
     store.replay();
   }
 
+  function configureAgent() {
+    const current = agentEndpoint?.url ?? "http://127.0.0.1:8080/agui";
+    const url = window.prompt(
+      zh
+        ? "输入 AG-UI 端点 URL（POST RunAgentInput，返回 text/event-stream）："
+        : "Enter an AG-UI endpoint URL (POST RunAgentInput, returns text/event-stream):",
+      current
+    );
+    if (!url || !url.trim()) return;
+    const endpoint = { url: url.trim().replace(/\/$/, "") };
+    setAgentEndpointState(endpoint);
+    persistAgentEndpoint(endpoint);
+    store.setAgentEndpoint(endpoint);
+    chooseBackend("agui");
+  }
+
   function chooseBackend(next: Backend) {
     if (STATIC_DEMO) return;
+    if (next === "agui" && !agentEndpoint) {
+      configureAgent();
+      return;
+    }
     setBackend(next);
     store.setBackend(next);
     if (next === "mock") store.replay();
@@ -221,8 +248,21 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [store, lang]);
 
-  const backendName = STATIC_DEMO ? (zh ? "演示模式" : "demo mode") : backend === "mock" ? (zh ? "演示" : "mock") : backend === "pi" ? "pi · live" : "pi · rec";
-  const piNote = STATIC_DEMO
+  const backendName = STATIC_DEMO
+    ? zh
+      ? "演示模式"
+      : "demo mode"
+    : backend === "mock"
+    ? zh
+      ? "演示"
+      : "mock"
+    : backend === "pi"
+    ? "pi · live"
+    : backend === "agui"
+    ? "AG-UI"
+    : "pi · rec";
+  const endpointNote = backend === "agui" && agentEndpoint ? `AG-UI · ${agentEndpoint.url.replace(/^https?:\/\//, "")}` : null;
+  const piNote = endpointNote ?? (STATIC_DEMO
     ? zh
       ? "静态演示 · 无需后端"
       : "static demo · no backend"
@@ -234,7 +274,7 @@ export default function App() {
         health.pi ? `pi ${health.version ?? ""}`.trim() : "pi off",
         health.deepseek?.configured ? `deepseek ${health.deepseek.model ?? ""}`.trim() : "deepseek off",
         health.deepagent?.reachable ? "deepagent on" : "deepagent off",
-      ].join(" · ");
+      ].join(" · "));
 
   const rows = [
     { label: "skin", value: skin.name },
@@ -331,6 +371,8 @@ export default function App() {
                 backend={backend}
                 lang={lang}
                 health={health}
+                agentEndpoint={agentEndpoint?.url}
+                onConfigureAgent={configureAgent}
                 onBackend={(next) => chooseBackend(next)}
                 triggerClassName="dock-btn dock-mono backend-trigger"
               />

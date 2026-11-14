@@ -12,6 +12,14 @@ import { promptFor, RUN_FIRST, THREAD_ID, type Decision } from "./demo";
 import { buildScenarioResume, buildScenarioRun, DEFAULT_SCENARIO, type DemoScenario } from "./demo-scenarios";
 import type { Lang } from "../i18n";
 import { streamPiRun, stopPiRun, type PiBackend } from "./pi";
+import {
+  buildAgentInput,
+  buildResumeInput,
+  getAgentEndpoint,
+  newRunId,
+  streamAgentRun,
+  type AgentEndpoint,
+} from "./agui";
 
 export type StudioStatus = "idle" | "running" | "interrupted" | "done" | "error" | "stopped";
 
@@ -130,13 +138,21 @@ export type Entry =
   | InterruptEntry
   | ErrorEntry;
 
+const safeHost = (url: string): string => {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+};
+
 const ts = (event: BaseEvent): number =>
   event.timestamp ? Date.parse(String(event.timestamp)) || Date.now() : Date.now();
 
 const uid = (prefix: string) => prefix + "_" + Math.random().toString(36).slice(2, 7);
 
 export class ConversationStore {
-  readonly threadId = THREAD_ID;
+  threadId = THREAD_ID;
   /** Declared capabilities; a host can override after construction. */
   capabilities = {
     tools: { supported: true, items: [{ name: "web.search" }, { name: "booking.hold" }] },
@@ -159,11 +175,15 @@ export class ConversationStore {
   /** metadata aggregated from every dispatched event (latest key wins) */
   metadata: Record<string, unknown> = {};
   lang: Lang = "en";
-  backend: "mock" | PiBackend = "mock";
+  backend: "mock" | PiBackend | "agui" = "mock";
+  /** direct AG-UI endpoint (POST RunAgentInput -> SSE) */
+  agentEndpoint: AgentEndpoint | null = getAgentEndpoint();
   piStatus: "unknown" | "ready" | "fixture" | "unavailable" = "unknown";
   private abort: AbortController | null = null;
-  /** last resume array sent to the agent (protocol payload, useful in tests) */
+  /** last resume array sent to the agent (demo/bridge payload, useful in tests) */
   lastResume: Decision[] = [];
+  /** exact standard RunAgentInput.resume sent to a direct AG-UI endpoint */
+  lastAgentResume: ReturnType<typeof buildResumeInput>["resume"] = [];
 
   tokens = 0;
   startedAt = 0;
@@ -234,24 +254,43 @@ export class ConversationStore {
     this.reset();
   }
 
-  setBackend(backend: "mock" | PiBackend) {
+  setBackend(backend: "mock" | PiBackend | "agui") {
     this.backend = backend;
-    this.transport =
-      backend === "mock"
-        ? "mock SSE"
-        : backend === "fixture"
-        ? "pi fixture"
-        : backend === "deepseek"
-        ? "deepseek SSE"
-        : backend === "deepagent"
-        ? "deepagent SSE"
-        : "pi rpc";
+    if (backend === "agui") {
+      // a generic AG-UI agent declares nothing beyond its events
+      this.capabilities = {} as typeof this.capabilities;
+      this.transport = this.agentEndpoint ? "AG-UI · " + safeHost(this.agentEndpoint.url) : "AG-UI";
+    } else {
+      this.transport =
+        backend === "mock"
+          ? "mock SSE"
+          : backend === "fixture"
+          ? "pi fixture"
+          : backend === "deepseek"
+          ? "deepseek SSE"
+          : backend === "deepagent"
+          ? "deepagent SSE"
+          : "pi rpc";
+    }
     this.notify();
+  }
+
+  /** Point the store at a standard AG-UI HTTP endpoint. */
+  setAgentEndpoint(endpoint: AgentEndpoint | null) {
+    this.agentEndpoint = endpoint;
+    if (this.backend === "agui") {
+      this.transport = endpoint ? "AG-UI · " + safeHost(endpoint.url) : "AG-UI";
+      this.notify();
+    }
   }
 
   send(text: string) {
     const body = text.trim();
     if (!body || this.status === "running") return;
+    if (this.backend === "agui") {
+      void this.startAgent(body);
+      return;
+    }
     if (this.backend !== "mock") {
       void this.startPi(this.backend, body);
       return;
@@ -298,10 +337,22 @@ export class ConversationStore {
   /** AG-UI rule: a resume must address every open interrupt of the run. */
   private resumeWhenResolved() {
     if (this.pendingInterrupts().length) return;
-    const decisions: Decision[] = this.entries
-      .filter((entry): entry is InterruptEntry => entry.kind === "interrupt")
-      .map((entry) => ({ approved: entry.status === "approved", editedArgs: entry.editedArgs }));
+    const interrupts = this.entries.filter((entry): entry is InterruptEntry => entry.kind === "interrupt");
+    const decisions: Decision[] = interrupts.map((entry) => ({
+      approved: entry.status === "approved",
+      editedArgs: entry.editedArgs,
+    }));
     this.lastResume = decisions;
+    if (this.backend === "agui") {
+      void this.startAgentResume(
+        interrupts.map((entry) => ({
+          interruptId: entry.id,
+          approved: entry.status === "approved",
+          editedArgs: entry.editedArgs,
+        }))
+      );
+      return;
+    }
     this.beginRun();
     this.startEvents(buildScenarioResume(this.scenario, decisions, this.threadId, "run_7K2B", this.lang));
   }
@@ -350,6 +401,65 @@ export class ConversationStore {
       });
       this.notify();
     }
+  }
+
+  /**
+   * Run against a standard AG-UI endpoint: POST RunAgentInput, consume SSE.
+   * No bridge/backend-specific fields are involved; anything that emits AG-UI
+   * events works.
+   */
+  private async startAgent(prompt: string, resume?: { interruptId: string; approved: boolean; editedArgs?: Record<string, unknown> }[]) {
+    const endpoint = this.agentEndpoint;
+    this.stop();
+    this.reset();
+    const controller = new AbortController();
+    this.abort = controller;
+    if (!endpoint) {
+      this.status = "error";
+      this.errorMessage = "AG-UI endpoint is not configured (set ?agent=<url> or via the backend menu)";
+      this.entries.push({ kind: "error", id: uid("err"), message: this.errorMessage, at: Date.now() });
+      this.notify();
+      return;
+    }
+    if (prompt.trim()) {
+      this.entries.push({ kind: "user", id: uid("user"), text: prompt.trim(), at: Date.now() });
+    }
+    this.status = "running";
+    this.startedAt = Date.now();
+    this.notify();
+
+    const runId = newRunId("run");
+    this.runId = runId;
+    try {
+      const input = resume && resume.length
+        ? buildResumeInput({ threadId: this.threadId, runId, state: this.sharedState, decisions: resume })
+        : buildAgentInput({
+            threadId: this.threadId,
+            runId,
+            entries: this.entries,
+            state: this.sharedState,
+          });
+      if (input.resume) this.lastAgentResume = input.resume;
+      for await (const event of streamAgentRun({ endpoint, input, signal: controller.signal })) {
+        this.dispatch(event);
+      }
+      if (this.status === "running") this.status = "done";
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") {
+        this.status = "stopped";
+      } else {
+        this.status = "error";
+        this.errorMessage = (error as Error).message || "AG-UI endpoint unavailable";
+        this.entries.push({ kind: "error", id: uid("err"), message: this.errorMessage, at: Date.now() });
+      }
+    } finally {
+      this.abort = null;
+      this.notify();
+    }
+  }
+
+  private startAgentResume(decisions: { interruptId: string; approved: boolean; editedArgs?: Record<string, unknown> }[]) {
+    return this.startAgent("", decisions);
   }
 
   /** Run against the local pi bridge (live RPC agent or recorded fixture). */
@@ -466,6 +576,10 @@ export class ConversationStore {
 
   /* ── event intake ────────────────────────────────────────────────── */
   dispatch(event: BaseEvent) {
+    if (event.type === "RUN_STARTED") {
+      if (typeof event.threadId === "string" && event.threadId) this.threadId = event.threadId;
+      if (typeof event.runId === "string" && event.runId) this.runId = event.runId;
+    }
     const meta = (event as { metadata?: unknown }).metadata;
     if (meta && typeof meta === "object" && !Array.isArray(meta)) {
       this.metadata = { ...this.metadata, ...(meta as Record<string, unknown>) };

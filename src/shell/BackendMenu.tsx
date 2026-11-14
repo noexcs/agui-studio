@@ -3,13 +3,15 @@ import { Icon } from "../shared/Icon";
 import type { Lang } from "../i18n";
 import type { BridgeHealth } from "../core/pi";
 
-type BackendId = "mock" | "pi" | "deepseek" | "deepagent";
+type BackendId = "mock" | "pi" | "deepseek" | "deepagent" | "agui";
 
 export function BackendMenu(props: {
   backend: BackendId;
   lang: Lang;
   health: BridgeHealth | null;
   onBackend: (backend: BackendId) => void;
+  agentEndpoint?: string | null;
+  onConfigureAgent: () => void;
   triggerClassName?: string;
 }) {
   const zh = props.lang === "zh";
@@ -32,6 +34,11 @@ export function BackendMenu(props: {
       label: "deep agent",
       hint: zh ? "LangGraph · 官方 AG-UI 适配器" : "LangGraph · official AG-UI adapter",
       disabled: !props.health?.deepagent?.reachable,
+    },
+    {
+      id: "agui",
+      label: zh ? "AG-UI 直连" : "direct AG-UI",
+      hint: props.agentEndpoint || (zh ? "任意 POST RunAgentInput + SSE 服务" : "any POST RunAgentInput + SSE service"),
     },
   ];
   const current = options.find((option) => option.id === props.backend) ?? options[0];
@@ -57,7 +64,9 @@ export function BackendMenu(props: {
               data-active={option.id === props.backend || undefined}
               disabled={option.disabled}
               onSelect={() => {
-                if (!option.disabled) props.onBackend(option.id);
+                if (option.disabled) return;
+                if (option.id === "agui" && !props.agentEndpoint) props.onConfigureAgent();
+                else props.onBackend(option.id);
               }}
             >
               <span className="backend-item-main">
@@ -71,6 +80,16 @@ export function BackendMenu(props: {
               ) : null}
             </DropdownMenu.Item>
           ))}
+          <DropdownMenu.Item
+            className="backend-item"
+            onSelect={() => props.onConfigureAgent()}
+          >
+            <span className="backend-item-main">
+              <strong>{zh ? "配置 AG-UI 端点" : "Configure AG-UI endpoint"}</strong>
+              <span>{zh ? "填任意兼容 AG-UI 的 POST/SSE 地址" : "any AG-UI compatible POST/SSE URL"}</span>
+            </span>
+            <Icon name="external-link" size={12} />
+          </DropdownMenu.Item>
           <p className="backend-note">
             {props.health?.deepagent?.reachable
               ? `${zh ? "deep agent" : "deep agent"} · ${props.health.deepagent.graphId} @ ${props.health.deepagent.deploymentUrl}`

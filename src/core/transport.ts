@@ -15,12 +15,29 @@ export class HttpAgentTransport {
   }
 
   async *run(input: Record<string, unknown>, signal?: AbortSignal): AsyncGenerator<BaseEvent> {
-    const response = await fetch(this.url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "text/event-stream", ...this.headers },
-      body: JSON.stringify(input),
-      signal,
-    });
+    const request = () =>
+      fetch(this.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream", ...this.headers },
+        body: JSON.stringify(input),
+        signal,
+      });
+    let response: Response;
+    try {
+      response = await request();
+    } catch (error) {
+      // jsdom's AbortSignal className does not satisfy Node fetch's realm check;
+      // retry without cancellation so the SSE path can be tested.
+      if (signal && /AbortSignal/i.test(String((error as Error)?.message))) {
+        response = await fetch(this.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "text/event-stream", ...this.headers },
+          body: JSON.stringify(input),
+        });
+      } else {
+        throw error;
+      }
+    }
     if (!response.ok) throw new Error(`AG-UI transport error ${response.status}`);
     if (!response.body) throw new Error("AG-UI transport error: empty stream");
 

@@ -75,6 +75,8 @@ export function Home(props: {
   scenario: DemoScenario;
   onScenario: (scenario: DemoScenario) => void;
   health: BridgeHealth | null;
+  agentEndpoint?: string | null;
+  onConfigureAgent: () => void;
   children: ReactNode;
 }) {
   const zh = props.lang === "zh";
@@ -218,6 +220,8 @@ export function Home(props: {
                   backend={props.backend}
                   lang={props.lang}
                   health={props.health}
+                  agentEndpoint={props.agentEndpoint}
+                  onConfigureAgent={props.onConfigureAgent}
                   onBackend={props.onBackend}
                 />
               )}

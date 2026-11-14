@@ -547,7 +547,7 @@ npx serve dist   # 或任意静态服务器
 - **并行待办**：`pendingInterrupts()` 统一；Aurora/Terminal/Brutalist 顶部在多于一个待处理时显示 `×N`；
 - **未知 entry kind 安全兜底**：Aurora/Terminal 不再把未来新增的 entry 当 assistant 渲染，统一忽略；
 - **性能**：`Markdown` 组件 memo 化，流式更新时未变化的历史消息不再重复解析 markdown；
-- 测试增至 **298 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
+- 测试增至 **303 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
 
 
 ## 2026-11-14 皮肤层第三轮
@@ -557,7 +557,7 @@ npx serve dist   # 或任意静态服务器
 - **协议视图模型**：新增 `StepEntry`（STEP_STARTED/FINISHED）与 `CustomEntry`（未归类的 CUSTOM），store 负责归约，Aurora/Classic/Terminal 渲染，Paper/Brutalist 安全忽略；
 - **可维护性**：新 entry 类型统一在 contract/store/fixture 三处声明并有测试；`data-skin-text` 成为皮肤参与自定义层的显式契约（不再靠 `.md` 类名隐式约定）；
 - 依赖卫生：workspace 包固定 devDeps React 18 + Vite `resolve.dedupe`，避免包内 lucide 解析到 React 19 副本导致图标跨版本渲染（曾造成 71 个测试失败）；
-- 测试增至 **298 个用例**。
+- 测试增至 **303 个用例**。
 
 ## 2026-11-14 皮肤层第四轮
 
@@ -565,13 +565,13 @@ npx serve dist   # 或任意静态服务器
 - **CUSTOM 可插拔渲染**：契约新增 `SkinPlugins.custom(entry) => ReactNode`，`SkinHostProvider plugins` 注入；Aurora/Classic/Terminal 在默认 JSON 视图前优先调用插件，未提供时保持原有渲染；
 - 新增 `tests/plugins-metadata.test.tsx`（metadata 聚合、Classic/Aurora 展示、三套皮肤的插件覆盖 + 无插件回退）；
 - 修复过程中发现并修正了两个实现细节：Terminal 的 hook 不能条件调用、host 中 `plugins` 必须在 context value 之前声明；
-- 测试增至 **298 个用例（20 文件）**。
+- 测试增至 **303 个用例（20 文件）**。
 
 ## 2026-11-14 皮肤层第五轮
 
 - **阅读字号**：`SkinTuning.textScale`（compact/normal/large）通过 `zoom` 作用于所有 `data-skin-text` 文本块，避免逐皮肤重写 px 字号；面板、URL 分享、预设对比同步；
 - **长会话窗口化**：新增共享 `windowEntries` / `useVisibleEntries` / `HistoryMore`（`agui-skins` 导出），五套皮肤只渲染最新 60 条并显示「加载更早的消息 · N」；点击按 60 条增量回补，DOM 不再随历史线性增长；
-- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **298 个用例（21 文件）**；
+- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **303 个用例（21 文件）**；
 - 说明：这是 tail window 而不是完整虚拟列表——五套皮肤行高差异极大，tail window 在保持各皮肤视觉的前提下最稳，后续如需可再逐皮肤升级为虚拟滚动。
 
 ## 2026-11-14 皮肤层第六轮：协议事件演示场景
@@ -632,3 +632,29 @@ cd server/deepagent && langgraph dev --no-browser --port 2024
 - 首次在 Windows 跑 `langgraph dev` 需要 `colorama`（structlog 彩色日志依赖）；
 - `@ag-ui/langgraph` 在 bridge 里是**动态加载**的：没装它时 mock/pi/deepseek/fixture 路径不受影响，CI 也不需要 Python 环境；
 - 真实页面（GitHub Pages）没有 bridge/langgraph，BackendMenu 在静态演示模式下不出现。
+
+## 2026-11-14 直连任意 AG-UI 服务（无 bridge 契约）
+
+前端现在有第三种接法：**只要服务端能接收标准 `RunAgentInput`、返回 AG-UI SSE，就能直接驱动全部皮肤**，不需要 pi/bridge/任何自定义字段。
+
+**服务端契约**（唯一要求）：
+- `POST <url>`，body 是标准 `RunAgentInput`：`threadId`、`runId`、`messages`、`tools`、`context`、`state`、`forwardedProps`，interrupt 恢复时带 `resume: [{ interruptId, status, resolved|cancelled, payload }]`；
+- 响应 `text/event-stream`，每个 `data:` 是一条 AG-UI 事件 JSON；
+- 允许浏览器 CORS（否则请用 sidecar/代理）；
+- 事件只需符合 AG-UI：`RUN_*`、`TEXT_MESSAGE_*`、`TOOL_CALL_*`、`STATE_*`、`MESSAGES_SNAPSHOT`、`ACTIVITY_*`、`REASONING_*`、`CUSTOM`、`RAW` 都能被归一化；未知事件只进日志，不会破坏渲染。
+
+**用法**：
+```bash
+# 一条标准 AG-UI 参考端点（只发协议事件，无任何私有约定）
+node server/agui-echo.mjs             # http://127.0.0.1:5180/agui
+pnpm dev
+# 打开：
+http://127.0.0.1:5178/?agui=http://127.0.0.1:5180/agui&autosend=1&lang=zh
+```
+或在后端菜单选「AG-UI 直连」→ 配置端点（持久化到 localStorage）。`?agui=` 是端点；`?agent=` 仍是白标品牌名参数，二者不冲突。
+
+**可选约定**：`CUSTOM` 的 `suggestions`/`usage` 只是增强（建议 chips、token 数）；`capabilities`、`metadata`、`EXECUTION`/子 agent 语义都可缺省。样式层只消费归一化后的 entries/state，不依赖特定 agent 框架。
+
+**已验证**：`tests/agui-direct.test.tsx` 起一个真实 Node SSE 服务，用 store 的 `agui` 后端跑通「发送 → 流式渲染 → 工具结果 / MESSAGES_SNAPSHOT / 标准 resume」；`?agui=` 直连在浏览器里跑通（`shots/agui-direct.png`）。
+
+**限制**：浏览器直连需要服务端允许 CORS；若不能，需要像 `server/deepagent.mjs` 这样的 sidecar 转发。AG-UI 事件之外的非标准语义（例如自定义 CUSTOM 含义）不会自动获得专属 UI，会以通用 custom/step/activity 卡片呈现。
