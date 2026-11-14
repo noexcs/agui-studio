@@ -31,3 +31,7 @@ export { Icon } from "./shared/Icon";
 export { Markdown, timeOf, clock } from "./shared/Markdown";
 export { useStickToBottom } from "./shared/useStickToBottom";
 export { t, setLang, getLang, isZh, getDict, setOverrides } from "./i18n";
+
+export { toolStage } from "./shared/toolStatus";
+export type { ToolStage } from "./shared/toolStatus";
+export { pendingInterrupts, firstPendingInterrupt } from "./shared/interrupts";

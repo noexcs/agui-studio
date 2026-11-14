@@ -3,7 +3,9 @@ import { useConversation } from "../../host";
 import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
 import { plainText } from "../../utils";
+import { toolStage } from "../../shared/toolStatus";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { pendingInterrupts } from "../../shared/interrupts";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import { t } from "../../i18n";
 import { useSkinBranding } from "../../host";
@@ -15,7 +17,7 @@ export function BrutalistPage() {
   const scroller = useStickToBottom<HTMLDivElement>();
   const [draft, setDraft] = useState("");
   const running = c.status === "running";
-  const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
+  const pending = pendingInterrupts(c.entries)[0];
 
   function send() {
     const text = draft.trim();
@@ -34,7 +36,7 @@ export function BrutalistPage() {
         </div>
         <div className="bru-top-right">
           <span className="bru-top-meta">thread {c.threadId.slice(-8)}</span>
-          <span className={`bru-state bru-state--${c.status}`}>{c.status}</span>
+          <span className={`bru-state bru-state--${c.status}`}>{c.status}{pendingInterrupts(c.entries).length > 1 ? ` ×${pendingInterrupts(c.entries).length}` : ""}</span>
         </div>
       </header>
 
@@ -230,13 +232,14 @@ function BruReasoning({ entry }: { entry: ReasoningEntry }) {
 }
 
 function BruTool({ entry }: { entry: ToolEntry }) {
+  const stage = toolStage(entry.status);
   const result = entry.result as { results?: { title: string; url: string }[]; reservation?: string } | undefined;
   return (
     <div className="bru-tool">
       <div className="bru-tool-head">
         <span className="bru-tool-name">{entry.name.toUpperCase()}</span>
         <span className="bru-tool-status">
-          {entry.status === "done" ? "■ DONE" : entry.status === "interrupted" ? "‖ INTERRUPTED" : "▶ " + entry.status.toUpperCase()}
+          {stage === "done" ? "■ DONE" : stage === "interrupted" ? "‖ INTERRUPTED" : stage === "error" ? "✕ ERROR" : "▶ " + entry.status.toUpperCase()}
         </span>
       </div>
       <pre className="bru-tool-args">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>

@@ -56,6 +56,9 @@ export interface AccentGuard {
   inkOnLight: string | null;
   /** ratio of inkOnLight against the light surface (null when inkOnLight is null) */
   inkOnLightRatio: number | null;
+  /** accent lightened until it clears AA as text on dark surfaces */
+  brightOnDark: string | null;
+  brightOnDarkRatio: number | null;
   /** panel hint: accent fails AA as text on light surfaces */
   tooLight: boolean;
   /** panel hint: accent falls below the 3:1 component floor on the dark-surface reference */
@@ -72,6 +75,17 @@ export function safeAccent(accent: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** Walk the accent toward white in 4% steps until it clears AA on dark. */
+function brightenUntilAA(accent: string): { ink: string; ratio: number } | null {
+  if (getContrast(accent, DARK_SURFACE_REF) >= AA_NORMAL_TEXT) return null;
+  for (let step = 0.04; step <= 0.96; step += 0.04) {
+    const candidate = toHex(mix(accent, "#ffffff", step));
+    const candidateRatio = ratio(candidate, DARK_SURFACE_REF);
+    if (candidateRatio >= AA_NORMAL_TEXT) return { ink: candidate, ratio: candidateRatio };
+  }
+  return { ink: "#ffffff", ratio: ratio("#ffffff", DARK_SURFACE_REF) };
 }
 
 /** Walk the accent toward black in 4% steps until it clears AA on white. */
@@ -94,6 +108,7 @@ export function accentGuard(accent: string): AccentGuard {
   const asText = ratio(normalized, LIGHT_SURFACE_REF);
   const onDark = ratio(normalized, DARK_SURFACE_REF);
   const darkened = darkenUntilAA(normalized);
+  const brightened = brightenUntilAA(normalized);
   return {
     accent: normalized,
     tier: useInk ? "dark-fg" : "light-fg",
@@ -103,6 +118,8 @@ export function accentGuard(accent: string): AccentGuard {
     onDarkRatio: onDark,
     inkOnLight: darkened?.ink ?? null,
     inkOnLightRatio: darkened?.ratio ?? null,
+    brightOnDark: brightened?.ink ?? null,
+    brightOnDarkRatio: brightened?.ratio ?? null,
     tooLight: asText < AA_NORMAL_TEXT,
     tooDark: onDark < AA_LARGE_TEXT,
   };

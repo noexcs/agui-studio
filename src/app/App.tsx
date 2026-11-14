@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { SkinHostProvider } from "agui-skins";
 import type { SkinTuning } from "agui-skins";
 import { CustomizePanel } from "./CustomizePanel";
+import { buildAppQuery, sanitizeTuning } from "./urlState";
 import { createStudio, type ConversationStore } from "../core/store";
 import { checkBridge, type BridgeHealth, type PiBackend } from "../core/pi";
 import { getSkin, skins } from "agui-skins";
@@ -36,10 +37,12 @@ export default function App() {
   const [tuningBySkin, setTuningBySkin] = useState<Record<string, SkinTuning>>(() => {
     const seeded = loadTuning();
     // shareable tuning links: ?accent=%23db2777&anim=rise&density=compact
-    const accent = params.get("accent") ?? undefined;
-    const anim = params.get("anim") as SkinTuning["textAnim"];
-    const density = params.get("density") as SkinTuning["density"];
-    if (accent || anim || density) seeded[skinId] = { accent, textAnim: anim, density };
+    const seededTuning = sanitizeTuning({
+      accent: params.get("accent"),
+      anim: params.get("anim"),
+      density: params.get("density"),
+    });
+    if (Object.keys(seededTuning).length) seeded[skinId] = seededTuning;
     return seeded;
   });
   // the landing page shows the customizer inline and expanded by default
@@ -93,16 +96,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // shareable URL: skin selection lives on the same page; full=1 opens the standalone view
+  // shareable URL: skin + language + backend + scene + full + current tuning
   useEffect(() => {
-    const next = new URLSearchParams();
-    next.set("skin", skinId);
-    next.set("lang", lang);
-    if (backend !== "mock") next.set("backend", backend);
-    if (scene !== "live") next.set("scene", scene);
-    if (full) next.set("full", "1");
-    window.history.replaceState(null, "", "?" + next.toString());
-  }, [skinId, lang, backend, scene, full]);
+    const query = buildAppQuery({
+      skin: skinId,
+      lang,
+      backend,
+      scene,
+      full,
+      tuning: tuningBySkin[skinId] ?? {},
+    });
+    window.history.replaceState(null, "", "?" + query);
+  }, [skinId, lang, backend, scene, full, tuningBySkin]);
 
   // design-review hook: jump to the inline skins section
   useEffect(() => {

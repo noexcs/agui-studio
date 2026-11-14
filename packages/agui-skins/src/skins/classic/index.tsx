@@ -7,6 +7,7 @@ import { t, isZh } from "../../i18n";
 import { useSkinBranding } from "../../host";
 import { Icon } from "../../shared/Icon";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { pendingInterrupts } from "../../shared/interrupts";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./classic.css";
 
@@ -26,7 +27,7 @@ export function ClassicPage() {
   const [editJson, setEditJson] = useState<Record<string, string>>({});
 
   const running = c.status === "running";
-  const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
+  const pending = pendingInterrupts(c.entries)[0];
   // Multiple ACTIVITY_SNAPSHOTs are allowed: list every plan, not just the first.
   const plans = c.entries.filter((e): e is PlanEntry => e.kind === "plan");
   const interrupts = c.entries.filter((e): e is InterruptEntry => e.kind === "interrupt");
@@ -561,6 +562,11 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
             <span className="cl-tool-time mono">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
             <Icon name="chevron" size={11} className="cl-chev" />
           </button>
+          {entry.status === "error" && (
+            <p className="cl-tool-error" role="alert">
+              {entry.error ?? (zh ? "工具执行失败" : "Tool failed")}
+            </p>
+          )}
           {open && <pre className="cl-tool-args">{entry.argsRaw || "…"}</pre>}
           {entry.status === "done" && result?.results && (
             <ul className="cl-sources">

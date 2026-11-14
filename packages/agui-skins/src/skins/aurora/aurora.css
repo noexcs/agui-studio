@@ -49,7 +49,7 @@
   --mint: #5ef0c2;
   --mint-soft: rgba(94, 240, 194, 0.14);
   --cyan: #5ac8ff;
-  --violet: #a78bfa;
+  --violet: var(--sk-accent, #a78bfa);
   --amber: #ffc46b;
   --amber-soft: rgba(255, 196, 107, 0.12);
   --rose: #ff7a8a;
@@ -408,7 +408,7 @@ svg { display: block; }
   background: linear-gradient(180deg, rgba(167, 139, 250, 0.07), rgba(167, 139, 250, 0.02));
 }
 .reason-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 11px; color: var(--text-2); font-size: 11.5px; }
-.reason-toggle .icon-brain { width: 13px; height: 13px; color: var(--violet); }
+.reason-toggle .icon-brain { width: 13px; height: 13px; color: var(--accent-text, var(--violet)); }
 .reason-toggle .chev { margin-left: auto; width: 12px; height: 12px; color: var(--text-3); transition: transform 0.3s var(--ease); }
 .reason.is-open .reason-toggle .chev { transform: rotate(90deg); }
 .reason-label { font-weight: 500; color: var(--text-2); }
@@ -469,7 +469,7 @@ svg { display: block; }
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
 }
 .plan-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
-.plan-icon { width: 18px; height: 18px; border-radius: 6px; display: grid; place-items: center; background: rgba(167, 139, 250, 0.14); color: var(--violet); border: 1px solid rgba(167, 139, 250, 0.22); }
+.plan-icon { width: 18px; height: 18px; border-radius: 6px; display: grid; place-items: center; background: rgba(167, 139, 250, 0.14); color: var(--accent-text, var(--violet)); border: 1px solid rgba(167, 139, 250, 0.22); }
 .plan-icon .icon { width: 11px; height: 11px; }
 .plan-title { font-size: 11.5px; font-weight: 600; color: var(--text); letter-spacing: 0.01em; }
 .plan-tag { margin-left: auto; font-family: var(--mono); font-size: 9px; color: var(--text-3); border: 1px solid var(--border); padding: 1px 6px; border-radius: 99px; }
@@ -678,7 +678,7 @@ svg { display: block; }
 .state-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 12px 13px 9px; }
 .state-title { font-size: 12px; font-weight: 600; color: var(--text); }
 .state-sub { font-size: 9px; color: var(--text-3); margin-top: 1px; }
-.state-version { font-size: 9px; color: var(--violet); background: rgba(167, 139, 250, 0.12); border: 1px solid rgba(167, 139, 250, 0.24); padding: 2px 7px; border-radius: 99px; }
+.state-version { font-size: 9px; color: var(--accent-text, var(--violet)); background: rgba(167, 139, 250, 0.12); border: 1px solid rgba(167, 139, 250, 0.24); padding: 2px 7px; border-radius: 99px; }
 .state-tree { flex: 1; min-height: 0; overflow: auto; padding: 2px 10px 12px; font-family: var(--mono); font-size: 10.5px; line-height: 1.75; }
 .node { padding-left: 12px; position: relative; }
 .node > .node-row { display: flex; gap: 5px; padding: 1px 4px; border-radius: 5px; transition: background 0.6s; cursor: default; }

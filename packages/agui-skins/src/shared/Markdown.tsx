@@ -1,3 +1,4 @@
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -6,7 +7,17 @@ import remarkGfm from "remark-gfm";
  * hand-written parser (which is where the half-streamed-table infinite loop
  * used to live). Skins only style the `.md` wrapper and its elements.
  */
-export function Markdown({ text, className = "md" }: { text: string; className?: string }) {
+/**
+ * Memoized so token-by-token transcript updates don't re-parse every unchanged
+ * assistant message (react-markdown parses the full string on each render).
+ */
+export const Markdown = memo(function Markdown({
+  text,
+  className = "md",
+}: {
+  text: string;
+  className?: string;
+}) {
   return (
     <div className={className}>
       <ReactMarkdown
@@ -19,7 +30,7 @@ export function Markdown({ text, className = "md" }: { text: string; className?:
       </ReactMarkdown>
     </div>
   );
-}
+});
 
 export const timeOf = (ms?: number) =>
   new Date(ms || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

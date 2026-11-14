@@ -6,6 +6,7 @@ import { plainText } from "../../utils";
 import { Icon } from "../../shared/Icon";
 import { t } from "../../i18n";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { pendingInterrupts } from "../../shared/interrupts";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./terminal.css";
 
@@ -42,7 +43,7 @@ export function TerminalPage() {
     ? c.events
     : c.events.filter(({ event }) => !/CONTENT$|ARGS$/.test(event.type))
   ).slice(-400);
-  const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
+  const pending = pendingInterrupts(c.entries)[0];
 
   useEffect(() => {
     if (!pending) return;
@@ -77,7 +78,7 @@ export function TerminalPage() {
           <div className="term-bar-right">
             <span className="term-chip">[{c.transport.replace(" ", "-")}]</span>
             <span className="term-chip term-chip--dim">{c.runId}</span>
-            <span className={`term-chip term-chip--${c.status}`}>{c.status}</span>
+            <span className={`term-chip term-chip--${c.status}`}>{c.status}{pendingInterrupts(c.entries).length > 1 ? ` ×${pendingInterrupts(c.entries).length}` : ""}</span>
           </div>
         </header>
 
@@ -262,7 +263,9 @@ function LogEntry({
       </div>
     );
   }
-  return <AssistantLine entry={entry} />;
+  if (entry.kind === "assistant") return <AssistantLine entry={entry} />;
+  // forward-compatible: unknown entry kinds are ignored, never mis-rendered
+  return null;
 }
 
 

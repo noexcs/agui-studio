@@ -53,43 +53,31 @@
   margin: 0.12em 0;
 }
 
-/* ── accent overrides (only when the user picked a color) ────────── */
-.sk-tune[data-sk-accent][data-skin="aurora"] .skin-aurora {
-  --violet: var(--sk-accent);
-  --accent-grad: linear-gradient(135deg, var(--sk-accent), var(--mint));
-  --accent-grad-soft: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--sk-accent) 22%, transparent),
-    color-mix(in srgb, var(--mint) 14%, transparent)
-  );
-}
-
-.sk-tune[data-sk-accent][data-skin="paper"] .skin-paper {
-  --vermilion: var(--sk-accent);
-}
-
-.sk-tune[data-sk-accent][data-skin="terminal"] .skin-term {
-  --green: var(--sk-accent);
-  --green-dim: color-mix(in srgb, var(--sk-accent) 45%, transparent);
-}
-
-.sk-tune[data-sk-accent][data-skin="brutalist"] .skin-brut {
-  --yellow: var(--sk-accent);
-}
-
-.sk-tune[data-sk-accent][data-skin="classic"] .skin-classic {
-  --accent: var(--sk-accent);
+/* ── accent consumption ────────────────────────────────────────────
+   Each skin maps --sk-accent to its own brand variable in its own CSS
+   (aurora --violet, paper --vermilion, terminal --green, brutalist --yellow,
+   classic --accent). These rules only wire the contrast-guard outputs the
+   host computes for skins that put text on/over the accent color. */
+.sk-tune[data-sk-accent] .skin-classic {
+  --accent-fg: var(--sk-accent-fg, #fff);
+  --accent-ink: var(--sk-accent-ink, var(--accent));
   --accent-2: color-mix(in srgb, var(--sk-accent) 78%, #0f172a);
   --accent-soft: color-mix(in srgb, var(--sk-accent) 12%, white);
 }
 
-/* ── accent contrast guards (Fix E; values computed by the host) ─────
-   --sk-accent-fg: black/white foreground for text set ON the accent
-   (classic primary buttons, logo mark).
-   --sk-accent-ink: the accent darkened until it clears AA as text on
-   light surfaces (links, em, meta text); only injected when needed.
-   Fallbacks keep the legacy rendering for every untouched path. */
-.sk-tune[data-sk-accent][data-skin="classic"] .skin-classic {
-  --accent-fg: var(--sk-accent-fg, #fff);
-  --accent-ink: var(--sk-accent-ink, var(--accent));
+.sk-tune[data-sk-accent] .skin-paper {
+  --accent-text: var(--sk-accent-ink, var(--vermilion));
+}
+
+.sk-tune[data-sk-accent] .skin-brut {
+  --accent-fg: var(--sk-accent-fg, var(--ink));
+  --accent-text: var(--sk-accent-on-dark, var(--yellow));
+}
+
+.sk-tune[data-sk-accent] .skin-aurora {
+  --accent-text: var(--sk-accent-on-dark, var(--violet));
+}
+
+.sk-tune[data-sk-accent] .skin-term {
+  --accent-text: var(--sk-accent-on-dark, var(--green));
 }

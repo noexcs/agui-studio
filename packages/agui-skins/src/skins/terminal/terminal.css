@@ -2,7 +2,7 @@
 .skin-term {
   --bg: #05070a;
   --bg-2: #06090c;
-  --green: #8cffb0;
+  --green: var(--sk-accent, #8cffb0);
   --green-dim: #4f7c62;
   --dim: #56705f;
   --text: #b9d6c4;
@@ -78,7 +78,7 @@
   50% { opacity: 0.35; }
 }
 .term-brand {
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   font-weight: 600;
   letter-spacing: 0.04em;
   text-shadow: 0 0 12px rgba(140, 255, 176, 0.5);
@@ -91,7 +91,7 @@
 }
 .term-chip {
   border: 1px solid var(--line-2);
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   padding: 1px 7px;
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -101,7 +101,7 @@
   border-color: var(--line);
 }
 .term-chip--running {
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   border-color: var(--line-2);
 }
 .term-chip--interrupted {
@@ -141,7 +141,7 @@
   background: rgba(140, 255, 176, 0.02);
 }
 .term-banner-line {
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -162,7 +162,7 @@
   max-width: 860px;
 }
 .term-prompt {
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   text-shadow: 0 0 10px rgba(140, 255, 176, 0.45);
   flex: none;
 }
@@ -231,7 +231,7 @@
   margin-bottom: 5px;
 }
 .term-who {
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -261,7 +261,7 @@
 }
 .term-md h4::before {
   content: "▌ ";
-  color: var(--green);
+  color: var(--accent-text, var(--green));
 }
 .term-md strong { color: #ffffff; font-weight: 600; }
 .term-md em { color: var(--amber); font-style: normal; }
@@ -400,7 +400,7 @@
 }
 .term-tool-head:hover .term-tool-name { text-shadow: 0 0 10px rgba(127, 216, 255, 0.6); }
 .term-tool-mark {
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   width: 9px;
   flex: none;
 }
@@ -445,7 +445,7 @@
   margin-bottom: 4px;
 }
 .term-plan-title { color: var(--amber); font-size: 11.5px; }
-.term-bar-meter { color: var(--green); font-size: 10.5px; letter-spacing: 0.04em; }
+.term-bar-meter { color: var(--accent-text, var(--green)); font-size: 10.5px; letter-spacing: 0.04em; }
 .term-plan-step {
   margin-left: 18px;
   color: #7d9c8b;
@@ -453,7 +453,7 @@
 }
 .term-plan-step[data-state="done"] { color: #9dbfab; }
 .term-plan-step[data-state="active"] { color: #e7fff2; }
-.term-check { color: var(--green); margin-right: 8px; }
+.term-check { color: var(--accent-text, var(--green)); margin-right: 8px; }
 .term-plan-step[data-state="pending"] .term-check { color: var(--dim); }
 
 /* ── interrupt box ────────────────────────────────────────────────── */
@@ -508,8 +508,8 @@
 }
 .term-key--yes:hover {
   background: rgba(140, 255, 176, 0.14);
-  border-color: var(--green);
-  color: var(--green);
+  border-color: var(--accent-text, var(--green));
+  color: var(--accent-text, var(--green));
 }
 .term-key--no:hover {
   background: rgba(255, 139, 139, 0.12);
@@ -524,7 +524,7 @@
 .term-box--done .term-box-head { color: var(--green-dim); }
 .term-box-resolved {
   margin-top: 9px;
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   font-size: 11px;
 }
 .term-box-resolved--expired {
@@ -556,7 +556,7 @@
   align-items: center;
   gap: 5px;
   letter-spacing: 0.1em;
-  color: var(--green);
+  color: var(--accent-text, var(--green));
 }
 .term-trace-live i {
   width: 5px;
@@ -590,7 +590,7 @@
 .term-trace-type {
   flex: none;
   width: 116px;
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -606,7 +606,7 @@
 .term-trace-row[data-cat="state"] .term-trace-type { color: var(--violet); }
 .term-trace-row[data-cat="reason"] .term-trace-type { color: #9fc0ad; }
 .term-trace-row[data-cat="special"] .term-trace-type { color: var(--amber); }
-.term-trace-row[data-cat="life"] .term-trace-type { color: var(--green); }
+.term-trace-row[data-cat="life"] .term-trace-type { color: var(--accent-text, var(--green)); }
 .term-trace-empty {
   color: var(--dim);
   font-size: 10px;
@@ -668,7 +668,7 @@
   text-transform: uppercase;
   color: #6f8d7b;
 }
-.term-status-item--running { color: var(--green); }
+.term-status-item--running { color: var(--accent-text, var(--green)); }
 .term-status-item--interrupted { color: var(--amber); }
 .term-status-item--done { color: var(--green-dim); }
 .term-status-item--stopped,
@@ -694,7 +694,7 @@
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .term-suggest-chip:hover {
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   border-color: rgba(140, 255, 176, 0.5);
   background: rgba(140, 255, 176, 0.12);
 }
@@ -712,7 +712,7 @@
   resize: vertical;
   background: rgba(140, 255, 176, 0.04);
   border: 1px solid var(--line);
-  color: var(--green);
+  color: var(--accent-text, var(--green));
   font-family: inherit;
   font-size: 11px;
   line-height: 1.55;
@@ -723,8 +723,8 @@
 .term-key--edit { border-color: rgba(140, 255, 176, 0.4); color: var(--green-dim); }
 .term-key--edit:hover {
   background: rgba(140, 255, 176, 0.14);
-  border-color: var(--green);
-  color: var(--green);
+  border-color: var(--accent-text, var(--green));
+  color: var(--accent-text, var(--green));
 }
 
 @media (max-width: 1180px) {
@@ -745,7 +745,7 @@
   margin-left: auto;
   margin-right: 10px;
 }
-.term-trace-toggle:hover { color: var(--green); border-color: var(--line-2); }
+.term-trace-toggle:hover { color: var(--accent-text, var(--green)); border-color: var(--line-2); }
 
 /* ── keyboard focus (a11y): bright phosphor green, cursor-grade glow ── */
 .skin-term :focus-visible {

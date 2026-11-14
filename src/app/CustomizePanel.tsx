@@ -192,10 +192,10 @@ export function CustomizePanel(props: {
 
       {inline ? (
         <p className="customize-hint customize-hint--inline">
-          {zh ? "改动实时生效，按皮肤单独保存；可直接分享当前链接。" : "Changes apply live, saved per skin. The URL captures the current tuning."}
+          {zh ? "改动实时生效，按皮肤单独保存；链接会自动同步当前调参，可直接分享。" : "Changes apply live, saved per skin, and the URL syncs the current tuning — shareable."}
         </p>
       ) : (
-        <p className="customize-hint customize-hint--inline">{zh ? "改动实时生效，按皮肤单独保存" : "Live, saved per skin"}</p>
+        <p className="customize-hint customize-hint--inline">{zh ? "改动实时生效，按皮肤单独保存；链接同步调参" : "Live, saved per skin, URL-synced"}</p>
       )}
     </section>
   );

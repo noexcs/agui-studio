@@ -8,7 +8,7 @@
   --text-2: #4b5563;
   --muted: #6b7280;
   --faint: #9ca3af;
-  --accent: #2563eb;
+  --accent: var(--sk-accent, #2563eb);
   --accent-2: #1d4ed8;
   --accent-soft: #eff6ff;
   --success: #2563eb;
@@ -699,4 +699,15 @@
   .cl-md.is-streaming > :last-child::after {
     animation: none !important;
   }
+}
+
+.cl-tool-error {
+  margin: 0 12px 8px;
+  padding: 6px 9px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: var(--danger);
+  font-size: 11.5px;
+  line-height: 1.5;
 }

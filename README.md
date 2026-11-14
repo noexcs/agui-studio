@@ -506,7 +506,7 @@ npx serve dist   # 或任意静态服务器
 
 | 项 | 取值 | 实现 |
 |---|---|---|
-| 主题色 | 8 个预设 + 任意取色 | `SkinHostProvider` 注入 `--sk-accent`，`tuning.css` 按皮肤映射到各自变量（classic `--accent`、paper `--vermilion`、terminal `--green`、brutalist `--yellow`、aurora `--violet` + 渐变） |
+| 主题色 | 8 个预设 + 任意取色 | `SkinHostProvider` 注入 `--sk-accent`（及校验后的 `--sk-accent-fg/-ink/-on-dark`），**每套皮肤在自己的 CSS 里消费**（classic `--accent`、paper `--vermilion`、terminal `--green`、brutalist `--yellow`、aurora `--violet` + 渐变）；无需 `skin` prop |
 | 文字动画 | 无 / 渐显 / 上浮 | 对 `.md` 块做出现动画（块首次挂载时播放，流式新增段落自然生效），支持 `prefers-reduced-motion` |
 | 信息密度 | 宽松 / 紧凑 | 调整 markdown 行高与段落/列表/表格间距 |
 
@@ -515,7 +515,7 @@ npx serve dist   # 或任意静态服务器
 - 面板内「恢复默认」清空当前皮肤覆盖；
 - 预设：原始 / 冷调 / 暖调 / 紧凑，一键套用。
 
-实现位置：`packages/agui-skins/src/tuning.css`、`packages/agui-skins/src/host.tsx`（`tuning`/`skin` props）、`src/app/CustomizePanel.tsx`。
+实现位置：`packages/agui-skins/src/tuning.css`（动画/密度/守卫变量）、各皮肤 CSS（accent 变量）、`packages/agui-skins/src/host.tsx`（accent 校验与守卫注入）、`src/app/CustomizePanel.tsx`、`src/app/urlState.ts`（分享链接）。
 
 
 ## 2026-11-14 评审重构
@@ -529,3 +529,18 @@ npx serve dist   # 或任意静态服务器
 - **性能**：QuickStart + highlight.js 懒加载（首屏 JS 206.87→167.35 KB，QuickStart 独立 44.80 KB chunk）；移除 Google Fonts 里重复的 Instrument Serif（已用 @fontsource 自托管）；
 - **测试**：`fix-b/c/d/e-*` 按行为重命名；quickstart 测试补齐 CSS import / 安装流程 / v0 移除 / 键盘菜单交互；
 - **覆盖率**：include 扩展到 `src/app/**`（App.tsx 除外），实测 lines 83.1% / branches 79.5% / functions 58.3%，阈值 70/65/55（保留余量）。
+
+
+## 2026-11-14 皮肤层第二轮修复
+
+按皮肤专项审计修复：
+
+- **主题色改成 open-closed**：每套皮肤在自己的 CSS 里消费 `--sk-accent`（不再依赖 `data-skin` 中央映射），**不需要传 `skin` prop**；同时修复了「示例里缺 skin 导致主题色静默无效」的文档 bug；
+- **accent 校验**：`safeAccent()` 失败就丢弃（`?accent=oops` 不再把皮肤主色变成非法值）；URL 种子参数统一走 `sanitizeTuning`；
+- **对比度守卫覆盖 5 套皮肤**：浅色皮肤（Classic/Paper）文字自动用加深的 `--sk-accent-ink`；深色皮肤（Aurora/Terminal/Brutalist）在 accent 过暗时自动用提亮的 `--sk-accent-on-dark`；色块上的文字用黑白自适应 `--sk-accent-fg`；
+- **分享链接名副其实**：`src/app/urlState.ts` 统一生成 query，`updateTuning` 后 URL 自动同步（accent/anim/density）；
+- **工具状态统一**：新增 `toolStage()`，Paper 不再把 `error` 显示成 "executing"，Paper/Classic 展示错误文案，Brutalist 显示 ✕ ERROR；
+- **并行待办**：`pendingInterrupts()` 统一；Aurora/Terminal/Brutalist 顶部在多于一个待处理时显示 `×N`；
+- **未知 entry kind 安全兜底**：Aurora/Terminal 不再把未来新增的 entry 当 assistant 渲染，统一忽略；
+- **性能**：`Markdown` 组件 memo 化，流式更新时未变化的历史消息不再重复解析 markdown；
+- 测试增至 **272 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。

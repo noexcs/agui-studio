@@ -66,24 +66,22 @@ export function SkinHostProvider(props: {
   );
 
   const tuning = props.tuning ?? {};
-  // Fix E: derive contrast guards from the user accent. --sk-accent-fg is the
-  // black/white foreground for text placed ON the accent; --sk-accent-ink is
-  // the accent darkened until it clears AA as text on light surfaces. Skins
-  // consume both through tuning.css; an unparseable accent keeps legacy
-  // rendering instead of crashing the host.
+  // Validate before injecting: a malformed ?accent= must not turn the skin's
+  // accent variables into invalid CSS (which silently drops the skin color).
+  // Derived guard variables (computed by color2k):
+  //   --sk-accent-fg      foreground for text placed ON the accent
+  //   --sk-accent-ink     accent darkened for text on light surfaces (when needed)
+  //   --sk-accent-on-dark accent lightened for text on dark surfaces (when needed)
+  const normalized = tuning.accent ? safeAccent(tuning.accent) : null;
   let tuneStyle: CSSProperties | undefined;
-  if (tuning.accent) {
-    const normalized = safeAccent(tuning.accent);
-    if (normalized) {
-      const guard = accentGuard(normalized);
-      tuneStyle = {
-        "--sk-accent": tuning.accent,
-        "--sk-accent-fg": guard.onAccentFg,
-        ...(guard.inkOnLight ? { "--sk-accent-ink": guard.inkOnLight } : {}),
-      } as CSSProperties;
-    } else {
-      tuneStyle = { "--sk-accent": tuning.accent } as CSSProperties;
-    }
+  if (normalized) {
+    const guard = accentGuard(normalized);
+    tuneStyle = {
+      "--sk-accent": normalized,
+      "--sk-accent-fg": guard.onAccentFg,
+      ...(guard.inkOnLight ? { "--sk-accent-ink": guard.inkOnLight } : {}),
+      ...(guard.brightOnDark ? { "--sk-accent-on-dark": guard.brightOnDark } : {}),
+    } as CSSProperties;
   }
 
   return (
@@ -91,7 +89,7 @@ export function SkinHostProvider(props: {
       <div
         className="sk-tune"
         data-skin={props.skin}
-        data-sk-accent={tuning.accent ? "" : undefined}
+        data-sk-accent={normalized ? "" : undefined}
         data-sk-text-anim={tuning.textAnim ?? "none"}
         data-sk-density={tuning.density ?? "comfortable"}
         style={tuneStyle}

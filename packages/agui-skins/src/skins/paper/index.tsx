@@ -3,10 +3,12 @@ import { useConversation } from "../../host";
 import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration, estimateTokens } from "../../utils";
 import { plainText } from "../../utils";
+import { toolStage } from "../../shared/toolStatus";
 import { Icon } from "../../shared/Icon";
 import { t } from "../../i18n";
 import { useSkinBranding } from "../../host";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { pendingInterrupts } from "../../shared/interrupts";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./paper.css";
 
@@ -26,7 +28,7 @@ export function PaperPage() {
   const [editJson, setEditJson] = useState<Record<string, string>>({});
   const input = useRef<HTMLTextAreaElement>(null);
   const running = c.status === "running";
-  const pending = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
+  const pending = pendingInterrupts(c.entries)[0];
 
   const letters = c.entries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt" || e.kind === "error");
   const notes = c.entries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan" || e.kind === "subagent");
@@ -327,6 +329,7 @@ function ReasoningNote({ entry }: { entry: ReasoningEntry }) {
 }
 
 function ToolNote({ entry }: { entry: ToolEntry }) {
+  const stage = toolStage(entry.status);
   const result = entry.result as { results?: { title: string; url: string }[]; reservation?: string; status?: string } | undefined;
   return (
     <div className="pap-note-body">
@@ -334,9 +337,13 @@ function ToolNote({ entry }: { entry: ToolEntry }) {
         {t("paper.toolCall")} <span className="pap-mono pap-toolname">{entry.name}</span>
       </div>
       <pre className="pap-args">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
-      {entry.status !== "done" ? (
+      {stage === "error" ? (
+        <div className="pap-note-meta pap-note-meta--error">
+          <span className="pap-fail">✗</span> {entry.error ?? t("status.error")}
+        </div>
+      ) : stage !== "done" ? (
         <div className="pap-note-meta">
-          {entry.status === "args" ? t("chat.streamingArgs") : entry.status === "interrupted" ? t("chat.interrupted") : t("chat.executing")}
+          {stage === "streaming" ? t("chat.streamingArgs") : stage === "interrupted" ? t("chat.interrupted") : t("chat.executing")}
         </div>
       ) : (
         <div className="pap-result">

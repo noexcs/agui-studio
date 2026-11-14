@@ -8,6 +8,7 @@ import { useSkinBranding } from "../../host";
 import * as RadixTabs from "@radix-ui/react-tabs";
 import { JsonView, darkStyles } from "react-json-view-lite";
 import { Markdown, timeOf } from "../../shared/Markdown";
+import { pendingInterrupts } from "../../shared/interrupts";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./aurora.css";
 
@@ -80,7 +81,7 @@ export function AuroraPage() {
   );
 
   const running = c.status === "running";
-  const interrupt = c.entries.find((e): e is InterruptEntry => e.kind === "interrupt" && e.status === "pending");
+  const interrupt = pendingInterrupts(c.entries)[0];
 
   function send() {
     const text = draft.trim();
@@ -123,7 +124,7 @@ export function AuroraPage() {
           <div className="topbar-actions">
             <div className="run-pill" data-status={c.status}>
               <span className="run-pill-dot" />
-              <span className="run-pill-text">{t(("status." + c.status) as never)}</span>
+              <span className="run-pill-text">{t(("status." + c.status) as never)}{pendingInterrupts(c.entries).length > 1 ? ` ×${pendingInterrupts(c.entries).length}` : ""}</span>
               <span className="run-pill-meta mono">{c.status === "idle" ? "" : formatDuration(c.duration())}</span>
             </div>
             <button className="icon-btn" title="Replay run" onClick={() => c.replay()}>
@@ -475,7 +476,9 @@ function EntryView(props: {
     );
   }
   if (entry.kind === "subagent") return <SubagentRow entry={entry} />;
-  return <AssistantBlock entry={entry} />;
+  if (entry.kind === "assistant") return <AssistantBlock entry={entry} />;
+  // forward-compatible: unknown entry kinds are ignored, never mis-rendered
+  return null;
 }
 
 function AssistantBlock({ entry }: { entry: AssistantEntry }) {

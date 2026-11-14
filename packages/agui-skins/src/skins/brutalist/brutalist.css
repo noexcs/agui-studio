@@ -2,7 +2,7 @@
 .skin-brut {
   --paper: #f2efe6;
   --ink: #111111;
-  --yellow: #ffe14d;
+  --yellow: var(--sk-accent, #ffe14d);
   --red: #ff4d2e;
   --white: #fffdf7;
 
@@ -25,7 +25,7 @@
   color: #6b675c;
   margin-bottom: 8px;
 }
-.bru-label--light { color: var(--yellow); }
+.bru-label--light { color: var(--accent-text, var(--yellow)); }
 .bru-strong { font-weight: 700; }
 
 /* ── top bar ──────────────────────────────────────────────────────── */
@@ -134,7 +134,7 @@
   text-transform: uppercase;
   font-weight: 600;
 }
-.bru-new:hover { background: var(--ink); color: var(--yellow); }
+.bru-new:hover { background: var(--ink); color: var(--accent-text, var(--yellow)); }
 .bru-index-foot {
   margin-top: auto;
   border-top: 2px solid var(--ink);
@@ -213,7 +213,7 @@
   padding: 2px 7px;
   margin-bottom: 7px;
 }
-.bru-tag--dark { background: var(--ink); color: var(--yellow); }
+.bru-tag--dark { background: var(--ink); color: var(--accent-text, var(--yellow)); }
 
 .bru-user {
   align-self: flex-end;
@@ -340,7 +340,7 @@
   justify-content: space-between;
   align-items: center;
   background: var(--ink);
-  color: var(--yellow);
+  color: var(--accent-text, var(--yellow));
   padding: 6px 10px;
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
@@ -411,7 +411,7 @@
   margin: 0 -14px 11px;
   padding: 7px 14px;
   background: var(--ink);
-  color: var(--yellow);
+  color: var(--accent-text, var(--yellow));
   font-family: "IBM Plex Mono", monospace;
   font-size: 9.5px;
   font-weight: 600;
@@ -458,7 +458,7 @@
   letter-spacing: 0.1em;
   transition: transform 0.08s, box-shadow 0.08s;
 }
-.bru-btn--ok { background: var(--ink); color: var(--yellow); box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35); }
+.bru-btn--ok { background: var(--ink); color: var(--accent-text, var(--yellow)); box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35); }
 .bru-btn--no { background: var(--white); color: var(--ink); }
 .bru-btn:hover { transform: translate(2px, 2px); box-shadow: 0 0 0 rgba(0, 0, 0, 0.3); }
 .bru-btn--no:hover { background: var(--red); color: #fff; }
@@ -637,7 +637,7 @@
 .bru-send {
   border: 2px solid var(--ink);
   background: var(--ink);
-  color: var(--yellow);
+  color: var(--accent-text, var(--yellow));
   padding: 0 20px;
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
@@ -691,7 +691,7 @@
 .bru-ev[data-cat="tool"] { color: #8fd0ff; }
 .bru-ev[data-cat="state"] { color: #c9a8ff; }
 .bru-ev[data-cat="life"] { color: #9ef0c8; }
-.bru-ev[data-cat="special"] { color: var(--yellow); }
+.bru-ev[data-cat="special"] { color: var(--accent-text, var(--yellow)); }
 .bru-transport {
   margin-top: 10px;
   font-family: "IBM Plex Mono", monospace;
@@ -712,7 +712,7 @@
   text-transform: uppercase;
   color: #8f8a7c;
 }
-.bru-side-foot a:hover { color: var(--yellow); }
+.bru-side-foot a:hover { color: var(--accent-text, var(--yellow)); }
 
 @media (max-width: 1180px) {
   .bru-body { grid-template-columns: 176px minmax(0, 1fr); }
@@ -727,7 +727,7 @@
   box-shadow: 0 0 0 2px var(--yellow);
 }
 .skin-brut .bru-side :focus-visible {
-  outline-color: var(--yellow);
+  outline-color: var(--accent-text, var(--yellow));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -740,4 +740,14 @@
   .bru-empty-cursor {
     animation: none !important;
   }
+}
+
+/* yellow surfaces receive the guard's on-accent foreground (dark ink for
+   light accents, white for dark accents chosen in the customize panel) */
+.skin-brut .bru-mark--alt,
+.skin-brut .bru-state--interrupted,
+.skin-brut .bru-md tr.total td,
+.skin-brut .bru-new,
+.skin-brut .bru-tool-results a:hover {
+  color: var(--accent-fg, var(--ink));
 }

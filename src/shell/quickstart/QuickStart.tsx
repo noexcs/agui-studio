@@ -137,7 +137,7 @@ Swap the last import + component name for another skin.
 
 ## Contract
 - Skins never parse protocol events: they read the normalized view model from useConversation() (entries, sharedState, status, threadId, runId, tokens, getVersion, duration, send, stop, replay, resolveInterrupt). The host store reduces AG-UI events into that model (see ConversationStore.dispatch).
-- SkinHostProvider props: conversation (required), lang ("en" | "zh"), branding ({ agentName, modelLabel }), tuning (SkinTuning), messages (dictionary overrides).
+- SkinHostProvider props: conversation (required), lang ("en" | "zh"), branding ({ agentName, modelLabel }), tuning (SkinTuning), messages (dictionary overrides). tuning.accent is consumed by each skin's own CSS — no skin prop needed.
 - SkinTuning: accent, textAnim ("none" | "fade" | "rise"), density ("comfortable" | "compact").
 - CSS is shipped separately and is NOT auto-injected: import "agui-skins/index.css" (all skins) or "agui-skins/skins/<id>.css" (one skin).
 - Real agent: the reference SSE transport is not part of the package — copy HttpAgentTransport (~50 lines) from this repo's src/core/transport.ts, then consume AG-UI BaseEvents (RUN_STARTED / TEXT_MESSAGE_* / TOOL_CALL_* / STATE_SNAPSHOT / STATE_DELTA / RUN_FINISHED).
@@ -169,7 +169,7 @@ ${minSetupCode(skin.id, "zh")}
 ## 关键契约
 - 皮肤绝不解析协议事件:数据只经 useConversation() 从 SkinHostProvider 的 conversation 取,events/entries 等由宿主的 store 归约(参考 ConversationStore:dispatch(event) 把 AG-UI BaseEvent 归约成 entries 视图模型)。
 - conversation 必须实现 SkinConversation(entries、sharedState、status、threadId、runId、tokens、getVersion、duration、send、stop、replay、resolveInterrupt…),类型从 "agui-skins" 的 contract 导出面拿。
-- SkinHostProvider props:conversation(必填)、lang("en" | "zh")、branding({ agentName, modelLabel })、tuning(SkinTuning)、messages(字典覆盖)。
+- SkinHostProvider props:conversation(必填)、lang("en" | "zh")、branding({ agentName, modelLabel })、tuning(SkinTuning)、messages(字典覆盖)。tuning.accent 由各皮肤自己的 CSS 消费,无需额外 skin prop。
 - SkinTuning 可调:accent(色值)、textAnim("none" | "fade" | "rise")、density("comfortable" | "compact")。
 - CSS 随包分发但不会自动注入:必须显式 import "agui-skins/index.css"(整包)或按皮肤 import "agui-skins/skins/<id>.css"。
 - 接真实 agent:参考实现不在包内 —— 复制本仓库 src/core/transport.ts 的 HttpAgentTransport(约 50 行),逐个消费 AG-UI BaseEvent(type 如 RUN_STARTED / TEXT_MESSAGE_START|CONTENT|END / TOOL_CALL_* / STATE_SNAPSHOT / STATE_DELTA / RUN_FINISHED)。

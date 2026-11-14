@@ -142,12 +142,25 @@ const read = (path: string): string => {
 };
 
 describe("Fix E: css consumes the guarded variables", () => {
-  it("tuning.css maps the injected guards into classic-skin variables", () => {
+  it("tuning.css maps the guards without requiring a skin prop", () => {
     const css = read(pkgSrc("tuning.css"));
-    expect(css).toMatch(/\.sk-tune\[data-sk-accent\]\[data-skin="classic"\] \.skin-classic \{[\s\S]*--accent-fg: var\(--sk-accent-fg/);
+    expect(css).not.toContain('data-skin="classic"');
+    expect(css).toMatch(/\.sk-tune\[data-sk-accent\] \.skin-classic \{[\s\S]*--accent-fg: var\(--sk-accent-fg/);
     expect(css).toMatch(/--accent-ink: var\(--sk-accent-ink/);
+    expect(css).toMatch(/--accent-2: color-mix\(in srgb, var\(--sk-accent\)/);
   });
 
+  it("all skins map --sk-accent in their own CSS (open-closed theming)", () => {
+    for (const skin of ["aurora", "paper", "terminal", "brutalist", "classic"]) {
+      expect(read(pkgSrc("skins", skin, `${skin}.css`))).toContain("var(--sk-accent");
+    }
+  });
+
+  it("dark-skin text consumes the brightened on-dark variant", () => {
+    const css = read(pkgSrc("tuning.css"));
+    expect(css).toMatch(/--accent-text: var\(--sk-accent-on-dark/);
+    expect(css).toMatch(/\.skin-paper \{\s*--accent-text: var\(--sk-accent-ink/);
+  });
   it("classic puts the guarded fg on accent backgrounds and the ink on accent text", () => {
     const css = read(pkgSrc("skins", "classic", "classic.css"));
     expect(css).toMatch(/\.cl-btn--primary \{[^}]*color: var\(--accent-fg, #fff\)/);
