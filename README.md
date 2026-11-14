@@ -126,7 +126,7 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 - **Paper** — 暖纸色、Georgia 正文 + Instrument Serif 标题、首字下沉；把推理、工具、计划做成**页边注**，对话正文只留"信件"。适合研究、写作、顾问型 agent。参考 landdding / designbookmark 的编辑排版。
 - **Terminal** — 荧光绿等宽 CLI、扫描线、ASCII 分隔；右侧是实时事件 trace（可切换是否显示 delta）。适合调试与工程用户。参考 scrolltide / sceneai 的"提示词即界面"气质。
 - **Brutalist** — 2px 硬边框、硬投影、高饱和黄；审批做成醒目的黄色单据，按钮是"盖章"式操作。适合需要强确认的高风险操作（付款、提交、发布）。参考 brutalist 落地页与 21st.dev 的原始组件。
-- **Particle** — 深空粒子场：agent 名字由漂移的粒子聚合成字，指针可推开粒子、点击炸开；正文是安静的玻璃对话列，右侧是元数据/计划/状态。适合 AI 原生品牌页与发布会 demo。参考 React Bits 的 particle-text 动效，但实现为独立 canvas 组件（未复制其源码）。
+- **Particle** — 深空玻璃 + 事件优先：工具调用做成带 `TOOL` 标签的协议卡（状态/耗时/参数/结果），计划是时间线，审批是 gate；对话列紧凑、右侧是元数据/计划/状态。没有装饰性 hero——皮肤只负责协议事件长什么样。
 
 ## 已知取舍（这是设计稿，不是产品）
 
@@ -303,11 +303,17 @@ Radix Popover、`sonner` toast、`react-virtuoso` 虚拟列表（事件数上千
 - 工具条提供：后端切换、语言、运行详情、**全屏打开**（`?full=1` 保留原来的独立工作区 + dock，用于长时间使用）。
 
 URL：`?skin=paper` 直接选中并内联展示；`?section=skins` 定位到按钮区；`?full=1` 全屏；`?lang=zh` 中文。
-## 第六套皮肤：Particle（粒子场）
+## 第六套皮肤：Particle（事件优先）
 
 ![Particle 皮肤](shots/particle-skin.png)
 
-Agent 名字由 canvas 粒子聚合成字；鼠标靠近会推开粒子，点击会炸开再回聚。对话正文保持低对比玻璃质感，避免抢占粒子 hero 的注意力。
+这是一个**事件优先**的皮肤：它不靠大标题/粒子 hero 抢注意力，而是把不同 AG-UI 事件做成不同形状的卡：
+
+- **工具调用**：独立的协议卡，带 `TOOL` 标签、状态点、耗时、可折叠的参数与结果；错误状态用红色边，暂停态用琥珀色边；
+- **计划/步骤/子 agent**：时间线式行，不做成聊天气泡；
+- **中断审批**：gate 卡，批准/拒绝/编辑参数都在卡内；
+- **元数据 / 共享状态**：右侧面板，而不是塞进正文；
+- **助手文本**：安静的玻璃气泡，只负责阅读。
 
 ```tsx
 import { ParticlePage } from "agui-skins/skins/particle";
@@ -318,7 +324,21 @@ import "agui-skins/skins/particle.css";
 </SkinHostProvider>
 ```
 
-动效实现说明：组件 `shared/ParticleText.tsx` 独立采样文字 alpha mask、用弹簧粒子回聚，并支持 `prefers-reduced-motion`；未拷贝 React Bits 的组件代码，只借鉴了"粒子成字"这一交互模式。
+> 设计修正：第一版 Particle 做了 canvas 粒子字 hero；评审后确认那段文字不服务于协议事件、宿主也不会保留，于是删掉了 hero，把「粒子/场」的视觉语言收敛到事件卡与状态点上。
+
+## 通用文字输出效果
+
+所有皮肤共用同一套文字输出效果，通过 `SkinTuning.textAnim` 选择：
+
+| 值 | 效果 |
+| --- | --- |
+| `none` | 直接显示 |
+| `fade` | 渐显 |
+| `rise` | 淡入上浮 |
+| `blur` | 从模糊聚焦 |
+| `typewriter` | 从左到右逐段揭开 |
+
+在首页「自定义」面板的 **文字输出 / Text output** 里选，或直接用 URL：`?anim=blur`、`?anim=typewriter`。宿主把选择写成 `data-sk-text-anim`，由 `tuning.css` 统一作用于所有皮肤的 markdown 输出（`.md > *` 与 `[data-skin-text]`），皮肤本身不需要各写一套。
 
 ## 第五套皮肤：Classic（企业中性）
 

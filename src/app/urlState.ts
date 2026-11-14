@@ -6,7 +6,7 @@ import type { StudioBackend } from "../core/store";
 
 export type AppBackend = StudioBackend;
 
-const TEXT_ANIMS: SkinTextAnim[] = ["none", "fade", "rise"];
+const TEXT_ANIMS: SkinTextAnim[] = ["none", "fade", "rise", "blur", "typewriter"];
 const DENSITIES: SkinDensity[] = ["comfortable", "compact"];
 const MOTIONS: SkinMotion[] = ["slow", "normal", "fast"];
 const RADII: SkinRadius[] = ["sharp", "soft", "round"];

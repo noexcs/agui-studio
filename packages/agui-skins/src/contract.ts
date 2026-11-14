@@ -184,7 +184,7 @@ export interface SkinCapabilities {
   subagents?: { supported: boolean };
 }
 
-export type SkinTextAnim = "none" | "fade" | "rise";
+export type SkinTextAnim = "none" | "fade" | "rise" | "blur" | "typewriter";
 export type SkinDensity = "comfortable" | "compact";
 export type SkinMotion = "slow" | "normal" | "fast";
 export type SkinRadius = "sharp" | "soft" | "round";

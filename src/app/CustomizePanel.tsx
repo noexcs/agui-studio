@@ -17,6 +17,8 @@ const TEXT_ANIMS: { value: SkinTextAnim; zh: string; en: string }[] = [
   { value: "none", zh: "无", en: "None" },
   { value: "fade", zh: "渐显", en: "Fade" },
   { value: "rise", zh: "上浮", en: "Rise" },
+  { value: "blur", zh: "聚焦", en: "Blur" },
+  { value: "typewriter", zh: "打字机", en: "Typewriter" },
 ];
 
 const DENSITIES: { value: SkinDensity; zh: string; en: string }[] = [
@@ -161,7 +163,7 @@ export function CustomizePanel(props: {
 
         <div className="customize-tile">
           <div className="customize-label">
-            <span>{zh ? "文字动画" : "Text animation"}</span>
+            <span>{zh ? "文字输出" : "Text output"}</span>
             <em>{TEXT_ANIMS.find((item) => item.value === anim)?.[zh ? "zh" : "en"]}</em>
           </div>
           <div className="customize-seg">

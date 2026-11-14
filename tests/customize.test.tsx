@@ -17,7 +17,7 @@ describe("inline customize panel", () => {
     expect(panel).toBeTruthy();
     expect(panel?.textContent).toContain("Customize");
     expect(panel?.textContent).toContain("Accent color");
-    expect(panel?.textContent).toContain("Text animation");
+    expect(panel?.textContent).toContain("Text output");
     expect(panel?.textContent).toContain("Density");
     expect(panel?.textContent).toContain("Presets");
   });

@@ -19,7 +19,6 @@ import { displayText, entriesOf, isEmptyState, safeJson } from "../../shared/saf
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { pendingInterrupts } from "../../shared/interrupts";
 import { useStickToBottom } from "../../shared/useStickToBottom";
-import { ParticleText } from "../../shared/ParticleText";
 import { Icon } from "../../shared/Icon";
 import { formatDuration } from "../../utils";
 import { t } from "../../i18n";
@@ -78,20 +77,16 @@ export function ParticlePage() {
       </div>
 
       <div className="pt-shell">
-        <header className="pt-hero">
-          <ParticleText text={displayText(brand.agentName || "AG-UI")} />
-          <div className="pt-hero-foot">
-            <div className="pt-hero-id">
-              <span className="pt-hero-dot" data-status={c.status} />
-              <span>{brand.modelLabel || c.transport}</span>
-            </div>
-            <div className="pt-hero-meta">
-              <span>{timeOf(c.entries[0]?.at)}</span>
-              <span className="pt-sep">/</span>
-              <span>{c.tokens ? `${Math.round(c.tokens / 100) / 10}k` : "—"} tokens</span>
-              <span className="pt-sep">/</span>
-              <span>{running ? clock(c.duration()) : c.status}</span>
-            </div>
+        <header className="pt-topbar">
+          <div className="pt-brand">
+            <span className="pt-hero-dot" data-status={c.status} />
+            <strong>{displayText(brand.agentName || "AG-UI")}</strong>
+            <span className="pt-brand-sub">{displayText(brand.modelLabel || c.transport)}</span>
+          </div>
+          <div className="pt-topmeta">
+            <span className="pt-run mono">{displayText(c.runId)}</span>
+            <span>{c.tokens ? `${Math.round(c.tokens / 100) / 10}k tokens` : "— tokens"}</span>
+            <span>{running ? clock(c.duration()) : c.status}</span>
           </div>
         </header>
 
@@ -364,6 +359,7 @@ function ToolRow({
     <div className="pt-tool" data-status={entry.status}>
       <button type="button" className="pt-tool-head" onClick={() => setOpenTools((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))} aria-expanded={open}>
         <Icon name="wrench" size={12} />
+        <span className="pt-tool-kicker">tool</span>
         <span className="pt-tool-name">{displayText(entry.name)}</span>
         <span className="pt-tool-status">{status}</span>
         <span className="pt-time">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>

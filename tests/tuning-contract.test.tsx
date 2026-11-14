@@ -128,6 +128,19 @@ describe("forward compatibility", () => {
 });
 
 describe("skin registry", () => {
+  it("accepts blur/typewriter as universal text-output effects", () => {
+    const Page = skins.find((s) => s.id === "classic")!.ChatPage;
+    for (const anim of ["blur", "typewriter"] as const) {
+      const { container, unmount } = render(
+        <SkinHostProvider conversation={makeFixture()} lang="en" branding={BRANDING} tuning={{ textAnim: anim }}>
+          <Page />
+        </SkinHostProvider>
+      );
+      expect(wrapper(container).dataset.skTextAnim).toBe(anim);
+      unmount();
+    }
+  });
+
   it("exposes the ids the tuning CSS relies on", () => {
     expect(skins.map((skin) => skin.id).sort()).toEqual(["aurora", "brutalist", "classic", "paper", "particle", "terminal"]);
   });

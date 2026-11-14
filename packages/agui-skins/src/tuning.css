@@ -21,9 +21,28 @@
   animation: sk-text-rise calc(0.36s * var(--sk-motion, 1)) cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+.sk-tune[data-sk-text-anim="blur"] :is(.md > *, [data-skin-text]:not(.md)) {
+  animation: sk-text-blur calc(0.42s * var(--sk-motion, 1)) ease both;
+}
+
+.sk-tune[data-sk-text-anim="typewriter"] :is(.md > *, [data-skin-text]:not(.md)) {
+  animation: sk-text-type calc(0.5s * var(--sk-motion, 1)) steps(18, end) both;
+  will-change: clip-path;
+}
+
 @keyframes sk-text-fade {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes sk-text-blur {
+  from { opacity: 0; filter: blur(7px); transform: translateY(2px); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+
+@keyframes sk-text-type {
+  from { clip-path: inset(0 100% 0 0); opacity: 0.8; }
+  to { clip-path: inset(0 0 0 0); opacity: 1; }
 }
 
 @keyframes sk-text-rise {
