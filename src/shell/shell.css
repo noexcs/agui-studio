@@ -1,31 +1,39 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Studio shell v3 — full visual overhaul.
-   Design language: deep violet-black base ladder, single violet accent,
-   white-alpha hairlines, mono "engineering label" system, restrained
-   motion (150ms interactions / 250ms panels). Skins stay untouched.
+   Studio shell v4 — light color scheme (cult-ui / Apple HIG language).
+   Design language: gray-page/white-card ladder, black-alpha hairlines,
+   ink ("#18181b") primary surfaces, violet kept as the single brand
+   accent (text = violet-600 and darker only), mono "engineering label"
+   system, restrained motion (150ms interactions / 250ms panels).
+   Skins stay untouched; the QuickStart code wells are the one dark
+   anchor (docs-site convention) and pin their own literals below.
    All shell color/spacing/motion values live in the :root token block
    below — no ad-hoc values elsewhere.
    ═══════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* background ladder — deep violet-black, never pure black */
-  --bg-base: #0f0d14;
-  --bg-surface: #17151d;
-  --bg-elevated: #1d1a25;
-  --bg-hover: #262233;
-  /* strokes — white-alpha only */
-  --hairline: rgba(255, 255, 255, 0.12);
-  --hairline-subtle: rgba(255, 255, 255, 0.08);
-  --hairline-strong: rgba(255, 255, 255, 0.25);
+  /* background ladder — gray page, white cards, gray inset wells;
+     the page must stay one step grayer than cards for depth */
+  --bg-base: #f6f6f7;
+  --bg-surface: #ffffff;
+  --bg-elevated: #fafafa;
+  --bg-inset: #efeff1;
+  --bg-hover: #ececf0;
+  /* strokes — black-alpha only */
+  --hairline: rgba(17, 17, 20, 0.12);
+  --hairline-subtle: rgba(17, 17, 20, 0.08);
+  --hairline-strong: rgba(17, 17, 20, 0.28);
   /* foreground */
-  --fg: #f2f0f7;
-  --fg-secondary: #a7a3b2;
-  --fg-muted: #6f6b7d;
-  /* the single brand accent */
-  --accent: #a855f7;
-  --accent-hover: #bd78fb;
-  --accent-dim: rgba(168, 85, 247, 0.15);
-  --accent-line: rgba(168, 85, 247, 0.45);
+  --fg: #18181b;
+  --fg-secondary: #52525b;
+  /* brief draft had #a1a1aa (2.6:1) — raised to clear the ≥3:1 muted
+     red line (3.4:1 on white, 3.2:1 on the page); non-critical meta only */
+  --fg-muted: #8a8a94;
+  /* the single brand accent — text-safe violet-600 on light */
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-dim: rgba(124, 58, 237, 0.1);
+  --accent-line: rgba(124, 58, 237, 0.45);
+  /* focus ring is never text — violet-500 alpha is fine here */
   --accent-ring: rgba(168, 85, 247, 0.55);
   /* radii: 10 small controls / 14 cards / 20 large containers */
   --r-sm: 10px;
@@ -36,7 +44,7 @@
   --t-slow: 250ms;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   /* elevation: rest = none, hover only */
-  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 8px 24px rgba(24, 24, 27, 0.1);
   /* type */
   --font-sans: "Geist", "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
@@ -56,12 +64,12 @@
   overflow-x: hidden;
   background: var(--bg-base);
   scrollbar-width: thin;
-  scrollbar-color: var(--bg-hover) transparent;
+  scrollbar-color: #d4d4d8 transparent;
 }
 .home::-webkit-scrollbar { width: 10px; }
 .home::-webkit-scrollbar-track { background: transparent; }
 .home::-webkit-scrollbar-thumb {
-  background: var(--bg-hover);
+  background: #d4d4d8;
   border-radius: 999px;
   border: 3px solid var(--bg-base);
 }
@@ -107,8 +115,8 @@
   gap: 4px;
   padding: 4px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(15, 13, 20, 0.55);
+  border: 1px solid rgba(17, 17, 20, 0.1);
+  background: rgba(255, 255, 255, 0.65);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
@@ -128,12 +136,12 @@
   cursor: pointer;
   transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.home-lang:hover { background: rgba(255, 255, 255, 0.08); color: var(--fg); }
-.home-cta { background: rgba(255, 255, 255, 0.08); color: var(--fg); }
-.home-cta:hover { background: rgba(255, 255, 255, 0.14); }
+.home-lang:hover { background: rgba(0, 0, 0, 0.04); color: var(--fg); }
+.home-cta { background: rgba(0, 0, 0, 0.05); color: var(--fg); }
+.home-cta:hover { background: rgba(0, 0, 0, 0.09); }
 .home-lang:active,
 .home-cta:active { transform: scale(0.98); }
-.home-cta kbd { font-family: var(--font-mono); font-size: 10px; color: rgba(242, 240, 247, 0.55); }
+.home-cta kbd { font-family: var(--font-mono); font-size: 10px; color: rgba(24, 24, 27, 0.5); }
 
 /* ── hero ─────────────────────────────────────────────────────────── */
 .home-hero {
@@ -150,17 +158,18 @@
   inset: 0;
   z-index: 0;
 }
-/* left text contrast + bottom settle + four-corner vignette */
+/* left text legibility + bottom settle + feather-light corner vignette —
+   neutral grays only, so dark ink copy keeps its contrast */
 .hero-shade {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(15, 13, 20, 0.92) 0%, rgba(15, 13, 20, 0.6) 42%, rgba(15, 13, 20, 0.16) 72%, rgba(15, 13, 20, 0.04) 100%),
-    radial-gradient(140% 105% at 50% 44%, rgba(15, 13, 20, 0) 40%, rgba(9, 7, 14, 0.5) 88%, rgba(8, 6, 12, 0.66) 100%),
-    linear-gradient(0deg, var(--bg-base) 0%, rgba(15, 13, 20, 0.66) 14%, rgba(15, 13, 20, 0) 42%),
-    linear-gradient(180deg, rgba(15, 13, 20, 0.58) 0%, rgba(15, 13, 20, 0) 22%);
+    linear-gradient(90deg, rgba(246, 246, 247, 0.92) 0%, rgba(246, 246, 247, 0.6) 42%, rgba(246, 246, 247, 0.16) 72%, rgba(246, 246, 247, 0.04) 100%),
+    radial-gradient(140% 105% at 50% 44%, rgba(246, 246, 247, 0) 40%, rgba(236, 236, 242, 0.45) 88%, rgba(233, 233, 239, 0.6) 100%),
+    linear-gradient(0deg, var(--bg-base) 0%, rgba(246, 246, 247, 0.66) 14%, rgba(246, 246, 247, 0) 42%),
+    linear-gradient(180deg, rgba(246, 246, 247, 0.58) 0%, rgba(246, 246, 247, 0) 22%);
 }
 
 .hero-copy {
@@ -234,17 +243,17 @@
   padding: 0 24px;
   border-radius: var(--r-sm);
   border: 0;
-  background: #fff;
-  color: var(--bg-base);
+  background: #18181b;
+  color: #fff;
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.hero-primary:hover { background: #e7e4ee; }
+.hero-primary:hover { background: #27272a; }
 .hero-primary:active { transform: scale(0.98); }
-.hero-primary svg { color: var(--bg-base); }
+.hero-primary svg { color: #fff; }
 .hero-ghost {
   display: inline-flex;
   align-items: center;
@@ -253,14 +262,14 @@
   padding: 0 20px;
   border-radius: var(--r-sm);
   border: 1px solid var(--hairline);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.02);
   color: var(--fg-secondary);
   font-family: inherit;
   font-size: 13.5px;
   cursor: pointer;
   transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.hero-ghost:hover { border-color: var(--hairline-strong); background: rgba(255, 255, 255, 0.05); color: var(--fg); }
+.hero-ghost:hover { border-color: var(--hairline-strong); background: rgba(0, 0, 0, 0.04); color: var(--fg); }
 .hero-ghost:active { transform: scale(0.98); }
 .hero-ghost kbd { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-muted); }
 
@@ -362,7 +371,7 @@
 .skin-tab:active { transform: translateY(0) scale(0.98); }
 .skin-tab.is-active {
   border-color: var(--accent-line);
-  background: linear-gradient(180deg, rgba(168, 85, 247, 0.08), rgba(168, 85, 247, 0) 55%), var(--bg-elevated);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.07), rgba(124, 58, 237, 0) 55%), var(--bg-elevated);
 }
 .skin-tab.is-active:hover { border-color: var(--accent-line); }
 
@@ -382,7 +391,7 @@
 .skin-tab-status {
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(168, 85, 247, 0.35);
+  border: 1px solid rgba(124, 58, 237, 0.35);
   background: var(--accent-dim);
   font-size: 9px;
   letter-spacing: 0.12em;
@@ -417,7 +426,7 @@
   height: 12px;
   border-radius: 50%;
   flex: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(17, 17, 20, 0.14);
 }
 
 /* ── live embed window (product mockup) ───────────────────────────── */
@@ -459,7 +468,7 @@
 .embed-chip {
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(168, 85, 247, 0.35);
+  border: 1px solid rgba(124, 58, 237, 0.35);
   background: var(--accent-dim);
   color: var(--accent-hover);
   font-family: var(--font-mono);
@@ -485,7 +494,7 @@
   cursor: pointer;
   transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.embed-btn:hover { color: var(--fg); background: rgba(255, 255, 255, 0.06); border-color: var(--hairline); }
+.embed-btn:hover { color: var(--fg); background: rgba(0, 0, 0, 0.04); border-color: var(--hairline); }
 .embed-btn:active { transform: scale(0.98); }
 .embed-btn[data-active],
 .dock-btn[data-active] {
@@ -556,7 +565,7 @@
   border-radius: var(--r-sm);
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.customize-preset:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
+.customize-preset:hover { background: rgba(0, 0, 0, 0.04); color: var(--fg); }
 .customize-preset:active { transform: scale(0.98); }
 .customize-preset.is-active {
   border-color: var(--accent-line);
@@ -607,7 +616,7 @@
   cursor: pointer;
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.quick-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--hairline); color: var(--fg); }
+.quick-btn:hover { background: rgba(0, 0, 0, 0.04); border-color: var(--hairline); color: var(--fg); }
 .quick-btn:active { transform: scale(0.98); }
 .quick-btn kbd,
 .quick-btn em {
@@ -654,10 +663,12 @@
   transition: border-color var(--t-fast) var(--ease);
 }
 .qs-card:hover { border-color: var(--hairline-strong); }
-/* tier 1 — code preview zone (sits on the base tone, like an editor pane) */
+/* tier 1 — code preview zone: the one DARK anchor on the light page
+   (docs-site convention). The well and every color inside it are pinned
+   literals on purpose — they must NOT follow the light shell tokens. */
 .qs-code-zone {
-  background: var(--bg-base);
-  border-bottom: 1px solid var(--hairline);
+  background: #0f0d14;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .qs-code {
   flex: 1;
@@ -667,7 +678,7 @@
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
-  color: var(--fg-secondary);
+  color: #a7a3b2;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -678,7 +689,7 @@
   padding: 0 16px 16px;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--fg-muted);
+  color: #8a8798;
 }
 /* tier 2 — action row: step slug + title · lang tag · copy, justified apart */
 .qs-card-foot {
@@ -724,17 +735,19 @@
   cursor: pointer;
   transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.qs-copy-btn:hover { color: var(--fg); border-color: var(--hairline-strong); background: rgba(255, 255, 255, 0.05); }
+.qs-copy-btn:hover { color: var(--fg); border-color: var(--hairline-strong); background: rgba(0, 0, 0, 0.04); }
 .qs-copy-btn:active { transform: scale(0.98); }
 .qs-copy-btn.is-copied { color: var(--accent-hover); border-color: var(--accent-line); background: var(--accent-dim); }
 
-/* highlight.js tokens — violet-keyword theme on the shell palette.
-   These classes are emitted by highlight.js; colors here are the "theme". */
+/* highlight.js tokens — violet-keyword theme on the DARK code well.
+   These classes are emitted by highlight.js; colors here are the "theme".
+   Pinned literals (the old dark-shell values) so the light token flip
+   cannot wash out the well — do not re-token these. */
 .qs-code .hljs-keyword,
 .qs-code .hljs-literal,
-.qs-code .hljs-built_in { color: var(--accent-hover); }
+.qs-code .hljs-built_in { color: #bd78fb; }
 .qs-code .hljs-string { color: #ffce7b; }
-.qs-code .hljs-comment { color: var(--fg-muted); font-style: italic; }
+.qs-code .hljs-comment { color: #6f6b7d; font-style: italic; }
 .qs-code .hljs-title,
 .qs-code .hljs-title.class_,
 .qs-code .hljs-title.function_,
@@ -742,7 +755,7 @@
 .qs-code .hljs-attr,
 .qs-code .hljs-property { color: #c0b3ff; }
 .qs-code .hljs-number { color: #ffa198; }
-.qs-code .hljs-tag { color: var(--fg-secondary); }
+.qs-code .hljs-tag { color: #a7a3b2; }
 
 .qs-skins {
   display: grid;
@@ -767,7 +780,7 @@
   text-decoration: none;
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
-.qs-skin-row:hover { background: rgba(255, 255, 255, 0.04); border-color: var(--hairline); }
+.qs-skin-row:hover { background: rgba(0, 0, 0, 0.03); border-color: var(--hairline); }
 .qs-skin-row.is-current {
   background: var(--accent-dim);
   border-color: var(--accent-line);
@@ -784,13 +797,13 @@
   height: 8px;
   border-radius: 50%;
   flex: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(17, 17, 20, 0.14);
 }
 .qs-skin-current {
   flex: none;
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(168, 85, 247, 0.35);
+  border: 1px solid rgba(124, 58, 237, 0.35);
   background: var(--accent-dim);
   font-family: var(--font-mono);
   font-size: 8.5px;
@@ -855,7 +868,7 @@
   padding: 0 16px;
   border-radius: var(--r-sm);
   border: 1px solid var(--hairline);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.02);
   color: var(--fg-secondary);
   font-family: inherit;
   font-size: 12.5px;
@@ -863,7 +876,7 @@
   cursor: pointer;
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.qs-copyai-btn:hover { background: rgba(255, 255, 255, 0.07); border-color: var(--hairline-strong); color: var(--fg); }
+.qs-copyai-btn:hover { background: rgba(0, 0, 0, 0.05); border-color: var(--hairline-strong); color: var(--fg); }
 .qs-copyai-btn:active { transform: scale(0.98); }
 .qs-copyai-btn.is-copied { color: var(--accent-hover); border-color: var(--accent-line); background: var(--accent-dim); }
 .qs-menu {
@@ -873,8 +886,8 @@
   padding: 8px;
   border-radius: var(--r-md);
   border: 1px solid var(--hairline);
-  background: rgba(29, 26, 37, 0.96);
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.95);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 30px 60px -30px rgba(24, 24, 27, 0.28);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   animation: qs-menu-in 120ms var(--ease);
@@ -902,7 +915,7 @@
   transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 .qs-menu-item:hover,
-.qs-menu-item[data-highlighted] { background: rgba(255, 255, 255, 0.07); color: var(--fg); }
+.qs-menu-item[data-highlighted] { background: rgba(0, 0, 0, 0.05); color: var(--fg); }
 .qs-menu-item:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
 .qs-menu-sep { height: 1px; margin: 4px 8px; background: var(--hairline-subtle); }
 .qs-menu-note {
@@ -934,7 +947,7 @@
   position: relative;
   height: 100svh;
   overflow: hidden;
-  background: var(--bg-base);
+  background: var(--bg-inset);
 }
 .stage-full {
   position: absolute;
@@ -962,7 +975,7 @@
   gap: 4px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(23, 21, 29, 0.82);
+  background: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--hairline);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
@@ -984,14 +997,14 @@
   cursor: pointer;
   transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
-.dock-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--fg); }
-.dock-btn.is-active { background: rgba(255, 255, 255, 0.1); color: var(--fg); }
+.dock-btn:hover { background: rgba(0, 0, 0, 0.05); color: var(--fg); }
+.dock-btn.is-active { background: rgba(0, 0, 0, 0.06); color: var(--fg); }
 .dock-dot {
   width: 24px;
   height: 24px;
   border-radius: 999px;
   border: 1px solid var(--hairline);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.04);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1025,7 +1038,7 @@
   min-height: 420px;
   border-radius: var(--r-lg);
   border: 1px solid var(--hairline-subtle);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  background: linear-gradient(180deg, rgba(17,17,20,0.03), rgba(17,17,20,0.015));
 }
 
 .dock-btn--label { width: auto; gap: 6px; padding: 0 10px; }

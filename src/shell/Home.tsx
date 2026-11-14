@@ -53,7 +53,7 @@ const GRID_ITEMS = [
 ].map(asset);
 
 /**
- * Landing page: Grid Motion hero (violet-black colorway), skin cards with
+ * Landing page: Grid Motion hero (light lavender colorway), skin cards with
  * palette dots, and an inline, interactive stage — switching skins never
  * leaves this page.
  */
@@ -96,14 +96,14 @@ export function Home(props: {
   return (
     <div className={`home ${zh ? "home--zh" : ""}`} ref={homeRef}>
       <section className="home-hero">
-        <GridMotion items={GRID_ITEMS} rows={5} aspectRatio={1.35} gap={18} radius={16} angle={-14} speed={22} dim={0.45} spotlight={0.75} fade={0.55} />
+        <GridMotion items={GRID_ITEMS} rows={5} aspectRatio={1.35} gap={18} radius={16} angle={-14} speed={22} dim={0.5} spotlight={0.75} fade={0.55} />
         <div className="hero-shade" aria-hidden="true" />
 
         <header className="home-top">
           <a className="home-brand" href="#" onClick={(e) => e.preventDefault()}>
             <svg viewBox="0 0 30 26" width="26" height="23" aria-hidden="true">
               <path
-                fill="#fff"
+                fill="#18181b"
                 fillRule="evenodd"
                 d="M3.2 19.6C.4 15.8 1.3 8.6 6.6 4.7 11.3 1.2 18.9.9 23.9 4.1c4.7 3 6.3 9 3.6 13.9-2.9 5.3-9.4 7.7-15.4 7-3.8-.4-6.9-2.4-8.9-5.4ZM9.5 17.2l4.3-6.4 2.6 3.6 1.7-2.2 3.4 5z"
               />
