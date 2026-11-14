@@ -335,6 +335,33 @@ export function ClassicPage() {
                 );
               }
 
+              if (entry.kind === "step") {
+                return (
+                  <div key={entry.id} className="cl-row cl-row--assistant">
+                    <span className="cl-avatar cl-avatar--sm"><Icon name="activity" size={12} /></span>
+                    <div className="cl-msg">
+                      <div className="cl-subagent">
+                        <strong>{entry.name}</strong>
+                        <span className={`cl-subagent-status cl-subagent-status--${entry.status === "running" ? "running" : entry.status === "failed" ? "error" : "done"}`}>
+                          {entry.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (entry.kind === "custom") {
+                return (
+                  <div key={entry.id} className="cl-row cl-row--wide">
+                    <div className="cl-custom">
+                      <span className="cl-custom-name mono">{entry.name}</span>
+                      <pre className="cl-custom-args" data-skin-text="">{JSON.stringify(entry.value, null, 2)}</pre>
+                    </div>
+                  </div>
+                );
+              }
+
               if (entry.kind === "error") {
                 return (
                   <div key={entry.id} className="cl-row cl-row--wide">
@@ -520,7 +547,7 @@ function ReasoningRow({ entry, open, onToggle }: { entry: ReasoningEntry; open: 
           <span className="cl-reason-meta mono">{entry.streaming ? "" : formatDuration(entry.durationMs ?? 0)}</span>
           <Icon name="chevron" size={11} className="cl-chev" />
         </button>
-        {open && <div className="cl-reason-body">{entry.text}</div>}
+        {open && <div className="cl-reason-body" data-skin-text="">{entry.text}</div>}
       </div>
     </div>
   );
@@ -567,7 +594,7 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
               {entry.error ?? (zh ? "工具执行失败" : "Tool failed")}
             </p>
           )}
-          {open && <pre className="cl-tool-args">{entry.argsRaw || "…"}</pre>}
+          {open && <pre className="cl-tool-args" data-skin-text="">{entry.argsRaw || "…"}</pre>}
           {entry.status === "done" && result?.results && (
             <ul className="cl-sources">
               {result.results.map((r, i) => (

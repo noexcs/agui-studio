@@ -109,7 +109,24 @@ export interface SubagentEntry extends BaseEntry {
   detail?: string;
 }
 
+/** AG-UI STEP_STARTED / STEP_FINISHED: one entry per step. */
+export interface StepEntry extends BaseEntry {
+  kind: "step";
+  name: string;
+  status: "running" | "done" | "failed";
+  finishedAt?: number;
+}
+
+/** Any CUSTOM event the store does not fold into suggestions/usage. */
+export interface CustomEntry extends BaseEntry {
+  kind: "custom";
+  name: string;
+  value: unknown;
+}
+
 export type Entry =
+  | StepEntry
+  | CustomEntry
   | SubagentEntry
   | UserEntry
   | AssistantEntry
@@ -157,12 +174,18 @@ export interface SkinCapabilities {
 
 export type SkinTextAnim = "none" | "fade" | "rise";
 export type SkinDensity = "comfortable" | "compact";
+export type SkinMotion = "slow" | "normal" | "fast";
+export type SkinRadius = "sharp" | "soft" | "round";
 
 /** Per-skin visual overrides applied by the host (customize panel). */
 export interface SkinTuning {
   accent?: string;
   textAnim?: SkinTextAnim;
   density?: SkinDensity;
+  /** animation speed multiplier */
+  motion?: SkinMotion;
+  /** opt-in global corner style */
+  radius?: SkinRadius;
 }
 
 export interface SkinBranding {

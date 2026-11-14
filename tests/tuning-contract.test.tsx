@@ -60,6 +60,31 @@ describe("accent tuning contract", () => {
     expect(wrapper(light.container).style.getPropertyValue("--sk-accent-ink")).not.toBe("");
   });
 
+  it("injects motion speed and opt-in corner tokens", () => {
+    const Page = skins.find((s) => s.id === "paper")!.ChatPage;
+    const { container } = render(
+      <SkinHostProvider conversation={makeFixture()} branding={BRANDING} tuning={{ motion: "fast", radius: "round" }}>
+        <Page />
+      </SkinHostProvider>
+    );
+    const el = wrapper(container);
+    expect(el.dataset.skMotion).toBe("fast");
+    expect(el.dataset.skRadius).toBe("round");
+    expect(el.style.getPropertyValue("--sk-motion")).toBe("0.6");
+    expect(el.style.getPropertyValue("--sk-radius")).toBe("16px");
+  });
+
+  it("scopes animation/density to opted-in text blocks and preserves reduced motion", () => {
+    const root = join(process.cwd(), "packages", "agui-skins", "src");
+    const css = readFileSync(join(root, "tuning.css"), "utf8");
+    expect(css).toContain("[data-skin-text]");
+    expect(css).toContain("var(--sk-motion");
+    expect(css).toContain("[data-sk-radius]");
+    expect(css).toContain("prefers-reduced-motion");
+    // the shared markdown wrapper opts in once for every skin
+    expect(readFileSync(join(root, "shared", "Markdown.tsx"), "utf8")).toContain("data-skin-text");
+  });
+
   it("every skin consumes --sk-accent from its own CSS (no data-skin switch)", () => {
     const root = join(process.cwd(), "packages", "agui-skins", "src", "skins");
     for (const skin of skins) {

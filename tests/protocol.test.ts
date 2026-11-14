@@ -185,3 +185,27 @@ describe("P1: capabilities, subagents, encrypted reasoning, activity types", () 
     expect(entry && entry.kind === "plan" ? entry.content : null).toEqual({ query: "fixture", hits: 3 });
   });
 });
+
+describe("STEP and CUSTOM view model", () => {
+  it("records STEP start/finish as one step entry", () => {
+    const s = make();
+    dispatch(s, { type: EventType.STEP_STARTED, stepName: "gather facts" });
+    dispatch(s, { type: EventType.STEP_FINISHED, stepName: "gather facts" });
+    const step = s.entries.find((entry) => entry.kind === "step");
+    expect(step && step.kind === "step" ? step.name : "").toBe("gather facts");
+    expect(step && step.kind === "step" ? step.status : "").toBe("done");
+    expect(step && step.kind === "step" ? Boolean(step.finishedAt) : false).toBe(true);
+  });
+
+  it("keeps unknown CUSTOM payloads as entries, suggestions/usage stay special", () => {
+    const s = make();
+    dispatch(s, { type: EventType.CUSTOM, name: "handoff", value: { to: "human" } });
+    dispatch(s, { type: EventType.CUSTOM, name: "suggestions", value: ["a"] });
+    dispatch(s, { type: EventType.CUSTOM, name: "usage", value: { totalTokens: 42 } });
+    const custom = s.entries.filter((entry) => entry.kind === "custom");
+    expect(custom).toHaveLength(1);
+    expect(custom[0].kind === "custom" ? custom[0].name : "").toBe("handoff");
+    expect(s.suggestions).toEqual(["a"]);
+    expect(s.tokens).toBe(42);
+  });
+});

@@ -19,7 +19,7 @@ export const Markdown = memo(function Markdown({
   className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={className} data-skin-text="">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

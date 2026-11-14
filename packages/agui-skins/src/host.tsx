@@ -73,16 +73,21 @@ export function SkinHostProvider(props: {
   //   --sk-accent-ink     accent darkened for text on light surfaces (when needed)
   //   --sk-accent-on-dark accent lightened for text on dark surfaces (when needed)
   const normalized = tuning.accent ? safeAccent(tuning.accent) : null;
-  let tuneStyle: CSSProperties | undefined;
+  const motionFactor: Record<string, number> = { slow: 1.6, normal: 1, fast: 0.6 };
+  const radiusPx: Record<string, number> = { sharp: 2, soft: 8, round: 16 };
+  const tuneStyle: Record<string, string> = {};
   if (normalized) {
     const guard = accentGuard(normalized);
-    tuneStyle = {
+    Object.assign(tuneStyle, {
       "--sk-accent": normalized,
       "--sk-accent-fg": guard.onAccentFg,
       ...(guard.inkOnLight ? { "--sk-accent-ink": guard.inkOnLight } : {}),
       ...(guard.brightOnDark ? { "--sk-accent-on-dark": guard.brightOnDark } : {}),
-    } as CSSProperties;
+    });
   }
+  if (tuning.motion) tuneStyle["--sk-motion"] = String(motionFactor[tuning.motion] ?? 1);
+  if (tuning.radius) tuneStyle["--sk-radius"] = String(radiusPx[tuning.radius] ?? 8) + "px";
+  const hasStyle = Object.keys(tuneStyle).length > 0;
 
   return (
     <SkinHostContext.Provider value={value}>
@@ -92,7 +97,9 @@ export function SkinHostProvider(props: {
         data-sk-accent={normalized ? "" : undefined}
         data-sk-text-anim={tuning.textAnim ?? "none"}
         data-sk-density={tuning.density ?? "comfortable"}
-        style={tuneStyle}
+        data-sk-motion={tuning.motion}
+        data-sk-radius={tuning.radius}
+        style={hasStyle ? (tuneStyle as CSSProperties) : undefined}
       >
         {props.children}
       </div>

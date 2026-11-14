@@ -5,7 +5,7 @@ import { aguiAliases } from "./config/agui-aliases";
 export default defineConfig({
   // one shared alias list drives dev / test / build (see config/agui-aliases.ts)
   plugins: [react()],
-  resolve: { alias: aguiAliases },
+  resolve: { alias: aguiAliases, dedupe: ["react", "react-dom"] },
   optimizeDeps: { exclude: ["agui-skins"] },
   test: {
     environment: "jsdom",

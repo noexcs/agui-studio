@@ -438,6 +438,7 @@ pnpm test
 - ✅ 并行中断：每张卡独立 pending，全部解决后才一次性提交 `resume[]`，`lastResume` 可在测试中检查；
 - ✅ 过期中断：`expiresAt` 到期后不提交 resume，标记 `expired`；
 - ✅ schema 校验：`responseSchema.required` 与 boolean/string/number/object 类型不匹配时拒绝并提示；
+- ✅ STEP_STARTED/FINISHED 与任意 CUSTOM：归约为 `step` / `custom` entry（Aurora/Classic/Terminal 渲染，其余安全忽略）；
 - ⏳ 仍缺（P1/P2）：capabilities 发现、子 agent 事件、`REASONING_ENCRYPTED_VALUE`、`RAW`、二进制/WebSocket 传输、activityType 可插拔渲染。
 
 新增 `tests/protocol.test.ts`：覆盖快照重建、chunk 合并、工具失败、并行中断、schema 拒绝、过期中断；
@@ -507,8 +508,8 @@ npx serve dist   # 或任意静态服务器
 | 项 | 取值 | 实现 |
 |---|---|---|
 | 主题色 | 8 个预设 + 任意取色 | `SkinHostProvider` 注入 `--sk-accent`（及校验后的 `--sk-accent-fg/-ink/-on-dark`），**每套皮肤在自己的 CSS 里消费**（classic `--accent`、paper `--vermilion`、terminal `--green`、brutalist `--yellow`、aurora `--violet` + 渐变）；无需 `skin` prop |
-| 文字动画 | 无 / 渐显 / 上浮 | 对 `.md` 块做出现动画（块首次挂载时播放，流式新增段落自然生效），支持 `prefers-reduced-motion` |
-| 信息密度 | 宽松 / 紧凑 | 调整 markdown 行高与段落/列表/表格间距 |
+| 文字动画 | 无 / 渐显 / 上浮 | 对 `.md` 及 `data-skin-text` 文本块做出现动画（块首次挂载时播放，流式新增段落自然生效），支持 `prefers-reduced-motion` |
+| 信息密度 | 宽松 / 紧凑 | 调整 markdown + 所有 `data-skin-text` 文本块的行高与间距 |
 
 - 按皮肤分别保存在 `localStorage`（`agui-studio:tuning`），刷新不丢；
 - 支持分享链接：`?accent=%23db2777&anim=rise&density=compact`；
@@ -543,4 +544,14 @@ npx serve dist   # 或任意静态服务器
 - **并行待办**：`pendingInterrupts()` 统一；Aurora/Terminal/Brutalist 顶部在多于一个待处理时显示 `×N`；
 - **未知 entry kind 安全兜底**：Aurora/Terminal 不再把未来新增的 entry 当 assistant 渲染，统一忽略；
 - **性能**：`Markdown` 组件 memo 化，流式更新时未变化的历史消息不再重复解析 markdown；
-- 测试增至 **272 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
+- 测试增至 **276 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
+
+
+## 2026-11-14 皮肤层第三轮
+
+- **自定义项扩展**：新增动效速度（slow/normal/fast）与圆角（sharp/soft/round），与 accent/动画/密度一起参与 URL 分享、面板预设对比与持久化；
+- **作用域扩展**：文字动画/密度不再只作用于 assistant markdown —— 共享 `Markdown` 与各皮肤的 reasoning/tool 文本块标记 `data-skin-text`，统一由 tuning.css 驱动；
+- **协议视图模型**：新增 `StepEntry`（STEP_STARTED/FINISHED）与 `CustomEntry`（未归类的 CUSTOM），store 负责归约，Aurora/Classic/Terminal 渲染，Paper/Brutalist 安全忽略；
+- **可维护性**：新 entry 类型统一在 contract/store/fixture 三处声明并有测试；`data-skin-text` 成为皮肤参与自定义层的显式契约（不再靠 `.md` 类名隐式约定）；
+- 依赖卫生：workspace 包固定 devDeps React 18 + Vite `resolve.dedupe`，避免包内 lucide 解析到 React 19 副本导致图标跨版本渲染（曾造成 71 个测试失败）；
+- 测试增至 **276 个用例**。

@@ -12,12 +12,13 @@
 }
 
 /* ── text animation (applies to markdown blocks as they appear) ──── */
-.sk-tune[data-sk-text-anim="fade"] .md > * {
-  animation: sk-text-fade 0.34s ease both;
+/* markdown blocks + text blocks opted in by the skins (data-skin-text) */
+.sk-tune[data-sk-text-anim="fade"] :is(.md > *, [data-skin-text]:not(.md)) {
+  animation: sk-text-fade calc(0.34s * var(--sk-motion, 1)) ease both;
 }
 
-.sk-tune[data-sk-text-anim="rise"] .md > * {
-  animation: sk-text-rise 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+.sk-tune[data-sk-text-anim="rise"] :is(.md > *, [data-skin-text]:not(.md)) {
+  animation: sk-text-rise calc(0.36s * var(--sk-motion, 1)) cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 @keyframes sk-text-fade {
@@ -31,11 +32,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sk-tune .md > * { animation: none !important; }
+  .sk-tune :is(.md > *, [data-skin-text]) { animation: none !important; }
 }
 
 /* ── density ─────────────────────────────────────────────────────── */
-.sk-tune[data-sk-density="compact"] .md {
+.sk-tune[data-sk-density="compact"] :is(.md, [data-skin-text]:not(.md)) {
   line-height: 1.5;
 }
 
@@ -51,6 +52,11 @@
 
 .sk-tune[data-sk-density="compact"] .md li {
   margin: 0.12em 0;
+}
+
+.sk-tune[data-sk-density="compact"] [data-skin-text]:not(.md) {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 /* ── accent consumption ────────────────────────────────────────────
@@ -80,4 +86,12 @@
 
 .sk-tune[data-sk-accent] .skin-term {
   --accent-text: var(--sk-accent-on-dark, var(--green));
+}
+
+/* ── opt-in global corner style ────────────────────────────────────
+   Only applied when the user explicitly picks a radius, so skin defaults
+   stay untouched. Curated to surfaces where a different corner is coherent:
+   controls, code/table blocks and quotes. */
+.sk-tune[data-sk-radius] :is(button, input, textarea, pre, table, blockquote, .md code) {
+  border-radius: var(--sk-radius);
 }

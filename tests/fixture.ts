@@ -135,8 +135,13 @@ export function makeFixture(overrides: Partial<SkinConversation> = {}): SkinConv
   });
   dispatch({ type: EventType.ACTIVITY_DELTA, messageId: "plan1", patch: [{ op: "replace", path: "/steps/1/state", value: "done" }] });
 
+  dispatch({ type: EventType.STEP_STARTED, stepName: "fixture step" });
+  dispatch({ type: EventType.STEP_FINISHED, stepName: "fixture step" });
+
   dispatch({ type: EventType.SUBAGENT_STARTED, subagentId: "sa1", name: "fixture subagent" });
   dispatch({ type: EventType.SUBAGENT_FINISHED, subagentId: "sa1" });
+
+  dispatch({ type: EventType.CUSTOM, name: "handoff", value: { fixture: true } });
 
   dispatch({
     type: EventType.RUN_FINISHED,

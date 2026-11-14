@@ -5,7 +5,7 @@ import { aguiAliases } from "./config/agui-aliases";
 const config = defineConfig({
   plugins: [react()],
   base: process.env.VITE_BASE || "./",
-  resolve: { alias: aguiAliases },
+  resolve: { alias: aguiAliases, dedupe: ["react", "react-dom"] },
   optimizeDeps: { exclude: ["agui-skins"] },
   server: {
     port: 5178,

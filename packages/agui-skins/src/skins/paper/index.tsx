@@ -336,7 +336,7 @@ function ToolNote({ entry }: { entry: ToolEntry }) {
       <div className="pap-note-label">
         {t("paper.toolCall")} <span className="pap-mono pap-toolname">{entry.name}</span>
       </div>
-      <pre className="pap-args">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
+      <pre className="pap-args" data-skin-text="">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
       {stage === "error" ? (
         <div className="pap-note-meta pap-note-meta--error">
           <span className="pap-fail">✗</span> {entry.error ?? t("status.error")}

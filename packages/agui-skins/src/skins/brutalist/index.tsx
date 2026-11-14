@@ -221,7 +221,7 @@ function BruAssistant({ entry }: { entry: AssistantEntry }) {
 
 function BruReasoning({ entry }: { entry: ReasoningEntry }) {
   return (
-    <div className="bru-think">
+    <div className="bru-think" data-skin-text="">
       <div className="bru-think-head">
         <span>{t("bru.thinking")}</span>
         <span>{entry.streaming ? "…" : formatDuration(entry.durationMs ?? 0)}</span>
@@ -242,7 +242,7 @@ function BruTool({ entry }: { entry: ToolEntry }) {
           {stage === "done" ? "■ DONE" : stage === "interrupted" ? "‖ INTERRUPTED" : stage === "error" ? "✕ ERROR" : "▶ " + entry.status.toUpperCase()}
         </span>
       </div>
-      <pre className="bru-tool-args">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
+      <pre className="bru-tool-args" data-skin-text="">{entry.argsRaw ? JSON.stringify(entry.args ?? entry.argsRaw, null, 1) : "…"}</pre>
       {result?.results && (
         <div className="bru-tool-results">
           {result.results.map((r, i) => (

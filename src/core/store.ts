@@ -104,7 +104,22 @@ export interface SubagentEntry extends BaseEntry {
   detail?: string;
 }
 
+export interface StepEntry extends BaseEntry {
+  kind: "step";
+  name: string;
+  status: "running" | "done" | "failed";
+  finishedAt?: number;
+}
+
+export interface CustomEntry extends BaseEntry {
+  kind: "custom";
+  name: string;
+  value: unknown;
+}
+
 export type Entry =
+  | StepEntry
+  | CustomEntry
   | SubagentEntry
   | UserEntry
   | AssistantEntry
@@ -775,6 +790,31 @@ export class ConversationStore {
         return;
       }
 
+      case EventType.STEP_STARTED: {
+        this.entries.push({
+          kind: "step",
+          id: uid("step"),
+          at: time,
+          name: String(event.stepName ?? event.name ?? "step"),
+          status: "running",
+        });
+        return;
+      }
+
+      case EventType.STEP_FINISHED: {
+        const name = String(event.stepName ?? event.name ?? "step");
+        const entry = [...this.entries]
+          .reverse()
+          .find((item): item is StepEntry => item.kind === "step" && item.name === name && item.status === "running");
+        if (entry) {
+          entry.status = "done";
+          entry.finishedAt = time;
+        } else {
+          this.entries.push({ kind: "step", id: uid("step"), at: time, name, status: "done", finishedAt: time });
+        }
+        return;
+      }
+
       case EventType.CUSTOM: {
         if (event.name === "suggestions" && Array.isArray(event.value)) {
           this.suggestions = event.value.map(String);
@@ -782,6 +822,17 @@ export class ConversationStore {
         if (event.name === "usage") {
           const usage = event.value as { totalTokens?: number; output?: number };
           if (usage?.totalTokens) this.tokens = Math.max(this.tokens, Number(usage.totalTokens));
+        }
+        // forward-compatible: unknown CUSTOM payloads become visible entries
+        // instead of being silently dropped
+        if (event.name !== "suggestions" && event.name !== "usage") {
+          this.entries.push({
+            kind: "custom",
+            id: uid("custom"),
+            at: time,
+            name: String(event.name ?? "custom"),
+            value: event.value,
+          });
         }
         return;
       }

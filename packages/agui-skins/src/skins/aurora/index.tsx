@@ -1,6 +1,6 @@
 ﻿import { useMemo, useRef, useState } from "react";
 import { useConversation } from "../../host";
-import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
+import type { AssistantEntry, CustomEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, StepEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration, estimateTokens } from "../../utils";
 import { Icon } from "../../shared/Icon";
 import { t } from "../../i18n";
@@ -476,6 +476,8 @@ function EntryView(props: {
     );
   }
   if (entry.kind === "subagent") return <SubagentRow entry={entry} />;
+  if (entry.kind === "step") return <StepRow entry={entry} />;
+  if (entry.kind === "custom") return <CustomRow entry={entry} />;
   if (entry.kind === "assistant") return <AssistantBlock entry={entry} />;
   // forward-compatible: unknown entry kinds are ignored, never mis-rendered
   return null;
@@ -528,7 +530,7 @@ function ReasoningBlock({ entry, open, onToggle }: { entry: ReasoningEntry; open
           <Icon name="chevron" className="chev" />
         </button>
         {open && (
-          <div className="reason-body">
+          <div className="reason-body" data-skin-text="">
             <div className="reason-text">
               {entry.text}
               {entry.streaming && <span className="caret" />}
@@ -568,7 +570,7 @@ function ToolBlock({ entry }: { entry: ToolEntry }) {
           </div>
         </div>
         <div className="tool-body">
-          {entry.argsRaw && <div className="tool-args">{JSON.stringify(entry.args ?? entry.argsRaw, null, 2)}</div>}
+          {entry.argsRaw && <div className="tool-args" data-skin-text="">{JSON.stringify(entry.args ?? entry.argsRaw, null, 2)}</div>}
           {result?.results && (
             <div className="tool-result">
               <div className="tool-result-head"><Icon name="globe" />{result.results.length} {t("chat.sources")}</div>
@@ -586,7 +588,7 @@ function ToolBlock({ entry }: { entry: ToolEntry }) {
           {result && !result.results && (
             <div className="tool-result">
               <div className="tool-result-head"><Icon name="check" />{t("chat.result")}</div>
-              <div className="tool-args">{JSON.stringify(result, null, 2)}</div>
+              <div className="tool-args" data-skin-text="">{JSON.stringify(result, null, 2)}</div>
             </div>
           )}
         </div>
@@ -604,7 +606,35 @@ function SubagentRow({ entry }: { entry: SubagentEntry }) {
           <span className="reason-label">{entry.name}</span>
           <span className="reason-meta mono">{entry.status}</span>
         </div>
-        {entry.detail && <div className="reason-body">{entry.detail}</div>}
+        {entry.detail && <div className="reason-body" data-skin-text="">{entry.detail}</div>}
+      </div>
+    </div>
+  );
+}
+
+function StepRow({ entry }: { entry: StepEntry }) {
+  return (
+    <div className="block">
+      <div className="reason">
+        <div className="reason-toggle">
+          <Icon name="activity" className="icon-brain" />
+          <span className="reason-label">{entry.name}</span>
+          <span className="reason-meta mono">{entry.status}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomRow({ entry }: { entry: CustomEntry }) {
+  return (
+    <div className="block">
+      <div className="reason">
+        <div className="reason-toggle">
+          <Icon name="braces" className="icon-brain" />
+          <span className="reason-label">{entry.name}</span>
+          <span className="reason-meta mono">{JSON.stringify(entry.value)}</span>
+        </div>
       </div>
     </div>
   );
@@ -622,7 +652,7 @@ function PlanBlock({ entry }: { entry: PlanEntry }) {
           <span className="plan-tag">ACTIVITY · {entry.activityType}</span>
         </div>
         {entry.steps.length === 0 && entry.content ? (
-          <pre className="tool-args">{JSON.stringify(entry.content, null, 2)}</pre>
+          <pre className="tool-args" data-skin-text="">{JSON.stringify(entry.content, null, 2)}</pre>
         ) : (
         <div className="plan-steps">
           {entry.steps.map((step) => (

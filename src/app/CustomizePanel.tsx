@@ -1,6 +1,6 @@
 import { Icon, accentGuard, type AccentGuard } from "agui-skins";
 import { isZh } from "../i18n";
-import type { SkinDensity, SkinTextAnim, SkinTuning } from "agui-skins";
+import type { SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTuning } from "agui-skins";
 
 const ACCENTS = [
   { hex: "#2563eb", zh: "经典蓝", en: "Blue" },
@@ -24,6 +24,18 @@ const DENSITIES: { value: SkinDensity; zh: string; en: string }[] = [
   { value: "compact", zh: "紧凑", en: "Compact" },
 ];
 
+const MOTIONS: { value: SkinMotion; zh: string; en: string }[] = [
+  { value: "slow", zh: "慢", en: "Slow" },
+  { value: "normal", zh: "标准", en: "Normal" },
+  { value: "fast", zh: "快", en: "Fast" },
+];
+
+const RADII: { value: SkinRadius; zh: string; en: string }[] = [
+  { value: "sharp", zh: "直角", en: "Sharp" },
+  { value: "soft", zh: "微圆", en: "Soft" },
+  { value: "round", zh: "圆润", en: "Round" },
+];
+
 const PRESETS: { zh: string; en: string; tuning: SkinTuning }[] = [
   { zh: "原始", en: "Default", tuning: {} },
   { zh: "冷调", en: "Cool", tuning: { accent: "#0891b2", textAnim: "fade", density: "comfortable" } },
@@ -35,7 +47,9 @@ function sameTuning(a: SkinTuning, b: SkinTuning) {
   return (
     (a.accent ?? undefined) === (b.accent ?? undefined) &&
     (a.textAnim ?? "none") === (b.textAnim ?? "none") &&
-    (a.density ?? "comfortable") === (b.density ?? "comfortable")
+    (a.density ?? "comfortable") === (b.density ?? "comfortable") &&
+    (a.motion ?? "normal") === (b.motion ?? "normal") &&
+    (a.radius ?? undefined) === (b.radius ?? undefined)
   );
 }
 
@@ -73,6 +87,8 @@ export function CustomizePanel(props: {
   const accent = props.tuning.accent;
   const anim = props.tuning.textAnim ?? "none";
   const density = props.tuning.density ?? "comfortable";
+  const motion = props.tuning.motion ?? "normal";
+  const radius = props.tuning.radius;
   const inline = props.variant === "inline";
   // Fix E: guard the custom accent; hint only — rendering is auto-adjusted by
   // the skin host (--sk-accent-fg / --sk-accent-ink), never blocked here.
@@ -164,6 +180,42 @@ export function CustomizePanel(props: {
                 key={item.value}
                 className={`customize-segbtn ${density === item.value ? "is-active" : ""}`}
                 onClick={() => set({ density: item.value })}
+              >
+                {zh ? item.zh : item.en}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="customize-tile">
+          <div className="customize-label">
+            <span>{zh ? "动效速度" : "Motion speed"}</span>
+            <em>{MOTIONS.find((item) => item.value === motion)?.[zh ? "zh" : "en"]}</em>
+          </div>
+          <div className="customize-seg">
+            {MOTIONS.map((item) => (
+              <button
+                key={item.value}
+                className={`customize-segbtn ${motion === item.value ? "is-active" : ""}`}
+                onClick={() => set({ motion: item.value })}
+              >
+                {zh ? item.zh : item.en}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="customize-tile">
+          <div className="customize-label">
+            <span>{zh ? "圆角" : "Corners"}</span>
+            <em>{radius ? RADII.find((item) => item.value === radius)?.[zh ? "zh" : "en"] : zh ? "皮肤默认" : "skin default"}</em>
+          </div>
+          <div className="customize-seg">
+            {RADII.map((item) => (
+              <button
+                key={item.value}
+                className={`customize-segbtn ${radius === item.value ? "is-active" : ""}`}
+                onClick={() => set({ radius: radius === item.value ? undefined : item.value })}
               >
                 {zh ? item.zh : item.en}
               </button>

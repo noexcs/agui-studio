@@ -711,3 +711,7 @@
   font-size: 11.5px;
   line-height: 1.5;
 }
+
+.cl-custom { display: flex; flex-direction: column; gap: 6px; }
+.cl-custom-name { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.cl-custom-args { margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: #fafbfc; font: 11.5px/1.5 var(--mono); color: var(--text-2); overflow-x: auto; }

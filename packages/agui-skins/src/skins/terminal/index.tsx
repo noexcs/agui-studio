@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { useConversation } from "../../host";
-import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, ToolEntry } from "../../contract";
+import type { AssistantEntry, CustomEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, StepEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
 import { plainText } from "../../utils";
 import { Icon } from "../../shared/Icon";
@@ -235,7 +235,7 @@ function LogEntry({
           {entry.streaming && <span className="term-cursor" />}
         </button>
         {open && (
-          <div className="term-reason-body">
+          <div className="term-reason-body" data-skin-text="">
             {entry.text}
             {entry.streaming && <span className="term-cursor" />}
           </div>
@@ -263,6 +263,22 @@ function LogEntry({
       </div>
     );
   }
+  if (entry.kind === "step") {
+    return (
+      <div className="term-line term-dim">
+        <span className="term-prompt">›</span> step · {entry.name} · {entry.status}
+      </div>
+    );
+  }
+
+  if (entry.kind === "custom") {
+    return (
+      <div className="term-line term-dim">
+        <span className="term-prompt">›</span> custom · {entry.name} · {JSON.stringify(entry.value)}
+      </div>
+    );
+  }
+
   if (entry.kind === "assistant") return <AssistantLine entry={entry} />;
   // forward-compatible: unknown entry kinds are ignored, never mis-rendered
   return null;
@@ -379,7 +395,7 @@ function ToolLine({ entry }: { entry: ToolEntry }) {
           {entry.status === "done" ? "✓" : entry.status === "error" ? "✗" : entry.status === "interrupted" ? "‖" : "⟳"}
         </span>
         <span className="term-tool-name">{entry.name}</span>
-        <span className="term-dim term-tool-args">{entry.argsRaw.slice(0, 52)}</span>
+        <span className="term-dim term-tool-args" data-skin-text="">{entry.argsRaw.slice(0, 52)}</span>
         <span className="term-dim term-tool-time">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
       </button>
       {open && (

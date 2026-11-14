@@ -11,6 +11,10 @@ export type {
   SkinTuning,
   SkinTextAnim,
   SkinDensity,
+  SkinMotion,
+  SkinRadius,
+  StepEntry,
+  CustomEntry,
   Lang,
 } from "./contract";
 
