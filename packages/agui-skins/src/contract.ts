@@ -124,6 +124,8 @@ export interface CustomEntry extends BaseEntry {
   kind: "custom";
   name: string;
   value: unknown;
+  /** unknown producer conventions are inspector/debug data, not transcript rows */
+  display?: "inline" | "debug";
 }
 
 export type Entry =

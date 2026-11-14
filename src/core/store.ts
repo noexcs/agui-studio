@@ -128,6 +128,7 @@ export interface CustomEntry extends BaseEntry {
   kind: "custom";
   name: string;
   value: unknown;
+  display?: "inline" | "debug";
 }
 
 export type Entry =
@@ -237,6 +238,9 @@ export class ConversationStore {
   private seq = 0;
   private version = 0;
   private listeners = new Set<() => void>();
+  private batchDepth = 0;
+  private notifyPending = false;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
   private handle: PlayHandle | null = null;
   private speed = 0.9;
 
@@ -254,6 +258,21 @@ export class ConversationStore {
   };
   getVersion = () => this.version;
   private notify() {
+    if (this.batchDepth > 0) {
+      this.notifyPending = true;
+      if (this.notifyTimer === null) {
+        this.notifyTimer = setTimeout(() => {
+          this.notifyTimer = null;
+          this.flushNotify();
+        }, 16);
+      }
+      return;
+    }
+    this.notifyPending = false;
+    this.emitNotify();
+  }
+
+  private emitNotify() {
     this.version += 1;
     this.listeners.forEach((listener) => {
       try {
@@ -262,6 +281,26 @@ export class ConversationStore {
         console.error("[agui] subscriber failed", err);
       }
     });
+  }
+
+  private flushNotify() {
+    if (!this.notifyPending) return;
+    this.notifyPending = false;
+    this.emitNotify();
+  }
+
+  private beginBatch() {
+    this.batchDepth += 1;
+  }
+
+  private endBatch() {
+    this.batchDepth = Math.max(0, this.batchDepth - 1);
+    if (this.batchDepth > 0) return;
+    if (this.notifyTimer !== null) {
+      clearTimeout(this.notifyTimer);
+      this.notifyTimer = null;
+    }
+    if (this.notifyPending) this.flushNotify();
   }
 
   /* ── run control ─────────────────────────────────────────────────── */
@@ -515,8 +554,13 @@ export class ConversationStore {
             state: this.sharedState,
           });
       if (input.resume) this.lastAgentResume = input.resume;
-      for await (const event of streamAgentRun({ endpoint, input, signal: controller.signal })) {
-        this.dispatch(event);
+      this.beginBatch();
+      try {
+        for await (const event of streamAgentRun({ endpoint, input, signal: controller.signal })) {
+          this.dispatch(event);
+        }
+      } finally {
+        this.endBatch();
       }
       if (this.status === "running") this.status = "done";
     } catch (error) {
@@ -690,7 +734,12 @@ export class ConversationStore {
     }
     const meta = (event as { metadata?: unknown }).metadata;
     if (meta && typeof meta === "object" && !Array.isArray(meta)) {
-      this.metadata = { ...this.metadata, ...(meta as Record<string, unknown>) };
+      const merged = { ...this.metadata, ...(meta as Record<string, unknown>) };
+      const keys = Object.keys(merged);
+      if (keys.length > 24) {
+        for (const key of keys.slice(0, keys.length - 24)) delete merged[key];
+      }
+      this.metadata = merged;
     }
     this.events.push({ seq: ++this.seq, at: Date.now(), event });
     if (this.events.length > MAX_EVENTS) this.events.splice(0, this.events.length - MAX_EVENTS);
@@ -1185,12 +1234,15 @@ export class ConversationStore {
         // forward-compatible: unknown CUSTOM payloads become visible entries
         // instead of being silently dropped
         if (event.name !== "suggestions" && event.name !== "usage") {
+          const name = String(event.name ?? "custom");
+          const inline = name === "handoff" || name === "artifact";
           this.entries.push({
             kind: "custom",
             id: uid("custom"),
             at: time,
-            name: String(event.name ?? "custom"),
+            name,
             value: event.value,
+            display: inline ? "inline" : "debug",
           });
         }
         return;

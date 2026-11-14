@@ -208,7 +208,7 @@ export function AuroraPage() {
               <div className="usage">
                 <div className="usage-head">
                   <span className="usage-label">{t("chat.context")}</span>
-                  <span className="usage-num mono">{c.tokens ? Math.round(c.tokens / 100) / 10 + "k" : "4.2k"} / 200k</span>
+                  <span className="usage-num mono">{c.tokens ? Math.round(c.tokens / 100) / 10 + "k" : "—"} / 200k</span>
                 </div>
                 <div className="usage-track">
                   <span style={{ width: Math.min(100, 8 + c.tokens / 40) + "%" }} />
@@ -298,6 +298,7 @@ export function AuroraPage() {
                   ref={textarea}
                   rows={1}
                   value={draft}
+                  aria-label={t("chat.placeholder")}
                   placeholder={t("chat.placeholder")}
                   onChange={(e) => setDraft(e.target.value)}
                   onInput={(e) => {

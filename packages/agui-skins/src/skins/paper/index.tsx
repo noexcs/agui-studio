@@ -310,6 +310,7 @@ export function PaperPage() {
               ref={input}
               rows={1}
               value={draft}
+              aria-label={t("chat.replyPlaceholder")}
               placeholder={t("chat.replyPlaceholder")}
               onChange={(e) => setDraft(e.target.value)}
               onInput={(e) => {

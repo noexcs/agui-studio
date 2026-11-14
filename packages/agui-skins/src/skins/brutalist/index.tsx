@@ -131,6 +131,7 @@ export function BrutalistPage() {
               <textarea
                 rows={1}
                 value={draft}
+                aria-label={t("bru.write")}
                 placeholder={t("bru.write")}
                 onChange={(e) => setDraft(e.target.value)}
                 onInput={(e) => {

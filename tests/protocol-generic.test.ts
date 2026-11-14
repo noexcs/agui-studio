@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ConversationStore } from "../src/core/store";
 import { EventType } from "../src/core/events";
+import { windowEntries } from "agui-skins";
 
 const make = () => new ConversationStore(false);
 
@@ -105,6 +106,19 @@ describe("generic AG-UI streams (no demo dialect)", () => {
         content: { steps: "not-an-array" },
       } as never)
     ).not.toThrow();
+  });
+
+  it("keeps unknown CUSTOM payloads out of the transcript window", () => {
+    const store = make();
+    store.dispatch({ type: EventType.RUN_STARTED, threadId: "t", runId: "r" } as never);
+    store.dispatch({ type: EventType.CUSTOM, name: "telemetry.tick", value: { n: 1 } } as never);
+    store.dispatch({ type: EventType.CUSTOM, name: "handoff", value: { to: "human" } } as never);
+    store.dispatch({ type: EventType.TEXT_MESSAGE_CHUNK, delta: "hello" } as never);
+
+    const custom = store.entries.filter((entry) => entry.kind === "custom");
+    expect(custom.find((entry) => entry.name === "telemetry.tick")).toMatchObject({ display: "debug" });
+    expect(custom.find((entry) => entry.name === "handoff")).toMatchObject({ display: "inline" });
+    expect(windowEntries(store.entries, 60).visible.some((entry) => entry.kind === "custom" && entry.display === "debug")).toBe(false);
   });
 
   it("does not bump the state version for a repeated identical snapshot", () => {

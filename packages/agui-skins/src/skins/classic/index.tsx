@@ -145,7 +145,7 @@ export function ClassicPage() {
           <div className="cl-usage">
             <div className="cl-usage-head">
               <span>{t("chat.context")}</span>
-              <span className="mono">{c.tokens ? `${(c.tokens / 1000).toFixed(1)}k` : "4.2k"} / 200k</span>
+              <span className="mono">{c.tokens ? `${(c.tokens / 1000).toFixed(1)}k` : "—"} / 200k</span>
             </div>
             <div className="cl-meter">
               <span style={{ width: `${Math.min(100, 6 + c.tokens / 40)}%` }} />
@@ -427,6 +427,7 @@ export function ClassicPage() {
             <textarea
               rows={1}
               value={draft}
+              aria-label={zh ? "消息输入框" : "Message composer"}
               placeholder={zh ? "输入消息，Enter 发送，Shift+Enter 换行" : "Message the assistant — Enter to send, Shift+Enter for a new line"}
               onChange={(e) => setDraft(e.target.value)}
               onInput={(e) => {

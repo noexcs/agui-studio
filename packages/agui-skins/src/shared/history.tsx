@@ -9,9 +9,16 @@ import { t } from "../i18n";
  * wildly different row heights, so a simple tail window is the robust option).
  */
 export function windowEntries(entries: Entry[], limit: number): { visible: Entry[]; hidden: number } {
-  if (!Number.isFinite(limit) || limit >= entries.length) return { visible: entries, hidden: 0 };
+  // Unknown CUSTOM conventions are telemetry, not chat content: keep them in
+  // the inspector but out of the transcript window (and its hidden count).
+  const meaningful = entries.filter(
+    (entry) => !(entry.kind === "custom" && entry.display === "debug")
+  );
+  if (!Number.isFinite(limit) || limit >= meaningful.length) {
+    return { visible: meaningful, hidden: 0 };
+  }
   const safe = Math.max(1, Math.floor(limit));
-  return { visible: entries.slice(-safe), hidden: entries.length - safe };
+  return { visible: meaningful.slice(-safe), hidden: meaningful.length - safe };
 }
 
 export function useVisibleEntries(entries: Entry[], initial = 60, step = 60) {

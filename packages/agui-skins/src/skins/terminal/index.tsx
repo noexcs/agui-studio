@@ -56,8 +56,9 @@ export function TerminalPage() {
   useEffect(() => {
     if (!pending) return;
     const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement;
-      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;
+      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.isContentEditable)) return;
       if (e.key.toLowerCase() === "y") c.resolveInterrupt(true);
       if (e.key.toLowerCase() === "n") c.resolveInterrupt(false);
     };
@@ -172,6 +173,7 @@ export function TerminalPage() {
               rows={1}
               value={draft}
               spellCheck={false}
+              aria-label={t("term.typeMessage")}
               placeholder={t("term.typeMessage")}
               onChange={(e) => setDraft(e.target.value)}
               onInput={(e) => {
