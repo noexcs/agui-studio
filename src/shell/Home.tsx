@@ -3,6 +3,8 @@ import { GridMotion } from "./GridMotion";
 import { skinSwatches } from "../shared/skin-swatches";
 import { Icon } from "../shared/Icon";
 import { LazyMount } from "../shared/LazyMount";
+import { ScenarioMenu } from "./ScenarioMenu";
+import type { DemoScenario } from "../core/demo-scenarios";
 import type { Lang } from "../i18n";
 
 export interface HomeSkin {
@@ -68,6 +70,8 @@ export function Home(props: {
   onCustomize: () => void;
   customizing?: boolean;
   customize?: ReactNode;
+  scenario: DemoScenario;
+  onScenario: (scenario: DemoScenario) => void;
   children: ReactNode;
 }) {
   const zh = props.lang === "zh";
@@ -203,6 +207,7 @@ export function Home(props: {
               <span className="embed-chip">{zh ? "实时嵌入" : "live embed"}</span>
             </div>
             <div className="embed-actions">
+              <ScenarioMenu scenario={props.scenario} lang={props.lang} onScenario={props.onScenario} />
               {props.staticDemo ? (
                 <span className="embed-chip">{zh ? "演示模式" : "demo mode"}</span>
               ) : (

@@ -1,4 +1,5 @@
 import { safeAccent } from "agui-skins";
+import { DEFAULT_SCENARIO, type DemoScenario } from "../core/demo-scenarios";
 import type { Lang, SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTuning } from "agui-skins";
 
 export type AppBackend = "mock" | "pi" | "fixture";
@@ -54,6 +55,7 @@ export function buildAppQuery(input: {
   scene: string;
   full: boolean;
   tuning: SkinTuning;
+  scenario?: DemoScenario;
 }): string {
   const params = new URLSearchParams();
   params.set("skin", input.skin);
@@ -61,6 +63,8 @@ export function buildAppQuery(input: {
   if (input.backend !== "mock") params.set("backend", input.backend);
   if (input.scene !== "live") params.set("scene", input.scene);
   if (input.full) params.set("full", "1");
+  const scenario = input.scenario ?? DEFAULT_SCENARIO;
+  if (scenario !== DEFAULT_SCENARIO) params.set("scenario", scenario);
 
   const accent = input.tuning.accent ? safeAccent(input.tuning.accent) : null;
   if (accent) params.set("accent", accent);

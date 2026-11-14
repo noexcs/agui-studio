@@ -192,14 +192,14 @@ export const USER_PROMPT = EN.prompt;
 const T0 = Date.now();
 const at = (ms: number) => new Date(T0 + ms).toISOString();
 
-function chunkWords(text: string, group = 2): string[] {
+export function chunkWords(text: string, group = 2): string[] {
   const words = text.match(/\S+\s*/g) || [];
   const out: string[] = [];
   for (let i = 0; i < words.length; i += group) out.push(words.slice(i, i + group).join(""));
   return out;
 }
 
-class Builder {
+export class Builder {
   list: TimedEvent[] = [];
   cursor = 0;
   constructor(private threadId: string, private runId: string) {}

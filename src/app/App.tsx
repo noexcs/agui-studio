@@ -4,6 +4,7 @@ import type { SkinTuning } from "agui-skins";
 import { CustomizePanel } from "./CustomizePanel";
 import { buildAppQuery, sanitizeTuning } from "./urlState";
 import { createStudio, type ConversationStore } from "../core/store";
+import { DEFAULT_SCENARIO, isDemoScenario, type DemoScenario } from "../core/demo-scenarios";
 import { checkBridge, type BridgeHealth, type PiBackend } from "../core/pi";
 import { getSkin, skins } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
@@ -24,6 +25,10 @@ const readParams = () => new URLSearchParams(window.location.search);
 export default function App() {
   const params = readParams();
   const scene = (params.get("scene") as Scene) || "live";
+  const [scenario, setScenario] = useState<DemoScenario>(() => {
+    const value = params.get("scenario");
+    return isDemoScenario(value) ? value : DEFAULT_SCENARIO;
+  });
   // static hosting (GitHub Pages) only ships the scripted demo agent
   const STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === "1";
   const initialBackend = STATIC_DEMO ? "mock" : (params.get("backend") as Backend) || "mock";
@@ -60,7 +65,7 @@ export default function App() {
   setI18nLang(lang);
 
   if (!storeRef.current) {
-    storeRef.current = createStudio({ autoplay: scene === "live" && initialBackend === "mock" });
+    storeRef.current = createStudio({ autoplay: scene === "live" && initialBackend === "mock", scenario });
     storeRef.current.setLang(lang);
   }
   const store = storeRef.current;
@@ -71,6 +76,20 @@ export default function App() {
   useEffect(() => {
     if (scene !== "live") store.loadScene(scene === "done" ? "done" : "interrupted");
   }, [scene, store]);
+
+  const previousScenario = useRef(scenario);
+  useEffect(() => {
+    if (previousScenario.current === scenario) return;
+    previousScenario.current = scenario;
+    store.setScenario(scenario);
+    store.setLang(lang);
+    store.prepareIdle();
+    if (scene !== "live") {
+      store.loadScene(scene === "done" ? "done" : "interrupted");
+    } else if (store.backend === "mock") {
+      store.replay();
+    }
+  }, [scenario, scene, lang, store]);
 
   useEffect(() => {
     if (STATIC_DEMO) {
@@ -107,10 +126,11 @@ export default function App() {
       backend,
       scene,
       full,
+      scenario,
       tuning: tuningBySkin[skinId] ?? {},
     });
     window.history.replaceState(null, "", "?" + query);
-  }, [skinId, lang, backend, scene, full, tuningBySkin]);
+  }, [skinId, lang, backend, scene, full, scenario, tuningBySkin]);
 
   // design-review hook: jump to the inline skins section
   useEffect(() => {
@@ -313,6 +333,8 @@ export default function App() {
           onLang={() => chooseLang(zh ? "en" : "zh")}
           onBackend={chooseBackend}
           staticDemo={STATIC_DEMO}
+          scenario={scenario}
+          onScenario={setScenario}
           onCustomize={() => setCustomizeOpen((v) => !v)}
           customizing={customizeOpen}
           customize={inlineCustomize}

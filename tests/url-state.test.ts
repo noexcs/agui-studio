@@ -37,6 +37,13 @@ describe("buildAppQuery", () => {
     ).toBe("skin=classic&lang=zh&accent=%23db2777&anim=rise&density=compact&motion=fast&radius=round&scale=large");
   });
 
+  it("carries a non-default demo scenario", () => {
+    expect(buildAppQuery({ ...base, scenario: "approvals", tuning: {} })).toBe(
+      "skin=classic&lang=zh&scenario=approvals"
+    );
+    expect(buildAppQuery({ ...base, scenario: "agents", tuning: {} })).toBe("skin=classic&lang=zh");
+  });
+
   it("keeps backend / scene / full when non-default", () => {
     expect(
       buildAppQuery({ skin: "aurora", lang: "en", backend: "pi", scene: "done", full: true, tuning: {} })

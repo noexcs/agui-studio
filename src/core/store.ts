@@ -8,7 +8,8 @@
    Skins never parse protocol events themselves.
    ───────────────────────────────────────────────────────────────────── */
 import { EventType, applyPatch, estimateTokens, play, type BaseEvent, type JsonPatchOp, type PlayHandle, type TimedEvent } from "./events";
-import { buildResumeEvents, buildRunEvents, promptFor, RUN_FIRST, THREAD_ID, type Decision } from "./demo";
+import { promptFor, RUN_FIRST, THREAD_ID, type Decision } from "./demo";
+import { buildScenarioResume, buildScenarioRun, DEFAULT_SCENARIO, type DemoScenario } from "./demo-scenarios";
 import type { Lang } from "../i18n";
 import { streamPiRun, stopPiRun, type PiBackend } from "./pi";
 
@@ -175,7 +176,7 @@ export class ConversationStore {
   private handle: PlayHandle | null = null;
   private speed = 0.9;
 
-  constructor(private autoStart = true) {
+  constructor(private autoStart = true, public scenario: DemoScenario = DEFAULT_SCENARIO) {
     if (this.autoStart) {
       // let the app mount before the first event paints
       setTimeout(() => this.replay(), 380);
@@ -210,7 +211,7 @@ export class ConversationStore {
     }
     this.reset();
     this.beginRun();
-    this.startEvents(buildRunEvents(this.threadId, RUN_FIRST, this.lang));
+    this.startEvents(buildScenarioRun(this.scenario, this.threadId, RUN_FIRST, this.lang));
   }
 
   /** public nudge so external probes can refresh the UI */
@@ -220,6 +221,12 @@ export class ConversationStore {
 
   setLang(lang: Lang) {
     this.lang = lang;
+  }
+
+  /** Switch the scripted demo scenario; the host decides when to replay. */
+  setScenario(scenario: DemoScenario) {
+    this.scenario = scenario;
+    this.notify();
   }
 
   /** Clear the thread and wait for the user's first message (pi mode). */
@@ -245,7 +252,7 @@ export class ConversationStore {
     this.entries.push({ kind: "user", id: uid("user"), text: body, at: Date.now() });
     this.notify();
     this.beginRun();
-    this.startEvents(buildRunEvents(this.threadId, RUN_FIRST + "_2", this.lang));
+    this.startEvents(buildScenarioRun(this.scenario, this.threadId, RUN_FIRST + "_2", this.lang));
   }
 
   resolveInterrupt(approved: boolean, editedArgs?: Record<string, unknown>, interruptId?: string) {
@@ -287,7 +294,7 @@ export class ConversationStore {
       .map((entry) => ({ approved: entry.status === "approved", editedArgs: entry.editedArgs }));
     this.lastResume = decisions;
     this.beginRun();
-    this.startEvents(buildResumeEvents(decisions, this.threadId, "run_7K2B", this.lang));
+    this.startEvents(buildScenarioResume(this.scenario, decisions, this.threadId, "run_7K2B", this.lang));
   }
 
   /** Minimal JSON-Schema validation for interrupt resume payloads. */
@@ -376,14 +383,23 @@ export class ConversationStore {
     this.reset();
     this.entries.push({ kind: "user", id: uid("user"), text: promptFor(this.lang), at: ts({ timestamp: new Date().toISOString() }) });
     this.beginRun();
-    this.dispatchAll(buildRunEvents(this.threadId, RUN_FIRST, this.lang));
+    this.dispatchAll(buildScenarioRun(this.scenario, this.threadId, RUN_FIRST, this.lang));
     if (scene === "done") {
-      const entry = this.pendingInterrupt();
-      if (entry) {
-        entry.status = "approved";
-        entry.resolvedAt = Date.now();
+      const pending = this.pendingInterrupts();
+      // A run only has a resume phase when it stopped on interrupts (travel,
+      // parallel approvals). Scripts that finish without one must not replay
+      // the travel resume by accident.
+      if (pending.length) {
+        const decisions = pending.map(() => ({ approved: true }));
+        pending.forEach((entry) => {
+          entry.status = "approved";
+          entry.resolvedAt = Date.now();
+        });
+        this.lastResume = decisions;
+        this.dispatchAll(
+          buildScenarioResume(this.scenario, decisions, this.threadId, "run_7K2B", this.lang)
+        );
       }
-      this.dispatchAll(buildResumeEvents({ approved: true }, this.threadId, "run_7K2B", this.lang));
     }
     this.notify();
   }
@@ -863,6 +879,7 @@ export class DemoAgent {
   }
 }
 
-export const createStudio = (options: { autoplay?: boolean } = {}) => new ConversationStore(options.autoplay !== false);
+export const createStudio = (options: { autoplay?: boolean; scenario?: DemoScenario } = {}) =>
+  new ConversationStore(options.autoplay !== false, options.scenario ?? DEFAULT_SCENARIO);
 
 
