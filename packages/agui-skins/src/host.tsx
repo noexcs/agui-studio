@@ -79,6 +79,7 @@ export function SkinHostProvider(props: {
   const normalized = tuning.accent ? safeAccent(tuning.accent) : null;
   const motionFactor: Record<string, number> = { slow: 1.6, normal: 1, fast: 0.6 };
   const radiusPx: Record<string, number> = { sharp: 2, soft: 8, round: 16 };
+  const textScaleFactor: Record<string, number> = { compact: 0.92, normal: 1, large: 1.08 };
   const tuneStyle: Record<string, string> = {};
   if (normalized) {
     const guard = accentGuard(normalized);
@@ -91,6 +92,7 @@ export function SkinHostProvider(props: {
   }
   if (tuning.motion) tuneStyle["--sk-motion"] = String(motionFactor[tuning.motion] ?? 1);
   if (tuning.radius) tuneStyle["--sk-radius"] = String(radiusPx[tuning.radius] ?? 8) + "px";
+  if (tuning.textScale) tuneStyle["--sk-text-scale"] = String(textScaleFactor[tuning.textScale] ?? 1);
   const hasStyle = Object.keys(tuneStyle).length > 0;
 
   return (
@@ -103,6 +105,7 @@ export function SkinHostProvider(props: {
         data-sk-density={tuning.density ?? "comfortable"}
         data-sk-motion={tuning.motion}
         data-sk-radius={tuning.radius}
+        data-sk-text-scale={tuning.textScale}
         style={hasStyle ? (tuneStyle as CSSProperties) : undefined}
       >
         {props.children}

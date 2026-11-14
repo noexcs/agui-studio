@@ -95,3 +95,27 @@
 .sk-tune[data-sk-radius] :is(button, input, textarea, pre, table, blockquote, .md code) {
   border-radius: var(--sk-radius);
 }
+
+/* ── reading scale ─────────────────────────────────────────────────
+   Skins author their typography in px; zoom scales each opted-in text
+   block (markdown + data-skin-text) as a unit without re-authoring every
+   font-size. Applied only when the user picks a scale. */
+.sk-tune[data-sk-text-scale] [data-skin-text] {
+  zoom: var(--sk-text-scale, 1);
+}
+
+/* long-session windowing control (skin-agnostic; inherits text color) */
+.sk-history-more {
+  display: block;
+  margin: 10px auto 14px;
+  padding: 5px 14px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.62;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.sk-history-more:hover { opacity: 1; }

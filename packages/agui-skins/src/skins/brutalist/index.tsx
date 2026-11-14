@@ -6,6 +6,7 @@ import { plainText } from "../../utils";
 import { toolStage } from "../../shared/toolStatus";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
+import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import { t } from "../../i18n";
 import { useSkinBranding } from "../../host";
@@ -13,6 +14,7 @@ import "./brutalist.css";
 
 export function BrutalistPage() {
   const c = useConversation();
+  const { visible, hidden, showEarlier } = useVisibleEntries(c.entries);
   const brand = useSkinBranding();
   const scroller = useStickToBottom<HTMLDivElement>();
   const [draft, setDraft] = useState("");
@@ -86,7 +88,8 @@ export function BrutalistPage() {
                 </div>
               )}
 
-              {c.entries.map((entry) => (
+              {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
+              {visible.map((entry) => (
                 <BruEntry key={entry.id} entry={entry} pending={pending} />
               ))}
 

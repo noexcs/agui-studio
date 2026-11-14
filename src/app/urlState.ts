@@ -1,5 +1,5 @@
 import { safeAccent } from "agui-skins";
-import type { Lang, SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTuning } from "agui-skins";
+import type { Lang, SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTuning } from "agui-skins";
 
 export type AppBackend = "mock" | "pi" | "fixture";
 
@@ -7,6 +7,7 @@ const TEXT_ANIMS: SkinTextAnim[] = ["none", "fade", "rise"];
 const DENSITIES: SkinDensity[] = ["comfortable", "compact"];
 const MOTIONS: SkinMotion[] = ["slow", "normal", "fast"];
 const RADII: SkinRadius[] = ["sharp", "soft", "round"];
+const TEXT_SCALES: SkinTextScale[] = ["compact", "normal", "large"];
 
 /**
  * Normalize user-supplied tuning (URL params are untrusted): drop unparseable
@@ -18,6 +19,7 @@ export function sanitizeTuning(input: {
   density?: string | null;
   motion?: string | null;
   radius?: string | null;
+  scale?: string | null;
 }): SkinTuning {
   const tuning: SkinTuning = {};
   const accent = input.accent ? safeAccent(input.accent) : null;
@@ -33,6 +35,9 @@ export function sanitizeTuning(input: {
   }
   if (input.radius && (RADII as string[]).includes(input.radius)) {
     tuning.radius = input.radius as SkinRadius;
+  }
+  if (input.scale && (TEXT_SCALES as string[]).includes(input.scale)) {
+    tuning.textScale = input.scale as SkinTextScale;
   }
   return tuning;
 }
@@ -63,5 +68,6 @@ export function buildAppQuery(input: {
   if (input.tuning.density && input.tuning.density !== "comfortable") params.set("density", input.tuning.density);
   if (input.tuning.motion && input.tuning.motion !== "normal") params.set("motion", input.tuning.motion);
   if (input.tuning.radius) params.set("radius", input.tuning.radius);
+  if (input.tuning.textScale && input.tuning.textScale !== "normal") params.set("scale", input.tuning.textScale);
   return params.toString();
 }

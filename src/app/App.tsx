@@ -43,6 +43,7 @@ export default function App() {
       density: params.get("density"),
       motion: params.get("motion"),
       radius: params.get("radius"),
+      scale: params.get("scale"),
     });
     if (Object.keys(seededTuning).length) seeded[skinId] = seededTuning;
     return seeded;

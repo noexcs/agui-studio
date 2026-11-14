@@ -7,6 +7,7 @@ import { Icon } from "../../shared/Icon";
 import { t } from "../../i18n";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
+import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./terminal.css";
 
@@ -32,6 +33,7 @@ const preview = (event: Record<string, unknown>) => {
 
 export function TerminalPage() {
   const c = useConversation();
+  const { visible, hidden, showEarlier } = useVisibleEntries(c.entries);
   const log = useStickToBottom<HTMLDivElement>();
   const trace = useStickToBottom<HTMLDivElement>();
   const [draft, setDraft] = useState("");
@@ -91,7 +93,8 @@ export function TerminalPage() {
               </div>
             </div>
 
-            {c.entries.map((entry) => (
+            {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
+              {visible.map((entry) => (
               <LogEntry
                 key={entry.id}
                 entry={entry}

@@ -13,6 +13,7 @@ export type {
   SkinDensity,
   SkinMotion,
   SkinRadius,
+  SkinTextScale,
   StepEntry,
   CustomEntry,
   SkinPlugins,
@@ -40,3 +41,4 @@ export { t, setLang, getLang, isZh, getDict, setOverrides } from "./i18n";
 export { toolStage } from "./shared/toolStatus";
 export type { ToolStage } from "./shared/toolStatus";
 export { pendingInterrupts, firstPendingInterrupt } from "./shared/interrupts";
+export { windowEntries, useVisibleEntries, HistoryMore } from "./shared/history";

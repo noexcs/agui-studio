@@ -8,6 +8,7 @@ import { useSkinBranding } from "../../host";
 import { Icon } from "../../shared/Icon";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
+import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./classic.css";
 
@@ -17,6 +18,7 @@ import "./classic.css";
  */
 export function ClassicPage() {
   const c = useConversation();
+  const { visible, hidden, showEarlier } = useVisibleEntries(c.entries);
   const plugins = useSkinPlugins();
   const brand = useSkinBranding();
   const scroller = useStickToBottom<HTMLDivElement>();
@@ -181,7 +183,8 @@ export function ClassicPage() {
               </div>
             )}
 
-            {c.entries.map((entry) => {
+            {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
+              {visible.map((entry) => {
               if (entry.kind === "user") {
                 return (
                   <div key={entry.id} className="cl-row cl-row--user">

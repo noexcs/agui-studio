@@ -9,6 +9,7 @@ import { t } from "../../i18n";
 import { useSkinBranding } from "../../host";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
+import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./paper.css";
 
@@ -20,6 +21,7 @@ const fmt = (iso?: string) => {
 
 export function PaperPage() {
   const c = useConversation();
+  const { visible: visibleEntries, hidden, showEarlier } = useVisibleEntries(c.entries);
   const brand = useSkinBranding();
   const scroller = useStickToBottom<HTMLDivElement>();
   const notesRef = useRef<HTMLDivElement>(null);
@@ -30,8 +32,8 @@ export function PaperPage() {
   const running = c.status === "running";
   const pending = pendingInterrupts(c.entries)[0];
 
-  const letters = c.entries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt" || e.kind === "error");
-  const notes = c.entries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan" || e.kind === "subagent");
+  const letters = visibleEntries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt" || e.kind === "error");
+  const notes = visibleEntries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan" || e.kind === "subagent");
   const firstAssistant = useMemo(() => c.entries.find((e) => e.kind === "assistant")?.id, [c.entries]);
   // While the run is mid-tool the main column would otherwise sit empty
   // (letters only gain an entry as they are written) — name the activity in

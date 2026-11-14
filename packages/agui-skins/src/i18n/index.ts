@@ -66,6 +66,7 @@ const en = {
   "chat.copy": "Copy",
   "chat.retry": "Retry",
   "chat.commands": "Commands",
+  "history.more": "Show earlier messages",
 
   // interrupt
   "intr.paused": "Run paused · interrupt",
@@ -258,6 +259,7 @@ const zh: Dict = {
   "chat.copy": "复制",
   "chat.retry": "重试",
   "chat.commands": "命令",
+  "history.more": "加载更早的消息",
 
   "intr.paused": "运行暂停 · 待确认",
   "intr.resolved": "已处理",

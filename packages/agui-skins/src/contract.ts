@@ -184,6 +184,7 @@ export type SkinTextAnim = "none" | "fade" | "rise";
 export type SkinDensity = "comfortable" | "compact";
 export type SkinMotion = "slow" | "normal" | "fast";
 export type SkinRadius = "sharp" | "soft" | "round";
+export type SkinTextScale = "compact" | "normal" | "large";
 
 /** Per-skin visual overrides applied by the host (customize panel). */
 export interface SkinTuning {
@@ -194,6 +195,8 @@ export interface SkinTuning {
   motion?: SkinMotion;
   /** opt-in global corner style */
   radius?: SkinRadius;
+  /** reading scale for text blocks (markdown + data-skin-text) */
+  textScale?: SkinTextScale;
 }
 
 export interface SkinBranding {

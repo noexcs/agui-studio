@@ -74,6 +74,21 @@ describe("accent tuning contract", () => {
     expect(el.style.getPropertyValue("--sk-radius")).toBe("16px");
   });
 
+  it("applies the reading scale only when picked", () => {
+    const Page = skins.find((s) => s.id === "terminal")!.ChatPage;
+    const { container } = render(
+      <SkinHostProvider conversation={makeFixture()} branding={BRANDING} tuning={{ textScale: "large" }}>
+        <Page />
+      </SkinHostProvider>
+    );
+    const el = wrapper(container);
+    expect(el.dataset.skTextScale).toBe("large");
+    expect(el.style.getPropertyValue("--sk-text-scale")).toBe("1.08");
+    const css = readFileSync(join(process.cwd(), "packages", "agui-skins", "src", "tuning.css"), "utf8");
+    expect(css).toContain("data-sk-text-scale");
+    expect(css).toContain("zoom: var(--sk-text-scale");
+  });
+
   it("scopes animation/density to opted-in text blocks and preserves reduced motion", () => {
     const root = join(process.cwd(), "packages", "agui-skins", "src");
     const css = readFileSync(join(root, "tuning.css"), "utf8");

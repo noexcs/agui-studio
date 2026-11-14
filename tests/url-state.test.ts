@@ -4,18 +4,19 @@ import { buildAppQuery, sanitizeTuning } from "../src/app/urlState";
 describe("sanitizeTuning", () => {
   it("normalizes hex colors and drops unknown enums", () => {
     expect(
-      sanitizeTuning({ accent: "#DB2777", anim: "rise", density: "compact", motion: "fast", radius: "round" })
+      sanitizeTuning({ accent: "#DB2777", anim: "rise", density: "compact", motion: "fast", radius: "round", scale: "large" })
     ).toEqual({
       accent: "#db2777",
       textAnim: "rise",
       density: "compact",
       motion: "fast",
       radius: "round",
+      textScale: "large",
     });
   });
 
   it("ignores malformed accents and enum values", () => {
-    expect(sanitizeTuning({ accent: "oops", anim: "wobble", density: "dense", motion: "zoom", radius: "blob" })).toEqual({});
+    expect(sanitizeTuning({ accent: "oops", anim: "wobble", density: "dense", motion: "zoom", radius: "blob", scale: "huge" })).toEqual({});
     expect(sanitizeTuning({ accent: null, anim: null, density: null })).toEqual({});
   });
 });
@@ -31,9 +32,9 @@ describe("buildAppQuery", () => {
     expect(
       buildAppQuery({
         ...base,
-        tuning: { accent: "#db2777", textAnim: "rise", density: "compact", motion: "fast", radius: "round" },
+        tuning: { accent: "#db2777", textAnim: "rise", density: "compact", motion: "fast", radius: "round", textScale: "large" },
       })
-    ).toBe("skin=classic&lang=zh&accent=%23db2777&anim=rise&density=compact&motion=fast&radius=round");
+    ).toBe("skin=classic&lang=zh&accent=%23db2777&anim=rise&density=compact&motion=fast&radius=round&scale=large");
   });
 
   it("keeps backend / scene / full when non-default", () => {

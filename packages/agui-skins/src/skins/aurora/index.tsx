@@ -9,6 +9,7 @@ import * as RadixTabs from "@radix-ui/react-tabs";
 import { JsonView, darkStyles } from "react-json-view-lite";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
+import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./aurora.css";
 
@@ -62,6 +63,7 @@ function eventPreview(event: Record<string, unknown>): string {
 
 export function AuroraPage() {
   const c = useConversation();
+  const { visible, hidden, showEarlier } = useVisibleEntries(c.entries);
   const brand = useSkinBranding();
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
   const [tab, setTab] = useState<"events" | "state">("events");
@@ -250,7 +252,8 @@ export function AuroraPage() {
                 </div>
               )}
 
-              {c.entries.map((entry) => (
+              {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
+              {visible.map((entry) => (
                 <EntryView
                   key={entry.id}
                   entry={entry}

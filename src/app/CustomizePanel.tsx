@@ -1,6 +1,6 @@
 import { Icon, accentGuard, type AccentGuard } from "agui-skins";
 import { isZh } from "../i18n";
-import type { SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTuning } from "agui-skins";
+import type { SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTuning } from "agui-skins";
 
 const ACCENTS = [
   { hex: "#2563eb", zh: "经典蓝", en: "Blue" },
@@ -36,6 +36,12 @@ const RADII: { value: SkinRadius; zh: string; en: string }[] = [
   { value: "round", zh: "圆润", en: "Round" },
 ];
 
+const SCALES: { value: SkinTextScale; zh: string; en: string }[] = [
+  { value: "compact", zh: "小", en: "Small" },
+  { value: "normal", zh: "标准", en: "Normal" },
+  { value: "large", zh: "大", en: "Large" },
+];
+
 const PRESETS: { zh: string; en: string; tuning: SkinTuning }[] = [
   { zh: "原始", en: "Default", tuning: {} },
   { zh: "冷调", en: "Cool", tuning: { accent: "#0891b2", textAnim: "fade", density: "comfortable" } },
@@ -49,7 +55,8 @@ function sameTuning(a: SkinTuning, b: SkinTuning) {
     (a.textAnim ?? "none") === (b.textAnim ?? "none") &&
     (a.density ?? "comfortable") === (b.density ?? "comfortable") &&
     (a.motion ?? "normal") === (b.motion ?? "normal") &&
-    (a.radius ?? undefined) === (b.radius ?? undefined)
+    (a.radius ?? undefined) === (b.radius ?? undefined) &&
+    (a.textScale ?? "normal") === (b.textScale ?? "normal")
   );
 }
 
@@ -89,6 +96,7 @@ export function CustomizePanel(props: {
   const density = props.tuning.density ?? "comfortable";
   const motion = props.tuning.motion ?? "normal";
   const radius = props.tuning.radius;
+  const textScale = props.tuning.textScale ?? "normal";
   const inline = props.variant === "inline";
   // Fix E: guard the custom accent; hint only — rendering is auto-adjusted by
   // the skin host (--sk-accent-fg / --sk-accent-ink), never blocked here.
@@ -216,6 +224,24 @@ export function CustomizePanel(props: {
                 key={item.value}
                 className={`customize-segbtn ${radius === item.value ? "is-active" : ""}`}
                 onClick={() => set({ radius: radius === item.value ? undefined : item.value })}
+              >
+                {zh ? item.zh : item.en}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="customize-tile">
+          <div className="customize-label">
+            <span>{zh ? "阅读字号" : "Reading size"}</span>
+            <em>{SCALES.find((item) => item.value === textScale)?.[zh ? "zh" : "en"]}</em>
+          </div>
+          <div className="customize-seg">
+            {SCALES.map((item) => (
+              <button
+                key={item.value}
+                className={`customize-segbtn ${textScale === item.value ? "is-active" : ""}`}
+                onClick={() => set({ textScale: item.value })}
               >
                 {zh ? item.zh : item.en}
               </button>
