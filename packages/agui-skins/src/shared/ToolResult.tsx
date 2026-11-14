@@ -14,7 +14,7 @@ import { displayText, isRecord, safeHref, safeJson } from "./safe";
  * of throwing. Each skin keeps its own visual language via its existing
  * classes; only the data-shape decisions live here.
  */
-export type ToolResultVariant = "aurora" | "paper" | "terminal" | "brutalist" | "classic";
+export type ToolResultVariant = "aurora" | "paper" | "terminal" | "brutalist" | "classic" | "particle";
 
 export interface ToolSource {
   title: string;
@@ -444,6 +444,8 @@ export function ToolResult({ entry, variant }: { entry: ToolEntry; variant: Tool
       return <ToolResultAurora entry={entry} model={model} />;
     case "classic":
       return <ToolResultClassic entry={entry} model={model} />;
+    case "particle":
+      return <ToolResultAurora entry={entry} model={model} />;
     case "paper":
       return <ToolResultPaper entry={entry} model={model} />;
     case "terminal":

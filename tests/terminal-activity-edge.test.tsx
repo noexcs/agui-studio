@@ -476,14 +476,14 @@ describe("Fix C: Home hero count copy", () => {
     expect(skinCountWord(11, false)).toBe("11");
   });
 
-  it("hero says Five skins for the current 5-skin registry", () => {
-    const en = renderHome(mkSkins(5), "en");
-    expect(en.container.querySelector("h1")?.textContent).toContain("Five skins");
+  it("hero says multiple skins regardless of registry size", () => {
+    const en = renderHome(mkSkins(6), "en");
+    expect(en.container.querySelector("h1")?.textContent).toContain("Multiple skins");
     cleanup();
-    const zh = renderHome(mkSkins(5), "zh");
-    expect(zh.container.querySelector("h1")?.textContent).toContain("五种皮肤");
+    const zh = renderHome(mkSkins(6), "zh");
+    expect(zh.container.querySelector("h1")?.textContent).toContain("多套皮肤");
     cleanup();
     const three = renderHome(mkSkins(3), "en");
-    expect(three.container.querySelector("h1")?.textContent).toContain("Three skins");
+    expect(three.container.querySelector("h1")?.textContent).toContain("Multiple skins");
   });
 });

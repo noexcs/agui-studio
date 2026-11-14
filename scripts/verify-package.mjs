@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const pkgDir = join(root, "packages", "agui-skins");
 const dist = join(pkgDir, "dist");
-const skins = ["aurora", "paper", "terminal", "brutalist", "classic"];
+const skins = ["aurora", "paper", "terminal", "brutalist", "classic", "particle"];
 
 const errors = [];
 const check = (ok, message) => {

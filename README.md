@@ -7,7 +7,7 @@
 > **一个协议内核 + 多种彼此独立的视觉风格（skin）**。
 > 每种风格都是自包含的页面，套用时只需要换一个文件夹；接上真实 agent 时，所有风格一起生效。
 
-![五种风格](shots/contact-sheet.png)
+![多种风格](shots/particle-skin.png)
 
 ## 快速开始
 
@@ -21,11 +21,11 @@ URL 参数方便分享/截图：
 
 | 参数 | 说明 |
 | --- | --- |
-| `?skin=aurora｜paper｜terminal｜brutalist` | 直接打开某种风格 |
+| `?skin=aurora｜paper｜terminal｜brutalist｜classic｜particle` | 直接打开某种风格 |
 | `?scene=done` | 直接渲染"已批准 + 生成完毕"的完整对话（跳过流式动画） |
 | `?scene=interrupted` | 停在人工审批这一刻（展示 interrupt UI） |
 
-快捷键：`1…5` 切换风格，`R` 重放。
+快捷键：`1…6` 切换风格，`R` 重放。
 
 ## 目录结构
 
@@ -120,12 +120,13 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 
 ## 设计说明
 
-四套风格刻意覆盖不同的产品语境，共用同一份内容（里斯本三日行程 + 酒店预订审批）：
+多套风格刻意覆盖不同的产品语境，共用同一份内容（里斯本三日行程 + 酒店预订审批）：
 
 - **Aurora** — 深色玻璃拟态、mint→cyan→violet 渐变、极光背景；右侧常驻协议检查器（事件流 / 状态树）。适合"开发者工具 + 产品"混合语境。参考自书签里的 reactbits / originkit 动效与 21st.dev 组件质感。
 - **Paper** — 暖纸色、Georgia 正文 + Instrument Serif 标题、首字下沉；把推理、工具、计划做成**页边注**，对话正文只留"信件"。适合研究、写作、顾问型 agent。参考 landdding / designbookmark 的编辑排版。
 - **Terminal** — 荧光绿等宽 CLI、扫描线、ASCII 分隔；右侧是实时事件 trace（可切换是否显示 delta）。适合调试与工程用户。参考 scrolltide / sceneai 的"提示词即界面"气质。
 - **Brutalist** — 2px 硬边框、硬投影、高饱和黄；审批做成醒目的黄色单据，按钮是"盖章"式操作。适合需要强确认的高风险操作（付款、提交、发布）。参考 brutalist 落地页与 21st.dev 的原始组件。
+- **Particle** — 深空粒子场：agent 名字由漂移的粒子聚合成字，指针可推开粒子、点击炸开；正文是安静的玻璃对话列，右侧是元数据/计划/状态。适合 AI 原生品牌页与发布会 demo。参考 React Bits 的 particle-text 动效，但实现为独立 canvas 组件（未复制其源码）。
 
 ## 已知取舍（这是设计稿，不是产品）
 
@@ -138,7 +139,7 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 
 ## 接入 pi（earendil-works/pi）
 
-五套皮肤已经可以直接跑在 **pi** 上：`server/bridge.mjs` 起一个本地桥，
+多套皮肤已经可以直接跑在 **pi** 上：`server/bridge.mjs` 起一个本地桥，
 把 `pi --mode rpc` 的 JSONL 事件流翻译成 AG-UI 事件（`server/pi-map.mjs`），
 再以 SSE 推给浏览器。皮肤侧只认识 AG-UI。
 
@@ -302,6 +303,23 @@ Radix Popover、`sonner` toast、`react-virtuoso` 虚拟列表（事件数上千
 - 工具条提供：后端切换、语言、运行详情、**全屏打开**（`?full=1` 保留原来的独立工作区 + dock，用于长时间使用）。
 
 URL：`?skin=paper` 直接选中并内联展示；`?section=skins` 定位到按钮区；`?full=1` 全屏；`?lang=zh` 中文。
+## 第六套皮肤：Particle（粒子场）
+
+![Particle 皮肤](shots/particle-skin.png)
+
+Agent 名字由 canvas 粒子聚合成字；鼠标靠近会推开粒子，点击会炸开再回聚。对话正文保持低对比玻璃质感，避免抢占粒子 hero 的注意力。
+
+```tsx
+import { ParticlePage } from "agui-skins/skins/particle";
+import "agui-skins/skins/particle.css";
+
+<SkinHostProvider conversation={store} lang="zh" branding={brand}>
+  <ParticlePage />
+</SkinHostProvider>
+```
+
+动效实现说明：组件 `shared/ParticleText.tsx` 独立采样文字 alpha mask、用弹簧粒子回聚，并支持 `prefers-reduced-motion`；未拷贝 React Bits 的组件代码，只借鉴了"粒子成字"这一交互模式。
+
 ## 第五套皮肤：Classic（企业中性）
 
 目标：放进任何后台系统都不突兀的「默认正确答案」。

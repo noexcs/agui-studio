@@ -13,7 +13,7 @@ import { defineConfig } from "tsup";
  *
  * CSS: esbuild strips the source's side-effect css imports from the JS output
  * and emits one stable css file per entry, each a complete union of everything
- * that entry needs: dist/index.css = tuning.css + all five skins,
+ * that entry needs: dist/index.css = tuning.css + all skins,
  * dist/skins/<skin>.css = tuning.css + that skin. They are exposed as
  * `agui-skins/index.css` and `agui-skins/skins/*.css`; consumers add one
  * explicit css import — the standard ship-CSS-separately pattern
@@ -29,6 +29,7 @@ export default defineConfig({
     "skins/terminal": "src/skins/terminal/index.tsx",
     "skins/brutalist": "src/skins/brutalist/index.tsx",
     "skins/classic": "src/skins/classic/index.tsx",
+    "skins/particle": "src/skins/particle/index.tsx",
   },
   format: ["esm"],
   dts: true,

@@ -16,6 +16,7 @@ export const SKIN_SWATCHES: Record<string, string[]> = {
   terminal: ["#05070a", "#0c1310", "#8cffb0", "#ffd479", "#7fd8ff"],
   brutalist: ["#f2efe6", "#111111", "#ffe14d", "#ff4d2e", "#fffdf7"],
   classic: ["#f7f8fa", "#ffffff", "#2563eb", "#111827"],
+  particle: ["#05060f", "#101528", "#9b8cff", "#67f5d0", "#dfe2ff"],
 };
 
 /** Swatch list for a skin id; falls back to the skin accent (unknown/test ids). */

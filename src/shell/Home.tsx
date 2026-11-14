@@ -23,6 +23,7 @@ const TAGLINE_ZH: Record<string, string> = {
   terminal: "荧光 CLI · 事件流",
   brutalist: "硬边框 · 强审批",
   classic: "中性经典 · 企业稳妥",
+  particle: "粒子场 · 实时协议",
 };
 
 /** Hero copy must track the registry: "Four skins" drifted once a fifth skin
@@ -85,7 +86,6 @@ export function Home(props: {
   const skinsRef = useRef<HTMLElement>(null);
   const active = props.skins.find((s) => s.id === props.activeSkin) ?? props.skins[0];
   const tagline = (skin: HomeSkin) => (zh ? TAGLINE_ZH[skin.id] ?? skin.tagline : skin.tagline);
-  const countWord = skinCountWord(props.skins.length, zh);
 
   const scrollToSkins = () => {
     const home = homeRef.current;
@@ -125,13 +125,13 @@ export function Home(props: {
           <h1>
             {zh ? (
               <>
-                {countWord}种皮肤，
+                多套皮肤，
                 <br />
                 一个<em className="hero-serif-zh">协议</em>。
               </>
             ) : (
               <>
-                {countWord.charAt(0).toUpperCase() + countWord.slice(1)} skins,
+                Multiple skins,
                 <br />
                 one <em className="hero-serif">protocol.</em>
               </>
@@ -139,8 +139,8 @@ export function Home(props: {
           </h1>
           <p className="hero-sub">
             {zh
-              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框、中性经典。往下滚，就地切换、直接交互。"
-              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders, neutral classic. Scroll down — switch and use them right here."}
+              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框、中性经典，以及粒子场。往下滚，就地切换、直接交互。"
+              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders, neutral classic, particle field. Scroll down — switch and use them right here."}
           </p>
           <div className="hero-actions">
             <button className="hero-primary" onClick={scrollToSkins}>
