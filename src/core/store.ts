@@ -243,6 +243,8 @@ export class ConversationStore {
         ? "pi fixture"
         : backend === "deepseek"
         ? "deepseek SSE"
+        : backend === "deepagent"
+        ? "deepagent SSE"
         : "pi rpc";
     this.notify();
   }

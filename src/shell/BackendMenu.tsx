@@ -3,7 +3,7 @@ import { Icon } from "../shared/Icon";
 import type { Lang } from "../i18n";
 import type { BridgeHealth } from "../core/pi";
 
-type BackendId = "mock" | "pi" | "deepseek";
+type BackendId = "mock" | "pi" | "deepseek" | "deepagent";
 
 export function BackendMenu(props: {
   backend: BackendId;
@@ -26,6 +26,12 @@ export function BackendMenu(props: {
       label: "deepseek",
       hint: zh ? "DeepSeek API · 真实 AG-UI 流" : "DeepSeek API · live AG-UI stream",
       disabled: !props.health?.deepseek?.configured,
+    },
+    {
+      id: "deepagent",
+      label: "deep agent",
+      hint: zh ? "LangGraph · 官方 AG-UI 适配器" : "LangGraph · official AG-UI adapter",
+      disabled: !props.health?.deepagent?.reachable,
     },
   ];
   const current = options.find((option) => option.id === props.backend) ?? options[0];
@@ -66,11 +72,13 @@ export function BackendMenu(props: {
             </DropdownMenu.Item>
           ))}
           <p className="backend-note">
-            {props.health?.deepseek?.configured
+            {props.health?.deepagent?.reachable
+              ? `${zh ? "deep agent" : "deep agent"} · ${props.health.deepagent.graphId} @ ${props.health.deepagent.deploymentUrl}`
+              : props.health?.deepseek?.configured
               ? `${zh ? "deepseek 模型" : "model"} · ${props.health.deepseek.model}`
               : zh
-              ? "deepseek 需要 DEEPSEEK_API_KEY 或 pi 的 deepseek-api 配置；pi 需要 pi bridge。"
-              : "deepseek needs DEEPSEEK_API_KEY or pi's deepseek-api config; pi needs the bridge."}
+              ? "deep agent 需要 langgraph dev；deepseek 需要 DEEPSEEK_API_KEY；pi 需要 pi bridge。"
+              : "deep agent needs langgraph dev; deepseek needs DEEPSEEK_API_KEY; pi needs the bridge."}
           </p>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

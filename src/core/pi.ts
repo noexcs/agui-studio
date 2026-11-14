@@ -6,7 +6,7 @@
    ───────────────────────────────────────────────────────────────────── */
 import type { BaseEvent } from "./events";
 
-export type PiBackend = "pi" | "fixture" | "deepseek";
+export type PiBackend = "pi" | "fixture" | "deepseek" | "deepagent";
 
 /** What the demo sends to pi when you hit replay. */
 export const PI_PROMPT = "Review the four AG-UI skins and suggest one visual fix for each.";
@@ -17,6 +17,7 @@ export interface BridgeHealth {
   version?: string;
   error?: string;
   deepseek?: { configured: boolean; model?: string; baseUrl?: string };
+  deepagent?: { reachable: boolean; graphId?: string; deploymentUrl?: string };
 }
 
 export function bridgeUrl(): string {
@@ -34,7 +35,7 @@ export async function checkBridge(): Promise<BridgeHealth> {
     const res = await fetch(`${bridgeUrl()}/api/health`, { signal: AbortSignal.timeout(2500) });
     if (!res.ok) return { reachable: false, pi: false, error: `bridge ${res.status}` };
     const data = await res.json();
-    return { reachable: true, pi: !!data.pi, version: data.version, error: data.error, deepseek: data.deepseek };
+    return { reachable: true, pi: !!data.pi, version: data.version, error: data.error, deepseek: data.deepseek, deepagent: data.deepagent };
   } catch (error) {
     return { reachable: false, pi: false, error: String((error as Error).message || error) };
   }

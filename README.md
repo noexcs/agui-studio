@@ -608,3 +608,27 @@ http://127.0.0.1:5178/?backend=deepseek&autosend=1&lang=zh&section=skins&skin=au
 **与官方 LangGraph 路线的关系**：如果后续用 LangGraph Agent Server + `@ag-ui/langgraph`（官方适配器，`emitInterruptOutcome: true` 可拿结构化中断），只需把 bridge 的 `deepseek` 分支换成指向该 adapter 的 SSE，前端 `streamPiRun` 的 SSE 消费与所有皮肤无需改动。
 
 验证截图：`shots/deepseek-live.png`（真实模型 + 真实工具调用 + 中文回答，Aurora inspector 可看到 99 条真实事件与 META）。
+
+## 2026-11-14 原生 AG-UI：Deep Agents + @ag-ui/langgraph
+
+除了上一节的 DeepSeek 手动映射桥，现在接上了官方原生路径：
+
+- `server/deepagent/agent.py`：`deepagents.create_deep_agent(...)`，模型走 DeepSeek 的 OpenAI 兼容端点（key 从 env 或 pi 配置读取）；
+- `langgraph dev` 把 graph 跑成 LangGraph Agent Server；
+- `server/deepagent.mjs` 用官方 `@ag-ui/langgraph` 适配器（`emitInterruptOutcome: true`）运行 agent，事件**由适配器原生产出**，这里只做 SSE 转发，不再手工拼事件；
+- bridge 增加 `backend=deepagent` 与 `health.deepagent`，BackendMenu 里出现 “deep agent” 选项。
+
+实测（`shots/deepagent-live.png`）：deep agent 会自己规划、派子任务（task 工具）、检查文件系统，最终用中文如实回答“环境里没有天气数据源”。一次 run 产出 **3581 条事件**：`RUN_STARTED` / `STEP_*` / `STATE_SNAPSHOT`×642 / `RAW` / `MESSAGES_SNAPSHOT` / `TEXT_*` / `RUN_FINISHED`，含真实工具调用卡。
+
+注意：AG-UI 并没有 `SUBAGENT_*` 事件；deep agent 的子 agent 行为表现为 `task` 工具调用 + `STATE_SNAPSHOT` 里的 todo/subagent 状态（原生适配器如实转发）。
+
+### 本地运行原生路径
+```bash
+pip install deepagents "langgraph-cli[inmem]" langchain-openai colorama
+cd server/deepagent && langgraph dev --no-browser --port 2024
+# 另开终端：node server/bridge.mjs && pnpm dev
+# http://127.0.0.1:5178/?backend=deepagent&autosend=1&lang=zh&section=skins&skin=aurora&scene=live
+```
+- 首次在 Windows 跑 `langgraph dev` 需要 `colorama`（structlog 彩色日志依赖）；
+- `@ag-ui/langgraph` 在 bridge 里是**动态加载**的：没装它时 mock/pi/deepseek/fixture 路径不受影响，CI 也不需要 Python 环境；
+- 真实页面（GitHub Pages）没有 bridge/langgraph，BackendMenu 在静态演示模式下不出现。

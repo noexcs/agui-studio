@@ -22,10 +22,20 @@ import { dirname, join } from "node:path";
 import { createPiMapper, stateSnapshotFromPi } from "./pi-map.mjs";
 import { deepseekHealth, runDeepseek, stopDeepseek } from "./deepseek.mjs";
 
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 5179);
 const PI_CWD = process.env.PI_CWD || join(__dirname, "..");
 const FIXTURE = join(__dirname, "fixtures", "pi-run.jsonl");
+
+/** Lazy so the base bridge keeps working when the deep-agent deps are absent. */
+async function loadDeepagent() {
+  try {
+    return await import("./deepagent.mjs");
+  } catch {
+    return null;
+  }
+}
 const IS_WIN = process.platform === "win32";
 
 let activeChild = null;
@@ -278,6 +288,7 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
 
   if (url.pathname === "/api/health") {
+    const deepagent = await loadDeepagent();
     json(res, 200, {
       ok: true,
       pi: piProbe.ok,
@@ -285,6 +296,7 @@ const server = createServer(async (req, res) => {
       piError: piProbe.error,
       fixture: true,
       deepseek: deepseekHealth(),
+      deepagent: deepagent ? await deepagent.deepagentHealth() : { reachable: false },
     });
     return;
   }
@@ -299,6 +311,8 @@ const server = createServer(async (req, res) => {
       activeChild = null;
     }
     stopDeepseek();
+    const deepagent = await loadDeepagent();
+    deepagent?.stopDeepagent?.();
     json(res, 200, { ok: true });
     return;
   }
@@ -314,6 +328,16 @@ const server = createServer(async (req, res) => {
     const runId = `run_${Date.now().toString(36)}`;
     if (body.backend === "fixture") runFixture(res, body, runId);
     else if (body.backend === "deepseek") void runDeepseek(res, body, runId, { openStream });
+    else if (body.backend === "deepagent") {
+      const deepagent = await loadDeepagent();
+      if (!deepagent) {
+        const stream = openStream(res, { threadId: body.threadId || "deepagent", runId });
+        stream.send({ type: "RUN_ERROR", message: "deep agent adapter unavailable: run npm install @ag-ui/langgraph" });
+        stream.close();
+      } else {
+        void deepagent.runDeepagent(res, body, runId, { openStream });
+      }
+    }
     else runPi(req, res, body, runId);
     return;
   }

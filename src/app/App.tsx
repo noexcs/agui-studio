@@ -233,6 +233,7 @@ export default function App() {
     : [
         health.pi ? `pi ${health.version ?? ""}`.trim() : "pi off",
         health.deepseek?.configured ? `deepseek ${health.deepseek.model ?? ""}`.trim() : "deepseek off",
+        health.deepagent?.reachable ? "deepagent on" : "deepagent off",
       ].join(" · ");
 
   const rows = [

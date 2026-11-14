@@ -16,3 +16,10 @@ coverage/
 # ad-hoc verification screenshot dirs (evidence stays local)
 shots-fix*/
 shots-task*/
+
+# python/deep-agent runtime artifacts
+server/deepagent/.langgraph_api/
+.langgraph_api/
+__pycache__/
+*.pyc
+server/deepagent/.env
