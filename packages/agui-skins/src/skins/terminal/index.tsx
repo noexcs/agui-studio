@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { useConversation } from "../../host";
+import { useConversation, useSkinPlugins } from "../../host";
 import type { AssistantEntry, CustomEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, StepEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
 import { plainText } from "../../utils";
@@ -214,6 +214,7 @@ function LogEntry({
   live: boolean;
   onResolve: (approved: boolean, interruptId?: string) => void;
 }) {
+  const plugins = useSkinPlugins();
   if (entry.kind === "user") {
     return (
       <div className="term-line term-user">
@@ -272,6 +273,8 @@ function LogEntry({
   }
 
   if (entry.kind === "custom") {
+    const custom = plugins.custom?.(entry);
+    if (custom !== undefined) return <>{custom}</>;
     return (
       <div className="term-line term-dim">
         <span className="term-prompt">›</span> custom · {entry.name} · {JSON.stringify(entry.value)}

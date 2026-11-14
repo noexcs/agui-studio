@@ -3,7 +3,7 @@
    A host implements SkinConversation + passes lang/branding; a skin only
    imports these types and the host hooks.
    ───────────────────────────────────────────────────────────────────── */
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 
 export type Lang = "en" | "zh";
 
@@ -137,8 +137,16 @@ export type Entry =
   | ErrorEntry;
 
 /** Read-only view model + the intents a conversation surface can trigger. */
+/** Host-level renderer overrides: a skin calls these before its default view. */
+export interface SkinPlugins {
+  /** replace the default rendering of a CUSTOM entry */
+  custom?: (entry: CustomEntry) => ReactNode;
+}
+
 export interface SkinConversation {
   entries: Entry[];
+  /** metadata aggregated from the event stream (latest value wins per key) */
+  metadata?: Record<string, unknown>;
   /** declared by the agent (AG-UI capability discovery) */
   capabilities?: SkinCapabilities;
   sharedState: Record<string, unknown>;

@@ -1,5 +1,5 @@
 ﻿import { useMemo, useRef, useState } from "react";
-import { useConversation } from "../../host";
+import { useConversation, useSkinPlugins } from "../../host";
 import type { AssistantEntry, CustomEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, StepEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration, estimateTokens } from "../../utils";
 import { Icon } from "../../shared/Icon";
@@ -339,6 +339,17 @@ export function AuroraPage() {
               <button className="icon-btn icon-btn--sm" title="Clear log" onClick={() => { setSelected(null); }}><Icon name="x" /></button>
             </div>
 
+            {Object.keys(c.metadata ?? {}).length > 0 && (
+              <div className="insp-meta" title={JSON.stringify(c.metadata, null, 2)}>
+                <span className="insp-meta-k mono">META</span>
+                {Object.entries(c.metadata ?? {}).slice(0, 4).map(([key, value]) => (
+                  <span key={key} className="insp-meta-chip mono">
+                    {key}={typeof value === "object" ? JSON.stringify(value) : String(value)}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <RadixTabs.Content className="insp-pane" value="events">
                 <div className="ev-filters">
                   {[
@@ -627,6 +638,9 @@ function StepRow({ entry }: { entry: StepEntry }) {
 }
 
 function CustomRow({ entry }: { entry: CustomEntry }) {
+  const plugins = useSkinPlugins();
+  const custom = plugins.custom?.(entry);
+  if (custom !== undefined) return <>{custom}</>;
   return (
     <div className="block">
       <div className="reason">

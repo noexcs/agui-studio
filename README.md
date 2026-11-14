@@ -439,6 +439,8 @@ pnpm test
 - ✅ 过期中断：`expiresAt` 到期后不提交 resume，标记 `expired`；
 - ✅ schema 校验：`responseSchema.required` 与 boolean/string/number/object 类型不匹配时拒绝并提示；
 - ✅ STEP_STARTED/FINISHED 与任意 CUSTOM：归约为 `step` / `custom` entry（Aurora/Classic/Terminal 渲染，其余安全忽略）；
+- ✅ 事件 `metadata`：store 聚合为 `conversation.metadata`，Classic 详情面板与 Aurora inspector 显式展示；
+- ✅ CUSTOM 可插拔渲染：`SkinHostProvider plugins.custom` 可覆盖默认 JSON 视图（Aurora/Classic/Terminal 均生效）；
 - ⏳ 仍缺（P1/P2）：capabilities 发现、子 agent 事件、`REASONING_ENCRYPTED_VALUE`、`RAW`、二进制/WebSocket 传输、activityType 可插拔渲染。
 
 新增 `tests/protocol.test.ts`：覆盖快照重建、chunk 合并、工具失败、并行中断、schema 拒绝、过期中断；
@@ -544,7 +546,7 @@ npx serve dist   # 或任意静态服务器
 - **并行待办**：`pendingInterrupts()` 统一；Aurora/Terminal/Brutalist 顶部在多于一个待处理时显示 `×N`；
 - **未知 entry kind 安全兜底**：Aurora/Terminal 不再把未来新增的 entry 当 assistant 渲染，统一忽略；
 - **性能**：`Markdown` 组件 memo 化，流式更新时未变化的历史消息不再重复解析 markdown；
-- 测试增至 **276 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
+- 测试增至 **282 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
 
 
 ## 2026-11-14 皮肤层第三轮
@@ -554,4 +556,12 @@ npx serve dist   # 或任意静态服务器
 - **协议视图模型**：新增 `StepEntry`（STEP_STARTED/FINISHED）与 `CustomEntry`（未归类的 CUSTOM），store 负责归约，Aurora/Classic/Terminal 渲染，Paper/Brutalist 安全忽略；
 - **可维护性**：新 entry 类型统一在 contract/store/fixture 三处声明并有测试；`data-skin-text` 成为皮肤参与自定义层的显式契约（不再靠 `.md` 类名隐式约定）；
 - 依赖卫生：workspace 包固定 devDeps React 18 + Vite `resolve.dedupe`，避免包内 lucide 解析到 React 19 副本导致图标跨版本渲染（曾造成 71 个测试失败）；
-- 测试增至 **276 个用例**。
+- 测试增至 **282 个用例**。
+
+## 2026-11-14 皮肤层第四轮
+
+- **metadata 显式展示**：`ConversationStore.dispatch` 聚合事件上的 `metadata`（同 key 最新值优先）为 `conversation.metadata`；Classic 详情新增「元数据」面板，Aurora inspector 顶部显示 META chips（带完整 JSON tooltip）；
+- **CUSTOM 可插拔渲染**：契约新增 `SkinPlugins.custom(entry) => ReactNode`，`SkinHostProvider plugins` 注入；Aurora/Classic/Terminal 在默认 JSON 视图前优先调用插件，未提供时保持原有渲染；
+- 新增 `tests/plugins-metadata.test.tsx`（metadata 聚合、Classic/Aurora 展示、三套皮肤的插件覆盖 + 无插件回退）；
+- 修复过程中发现并修正了两个实现细节：Terminal 的 hook 不能条件调用、host 中 `plugins` 必须在 context value 之前声明；
+- 测试增至 **282 个用例（20 文件）**。

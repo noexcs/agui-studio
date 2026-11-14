@@ -9,13 +9,14 @@ import {
 } from "react";
 import { getDict, setLang as setModuleLang, setOverrides, t as moduleT } from "./i18n";
 import { accentGuard, safeAccent } from "./contrast";
-import type { Lang, SkinBranding, SkinConversation, SkinTuning } from "./contract";
+import type { Lang, SkinBranding, SkinConversation, SkinPlugins, SkinTuning } from "./contract";
 import "./tuning.css";
 
 export interface SkinHostValue {
   conversation: SkinConversation;
   lang: Lang;
   branding: SkinBranding;
+  plugins: SkinPlugins;
   t: (key: string) => string;
 }
 
@@ -38,6 +39,8 @@ export function SkinHostProvider(props: {
   branding?: Partial<SkinBranding>;
   /** shallow dictionary overrides, e.g. { "chat.send": "提交" } */
   messages?: Record<string, string>;
+  /** host-level renderer overrides (e.g. custom CUSTOM-entry views) */
+  plugins?: SkinPlugins;
   /** per-skin visual tuning (accent / text animation / density) */
   tuning?: SkinTuning;
   /** skin id, used to scope accent overrides */
@@ -59,10 +62,11 @@ export function SkinHostProvider(props: {
   setModuleLang(lang);
   setOverrides({ ...getDict(lang), ...(props.messages ?? {}) });
 
+  const plugins = props.plugins ?? {};
   const t = useCallback((key: string) => moduleT(key as never), [lang, props.messages]);
   const value = useMemo<SkinHostValue>(
-    () => ({ conversation: props.conversation, lang, branding, t }),
-    [props.conversation, lang, branding, t]
+    () => ({ conversation: props.conversation, lang, branding, plugins, t }),
+    [props.conversation, lang, branding, plugins, t]
   );
 
   const tuning = props.tuning ?? {};
@@ -130,5 +134,6 @@ export function useConversation(): SkinConversation {
 }
 export const useSkinConversation = useConversation;
 export const useSkinBranding = (): SkinBranding => useSkinHost().branding;
+export const useSkinPlugins = (): SkinPlugins => useSkinHost().plugins;
 export const useSkinLang = (): Lang => useSkinHost().lang;
 export const useSkinT = (): ((key: string) => string) => useSkinHost().t;

@@ -1,4 +1,4 @@
-export { SkinHostProvider, useSkinHost, useConversation, useSkinConversation, useSkinBranding, useSkinLang, useSkinT } from "./host";
+export { SkinHostProvider, useSkinHost, useConversation, useSkinConversation, useSkinBranding, useSkinLang, useSkinT, useSkinPlugins } from "./host";
 export type { SkinHostValue } from "./host";
 export type {
   BaseEvent,
@@ -15,6 +15,7 @@ export type {
   SkinRadius,
   StepEntry,
   CustomEntry,
+  SkinPlugins,
   Lang,
 } from "./contract";
 

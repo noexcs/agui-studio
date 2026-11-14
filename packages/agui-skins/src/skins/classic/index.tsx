@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useConversation } from "../../host";
+import { useConversation, useSkinPlugins } from "../../host";
 import type { Entry, InterruptEntry, PlanEntry, ReasoningEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
 import { plainText } from "../../utils";
@@ -17,6 +17,7 @@ import "./classic.css";
  */
 export function ClassicPage() {
   const c = useConversation();
+  const plugins = useSkinPlugins();
   const brand = useSkinBranding();
   const scroller = useStickToBottom<HTMLDivElement>();
   const zh = isZh();
@@ -352,6 +353,14 @@ export function ClassicPage() {
               }
 
               if (entry.kind === "custom") {
+                const custom = plugins.custom?.(entry);
+                if (custom !== undefined) {
+                  return (
+                    <div key={entry.id} className="cl-row cl-row--wide">
+                      {custom}
+                    </div>
+                  );
+                }
                 return (
                   <div key={entry.id} className="cl-row cl-row--wide">
                     <div className="cl-custom">
@@ -454,6 +463,24 @@ export function ClassicPage() {
             <div><dt>{zh ? "事件" : "Events"}</dt><dd className="mono">{c.events.length}</dd></div>
             <div><dt>{zh ? "词元" : "Tokens"}</dt><dd className="mono">{c.tokens}</dd></div>
           </dl>
+        </section>
+
+        <section className="cl-panel">
+          <h3>{zh ? "元数据" : "Metadata"}</h3>
+          {Object.keys(c.metadata ?? {}).length ? (
+            <dl className="cl-kv">
+              {Object.entries(c.metadata ?? {}).map(([key, value]) => (
+                <div key={key}>
+                  <dt className="mono">{key}</dt>
+                  <dd className="mono">
+                    {typeof value === "object" ? JSON.stringify(value) : String(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="cl-muted">{zh ? "暂无元数据" : "No metadata yet"}</p>
+          )}
         </section>
 
         <section className="cl-panel">

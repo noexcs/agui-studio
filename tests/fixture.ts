@@ -87,6 +87,7 @@ export function makeFixture(overrides: Partial<SkinConversation> = {}): SkinConv
 
   dispatch({
     type: EventType.MESSAGES_SNAPSHOT,
+    metadata: { traceId: "fixture-trace", model: "fixture-model" },
     messages: [
       { id: "u1", role: "user", content: "fixture user prompt" },
       {

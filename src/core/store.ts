@@ -155,6 +155,8 @@ export class ConversationStore {
   errorMessage = "";
   runId = RUN_FIRST;
   transport = "mock SSE";
+  /** metadata aggregated from every dispatched event (latest key wins) */
+  metadata: Record<string, unknown> = {};
   lang: Lang = "en";
   backend: "mock" | PiBackend = "mock";
   piStatus: "unknown" | "ready" | "fixture" | "unavailable" = "unknown";
@@ -439,6 +441,10 @@ export class ConversationStore {
 
   /* ── event intake ────────────────────────────────────────────────── */
   dispatch(event: BaseEvent) {
+    const meta = (event as { metadata?: unknown }).metadata;
+    if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+      this.metadata = { ...this.metadata, ...(meta as Record<string, unknown>) };
+    }
     this.events.push({ seq: ++this.seq, at: Date.now(), event });
     try {
       this.reduce(event);
