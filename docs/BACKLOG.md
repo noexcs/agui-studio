@@ -82,4 +82,4 @@
 - [x] `pnpm build` 与静态构建均通过
 - [x] 新增/修改行为有对应测试
 - [x] README 与 `docs/BACKLOG.md` 同步更新
-- [ ] push 后 Pages 部署成功（Actions run 绿色）
+- [x] push 后 Pages 部署成功（Actions run 43554227429 全绿：test 38s/build 20s/deploy 14s）
