@@ -10,9 +10,9 @@
  * translates pi's JSONL session events into an AG-UI SSE stream. JSON mode is a
  * one-shot run, which matches the request/response shape of the studio.
  *
- * POST /api/run   {prompt, backend?: "pi" | "fixture", instant?}  -> text/event-stream
+ * POST /api/run   {prompt, backend?: "pi" | "fixture" | "deepseek", lang?} -> text/event-stream
  * POST /api/stop                                                  -> kills the child run
- * GET  /api/health                                                -> { ok, pi, version }
+ * GET  /api/health                                                -> { ok, pi, version, deepseek }
  */
 import { createServer } from "node:http";
 import { spawn, spawnSync } from "node:child_process";
@@ -20,6 +20,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createPiMapper, stateSnapshotFromPi } from "./pi-map.mjs";
+import { deepseekHealth, runDeepseek, stopDeepseek } from "./deepseek.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 5179);
@@ -277,7 +278,14 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
 
   if (url.pathname === "/api/health") {
-    json(res, 200, { ok: true, pi: piProbe.ok, version: piProbe.version, piError: piProbe.error, fixture: true });
+    json(res, 200, {
+      ok: true,
+      pi: piProbe.ok,
+      version: piProbe.version,
+      piError: piProbe.error,
+      fixture: true,
+      deepseek: deepseekHealth(),
+    });
     return;
   }
 
@@ -290,6 +298,7 @@ const server = createServer(async (req, res) => {
       }
       activeChild = null;
     }
+    stopDeepseek();
     json(res, 200, { ok: true });
     return;
   }
@@ -304,6 +313,7 @@ const server = createServer(async (req, res) => {
     }
     const runId = `run_${Date.now().toString(36)}`;
     if (body.backend === "fixture") runFixture(res, body, runId);
+    else if (body.backend === "deepseek") void runDeepseek(res, body, runId, { openStream });
     else runPi(req, res, body, runId);
     return;
   }

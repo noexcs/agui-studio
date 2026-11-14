@@ -236,7 +236,14 @@ export class ConversationStore {
 
   setBackend(backend: "mock" | PiBackend) {
     this.backend = backend;
-    this.transport = backend === "mock" ? "mock SSE" : backend === "fixture" ? "pi fixture" : "pi rpc";
+    this.transport =
+      backend === "mock"
+        ? "mock SSE"
+        : backend === "fixture"
+        ? "pi fixture"
+        : backend === "deepseek"
+        ? "deepseek SSE"
+        : "pi rpc";
     this.notify();
   }
 

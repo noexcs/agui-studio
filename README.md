@@ -547,7 +547,7 @@ npx serve dist   # 或任意静态服务器
 - **并行待办**：`pendingInterrupts()` 统一；Aurora/Terminal/Brutalist 顶部在多于一个待处理时显示 `×N`；
 - **未知 entry kind 安全兜底**：Aurora/Terminal 不再把未来新增的 entry 当 assistant 渲染，统一忽略；
 - **性能**：`Markdown` 组件 memo 化，流式更新时未变化的历史消息不再重复解析 markdown；
-- 测试增至 **295 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
+- 测试增至 **298 个用例**（新增 tuning 契约、URL 状态、工具状态/错误渲染套件）。
 
 
 ## 2026-11-14 皮肤层第三轮
@@ -557,7 +557,7 @@ npx serve dist   # 或任意静态服务器
 - **协议视图模型**：新增 `StepEntry`（STEP_STARTED/FINISHED）与 `CustomEntry`（未归类的 CUSTOM），store 负责归约，Aurora/Classic/Terminal 渲染，Paper/Brutalist 安全忽略；
 - **可维护性**：新 entry 类型统一在 contract/store/fixture 三处声明并有测试；`data-skin-text` 成为皮肤参与自定义层的显式契约（不再靠 `.md` 类名隐式约定）；
 - 依赖卫生：workspace 包固定 devDeps React 18 + Vite `resolve.dedupe`，避免包内 lucide 解析到 React 19 副本导致图标跨版本渲染（曾造成 71 个测试失败）；
-- 测试增至 **295 个用例**。
+- 测试增至 **298 个用例**。
 
 ## 2026-11-14 皮肤层第四轮
 
@@ -565,13 +565,13 @@ npx serve dist   # 或任意静态服务器
 - **CUSTOM 可插拔渲染**：契约新增 `SkinPlugins.custom(entry) => ReactNode`，`SkinHostProvider plugins` 注入；Aurora/Classic/Terminal 在默认 JSON 视图前优先调用插件，未提供时保持原有渲染；
 - 新增 `tests/plugins-metadata.test.tsx`（metadata 聚合、Classic/Aurora 展示、三套皮肤的插件覆盖 + 无插件回退）；
 - 修复过程中发现并修正了两个实现细节：Terminal 的 hook 不能条件调用、host 中 `plugins` 必须在 context value 之前声明；
-- 测试增至 **295 个用例（20 文件）**。
+- 测试增至 **298 个用例（20 文件）**。
 
 ## 2026-11-14 皮肤层第五轮
 
 - **阅读字号**：`SkinTuning.textScale`（compact/normal/large）通过 `zoom` 作用于所有 `data-skin-text` 文本块，避免逐皮肤重写 px 字号；面板、URL 分享、预设对比同步；
 - **长会话窗口化**：新增共享 `windowEntries` / `useVisibleEntries` / `HistoryMore`（`agui-skins` 导出），五套皮肤只渲染最新 60 条并显示「加载更早的消息 · N」；点击按 60 条增量回补，DOM 不再随历史线性增长；
-- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **295 个用例（21 文件）**；
+- 测试新增 `tests/history.test.tsx`（窗口函数、真实皮肤回补、短会话不显示控件），总数 **298 个用例（21 文件）**；
 - 说明：这是 tail window 而不是完整虚拟列表——五套皮肤行高差异极大，tail window 在保持各皮肤视觉的前提下最稳，后续如需可再逐皮肤升级为虚拟滚动。
 
 ## 2026-11-14 皮肤层第六轮：协议事件演示场景
@@ -585,3 +585,26 @@ npx serve dist   # 或任意静态服务器
 | 行程规划 | 原有演示：state patch、plan activity、单中断与恢复 |
 
 顺带修复：`loadScene("done")` 以前会对没有中断的脚本错误地追加 travel resume；现在只有存在 pending interrupt 时才执行恢复，并新增回归测试。
+
+## 2026-11-14 真实模型接入：DeepSeek → AG-UI
+
+除了 mock 场景，现在可以接真实模型并拿到真实的 AG-UI 事件流。
+
+**架构**：`server/bridge.mjs` 新增 `backend: "deepseek"`；`server/deepseek.mjs` 调用 DeepSeek 的 OpenAI 兼容流式接口，`server/deepseek-map.mjs` 把 chunk 映射成 AG-UI 事件（纯状态机，可单测）。工具调用由桥接层用 stub 工具执行，再回填结果进行第二轮模型调用。
+
+**事件覆盖**：RUN_STARTED(metadata) → STEP_STARTED → REASONING_*（DeepSeek reasoning_content）→ TOOL_CALL_START/ARGS/END → TOOL_CALL_RESULT → 第二轮模型 → TEXT_MESSAGE_* → CUSTOM(usage/suggestions) → RUN_FINISHED。
+
+**运行**：
+```bash
+node server/bridge.mjs            # 自动读取 pi 的 deepseek-api 配置，或 DEEPSEEK_API_KEY
+pnpm dev
+# 打开（本地，仅 bridge 存在时 backend 菜单可用）
+http://127.0.0.1:5178/?backend=deepseek&autosend=1&lang=zh&section=skins&skin=aurora&scene=live
+```
+`?autosend=1` 是本地/无头验证钩子，会在连接后自动发一条会触发 `get_weather` 的 prompt；正式交互仍是手动输入。
+
+**安全**：API key 只从 `DEEPSEEK_API_KEY` 或 `~/.pi/agent/models.json` 读取，不写入仓库；stub 工具只返回固定数据，不会产生真实副作用。
+
+**与官方 LangGraph 路线的关系**：如果后续用 LangGraph Agent Server + `@ag-ui/langgraph`（官方适配器，`emitInterruptOutcome: true` 可拿结构化中断），只需把 bridge 的 `deepseek` 分支换成指向该 adapter 的 SSE，前端 `streamPiRun` 的 SSE 消费与所有皮肤无需改动。
+
+验证截图：`shots/deepseek-live.png`（真实模型 + 真实工具调用 + 中文回答，Aurora inspector 可看到 99 条真实事件与 META）。

@@ -12,6 +12,7 @@ import { setLang as setI18nLang, type Lang } from "../i18n";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { Icon } from "../shared/Icon";
 import { Home } from "../shell/Home";
+import { BackendMenu } from "../shell/BackendMenu";
 import { CommandPalette } from "./CommandPalette";
 import { RunDialog } from "./RunDialog";
 import "./app.css";
@@ -118,6 +119,22 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ?autosend=1&prompt=… — drive a real backend once (headless verification)
+  const autosent = useRef(false);
+  useEffect(() => {
+    if (autosent.current || initialBackend === "mock") return;
+    if (params.get("autosend") !== "1") return;
+    autosent.current = true;
+    const text =
+      params.get("prompt") ||
+      (initialLang === "zh"
+        ? "查一下里斯本今天的天气,再给我两条打包建议。"
+        : "Check today's weather in Lisbon, then give me two packing tips.");
+    const timer = window.setTimeout(() => store.send(text), 1500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // shareable URL: skin + language + backend + scene + full + current tuning
   useEffect(() => {
     const query = buildAppQuery({
@@ -213,9 +230,10 @@ export default function App() {
     ? "…"
     : !health.reachable
     ? "bridge offline"
-    : health.pi
-    ? `pi ${health.version ?? ""}`.trim()
-    : "pi not installed";
+    : [
+        health.pi ? `pi ${health.version ?? ""}`.trim() : "pi off",
+        health.deepseek?.configured ? `deepseek ${health.deepseek.model ?? ""}`.trim() : "deepseek off",
+      ].join(" · ");
 
   const rows = [
     { label: "skin", value: skin.name },
@@ -308,9 +326,13 @@ export default function App() {
               {zh ? "中" : "EN"}
             </button>
             {!STATIC_DEMO && (
-              <button className="dock-btn dock-mono" onClick={() => chooseBackend(backend === "mock" ? "pi" : "mock")} title={zh ? "切换后端" : "Backend"}>
-                {backend === "mock" ? "mock" : "pi"}
-              </button>
+              <BackendMenu
+                backend={backend}
+                lang={lang}
+                health={health}
+                onBackend={(next) => chooseBackend(next)}
+                triggerClassName="dock-btn dock-mono backend-trigger"
+              />
             )}
             <button className="dock-btn" onClick={() => setRunInfoOpen(true)} title={zh ? "运行详情" : "Run details"}>
               <Icon name="braces" size={14} />
@@ -335,6 +357,7 @@ export default function App() {
           staticDemo={STATIC_DEMO}
           scenario={scenario}
           onScenario={setScenario}
+          health={health}
           onCustomize={() => setCustomizeOpen((v) => !v)}
           customizing={customizeOpen}
           customize={inlineCustomize}

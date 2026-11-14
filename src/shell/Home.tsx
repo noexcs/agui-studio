@@ -4,6 +4,8 @@ import { skinSwatches } from "../shared/skin-swatches";
 import { Icon } from "../shared/Icon";
 import { LazyMount } from "../shared/LazyMount";
 import { ScenarioMenu } from "./ScenarioMenu";
+import { BackendMenu } from "./BackendMenu";
+import type { BridgeHealth } from "../core/pi";
 import type { DemoScenario } from "../core/demo-scenarios";
 import type { Lang } from "../i18n";
 
@@ -72,6 +74,7 @@ export function Home(props: {
   customize?: ReactNode;
   scenario: DemoScenario;
   onScenario: (scenario: DemoScenario) => void;
+  health: BridgeHealth | null;
   children: ReactNode;
 }) {
   const zh = props.lang === "zh";
@@ -211,10 +214,12 @@ export function Home(props: {
               {props.staticDemo ? (
                 <span className="embed-chip">{zh ? "演示模式" : "demo mode"}</span>
               ) : (
-                <button className="embed-btn" onClick={() => props.onBackend(props.backend === "mock" ? "pi" : "mock")} title={zh ? "切换后端" : "Backend"}>
-                  <Icon name="terminal" size={13} />
-                  {props.backend === "mock" ? (zh ? "演示" : "mock") : "pi"}
-                </button>
+                <BackendMenu
+                  backend={props.backend}
+                  lang={props.lang}
+                  health={props.health}
+                  onBackend={props.onBackend}
+                />
               )}
               <button className="embed-btn" onClick={props.onLang} title={zh ? "语言" : "Language"}>
                 <Icon name="globe" size={13} />

@@ -23,6 +23,8 @@ const repoPath = (...segments: string[]): string => {
 
 const BRIDGE_SCRIPT = repoPath("server", "bridge.mjs");
 const PI_MAP_SCRIPT = repoPath("server", "pi-map.mjs");
+const DEEPSEEK_SCRIPT = repoPath("server", "deepseek.mjs");
+const DEEPSEEK_MAP_SCRIPT = repoPath("server", "deepseek-map.mjs");
 const FIXTURE_PATH = repoPath("server", "fixtures", "pi-run.jsonl");
 
 type Frame = { type: string; threadId: string; runId: string; timestamp: string } & Record<string, unknown>;
@@ -371,6 +373,8 @@ describe("bridge subprocess (bad fixture lines)", () => {
     serverDir = mkdtempSync(join(tmpdir(), "agui-bridge-badline-"));
     writeFileSync(join(serverDir, "bridge.mjs"), readFileSync(BRIDGE_SCRIPT));
     writeFileSync(join(serverDir, "pi-map.mjs"), readFileSync(PI_MAP_SCRIPT));
+  writeFileSync(join(serverDir, "deepseek.mjs"), readFileSync(DEEPSEEK_SCRIPT));
+  writeFileSync(join(serverDir, "deepseek-map.mjs"), readFileSync(DEEPSEEK_MAP_SCRIPT));
     mkdirSync(join(serverDir, "fixtures"), { recursive: true });
   });
 
