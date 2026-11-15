@@ -366,7 +366,7 @@ export function WorkbenchPage() {
               <div className="wb-side-head mono mx-1.5 mb-2 mt-1 text-[9px] font-semibold tracking-[0.14em] text-(--wb-faint)">{t("wb.explorer").toUpperCase()} · {t("wb.rounds")}</div>
               <button
                 type="button"
-                className="wb-tree-root flex w-[calc(100%-8px)] min-w-0 cursor-pointer items-center gap-[7px] rounded-[5px] border-0 bg-(--wb-wash) mx-1 mb-1 px-2 py-1.5 text-left text-[11.5px] text-(--wb-text) [font:inherit] hover:bg-(--wb-hover-warm) active:bg-(--wb-press-max) disabled:opacity-55 disabled:cursor-default"
+                className="wb-tree-root flex w-[calc(100%-8px)] min-w-0 cursor-pointer items-center gap-[7px] rounded-[5px] border-0 bg-(--wb-wash) mx-1 mb-1 px-2 py-1.5 text-left text-[11.5px] text-(--wb-text) hover:bg-(--wb-hover-warm) active:bg-(--wb-press-max) disabled:opacity-55 disabled:cursor-default"
                 onClick={() => reveal(c.entries[0]?.id ?? "", {})}
                 disabled={!c.entries.length}
               >
@@ -382,7 +382,7 @@ export function WorkbenchPage() {
                   <div key={round.id} className="wb-round my-px" data-open={open || undefined}>
                     <button
                       type="button"
-                      className="wb-tree-row wb-tree-row--round flex w-[calc(100%-8px)] min-w-0 cursor-pointer items-center gap-1.5 rounded-[5px] border-0 bg-none mx-1 px-2 py-1 text-left text-[11px] font-medium text-(--wb-text) [font:inherit] hover:bg-(--wb-hover) active:bg-(--wb-press)"
+                      className="wb-tree-row wb-tree-row--round flex w-[calc(100%-8px)] min-w-0 cursor-pointer items-center gap-1.5 rounded-[5px] border-0 bg-none mx-1 px-2 py-1 text-left text-[11px] font-medium text-(--wb-text) hover:bg-(--wb-hover) active:bg-(--wb-press)"
                       aria-expanded={open}
                       onClick={() => {
                         setOpenRounds((prev) => ({ ...prev, [round.id]: !prev[round.id] }));
@@ -399,10 +399,10 @@ export function WorkbenchPage() {
                           <button
                             key={entry.id}
                             type="button"
-                            className="wb-tree-row wb-tree-row--leaf flex w-[calc(100%-8px)] min-w-0 cursor-pointer items-center gap-1.5 rounded-[5px] border-0 bg-none mx-1 py-1 pl-6 pr-2 text-left text-[11px] text-(--wb-dim) [font:inherit] hover:bg-(--wb-hover) hover:text-(--wb-text) active:bg-(--wb-press) active:text-(--wb-text)"
+                            className="wb-tree-row wb-tree-row--leaf flex w-[calc(100%-8px)] min-w-0 cursor-pointer items-center gap-1.5 rounded-[5px] border-0 bg-none mx-1 py-1 pl-6 pr-2 text-left text-[11px] text-(--wb-dim) hover:bg-(--wb-hover) hover:text-(--wb-text) active:bg-(--wb-press) active:text-(--wb-text)"
                             onClick={() => reveal(entry.id, { toolPanel: entry.kind === "tool" })}
                           >
-                            <span className={`wb-node-kind wb-node-kind--${entry.kind} shrink-0 rounded-[3px] border border-(--wb-line-soft) px-[5px] text-[8.5px] tracking-[0.08em] uppercase font-(--wb-mono) ${NODE_KIND[entry.kind] ?? ""}`}>{kindLabel(entry.kind)}</span>
+                            <span className={`wb-node-kind wb-node-kind--${entry.kind} shrink-0 rounded-[3px] border border-(--wb-line-soft) px-[5px] text-[8.5px] tracking-[0.08em] uppercase font-(family-name:--wb-mono) ${NODE_KIND[entry.kind] ?? ""}`}>{kindLabel(entry.kind)}</span>
                             <span className="wb-tree-label min-w-0 flex-1 truncate">
                               {entry.kind === "user" || entry.kind === "assistant"
                                 ? plainText((entry as AssistantEntry).text, 22) || kindLabel(entry.kind)
@@ -455,11 +455,11 @@ export function WorkbenchPage() {
               </dl>
               <div className="wb-side-head mono mx-1.5 mb-2 mt-1 text-[9px] font-semibold tracking-[0.14em] text-(--wb-faint)">{t("chat.context").toUpperCase()}</div>
               <div className="wb-caps flex flex-wrap gap-[5px] px-1.5">
-                {c.capabilities?.tools?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(--wb-mono)">tools · {c.capabilities.tools.items?.length ?? 0}</span>}
-                {c.capabilities?.reasoning?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(--wb-mono)">reasoning</span>}
-                {c.capabilities?.state?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(--wb-mono)">state</span>}
-                {c.capabilities?.humanInTheLoop?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(--wb-mono)">interrupts</span>}
-                {c.capabilities?.subagents?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(--wb-mono)">subagents</span>}
+                {c.capabilities?.tools?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(family-name:--wb-mono)">tools · {c.capabilities.tools.items?.length ?? 0}</span>}
+                {c.capabilities?.reasoning?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(family-name:--wb-mono)">reasoning</span>}
+                {c.capabilities?.state?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(family-name:--wb-mono)">state</span>}
+                {c.capabilities?.humanInTheLoop?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(family-name:--wb-mono)">interrupts</span>}
+                {c.capabilities?.subagents?.supported && <span className="rounded-full border border-(--wb-line-soft) px-[7px] py-0.5 text-[9.5px] text-(--wb-dim) font-(family-name:--wb-mono)">subagents</span>}
                 {!c.capabilities && <span className="wb-side-empty m-1.5 text-[11px] text-(--wb-faint)">—</span>}
               </div>
             </div>
@@ -483,7 +483,7 @@ export function WorkbenchPage() {
             {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
             {c.entries.length === 0 ? (
               <div className="wb-empty mx-auto my-[72px] max-w-[420px] px-5 text-center">
-                <p className="wb-empty-code mono mb-2.5 mt-0 text-xs leading-[1.7] text-(--wb-dim)">
+                <p className="wb-empty-code mono mb-2.5 mt-0 text-[12px] leading-[1.7] text-(--wb-dim)">
                   <span className="italic text-(--wb-faint)" aria-hidden="true">// </span>
                   {t("wb.empty")}
                 </p>
@@ -532,7 +532,7 @@ export function WorkbenchPage() {
                     key={`suggestion-${index}`}
                     type="button"
                     role="listitem"
-                    className="wb-suggestion mono inline-flex min-w-0 cursor-pointer items-center gap-1.5 rounded-full border border-(--wb-line-soft) bg-none px-2.5 py-1 text-[10px] text-(--wb-dim) [font:inherit] hover:border-[color-mix(in_srgb,var(--wb-accent)_40%,transparent)] hover:text-(--wb-text) active:border-[color-mix(in_srgb,var(--wb-accent)_55%,transparent)] active:bg-[color-mix(in_srgb,var(--wb-accent)_8%,transparent)] active:text-(--wb-text)"
+                    className="wb-suggestion mono inline-flex min-w-0 cursor-pointer items-center gap-1.5 rounded-full border border-(--wb-line-soft) bg-none px-2.5 py-1 text-[10px] text-(--wb-dim) hover:border-[color-mix(in_srgb,var(--wb-accent)_40%,transparent)] hover:text-(--wb-text) active:border-[color-mix(in_srgb,var(--wb-accent)_55%,transparent)] active:bg-[color-mix(in_srgb,var(--wb-accent)_8%,transparent)] active:text-(--wb-text)"
                     onClick={() => setDraft(suggestion)}
                   >
                     <Icon name="sparkle" size={11} />
@@ -557,7 +557,7 @@ export function WorkbenchPage() {
                   }
                   if (event.key === "Escape") c.stop();
                 }}
-                className="max-h-[120px] min-h-5 w-full min-w-0 flex-1 resize-none border-0 bg-transparent py-0.5 pl-0 pr-0 text-[12.5px] leading-[1.6] text-(--wb-text) outline-none [font:inherit] focus-visible:outline-none placeholder:text-(--wb-faint) disabled:opacity-60"
+                className="max-h-[120px] min-h-5 w-full min-w-0 flex-1 resize-none border-0 bg-transparent py-0.5 pl-0 pr-0 text-[12.5px] leading-[1.6] text-(--wb-text) outline-none focus-visible:outline-none placeholder:text-(--wb-faint) disabled:opacity-60"
               />
               {running ? (
                 <button type="button" className="wb-send inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--wb-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--wb-accent)_12%,transparent)] text-(--wb-cyan) enabled:hover:bg-[color-mix(in_srgb,var(--wb-accent)_22%,transparent)] enabled:active:bg-[color-mix(in_srgb,var(--wb-accent)_30%,transparent)] disabled:cursor-not-allowed disabled:opacity-35" onClick={() => c.stop()} aria-label={t("chat.stop")} title={t("chat.stop")}>
@@ -575,7 +575,7 @@ export function WorkbenchPage() {
           <section className="wb-panel flex-none border-t border-(--wb-line-soft) bg-(--wb-chrome) [--wb-proto-gutter:150px]" data-open={panelOpen || undefined} aria-label={t("wb.terminal")}>
             <button
               type="button"
-              className="wb-panel-head flex h-[30px] w-full cursor-pointer items-center gap-[9px] border-0 bg-none pl-[62px] pr-[var(--wb-proto-gutter)] text-left text-(--wb-dim) [font:inherit] hover:bg-(--wb-wash) hover:text-(--wb-text) active:bg-(--wb-hover) active:text-(--wb-text) max-[1080px]:pl-[26px] max-[720px]:pl-3.5"
+              className="wb-panel-head flex h-[30px] w-full cursor-pointer items-center gap-[9px] border-0 bg-none pl-[62px] pr-[var(--wb-proto-gutter)] text-left text-(--wb-dim) hover:bg-(--wb-wash) hover:text-(--wb-text) active:bg-(--wb-hover) active:text-(--wb-text) max-[1080px]:pl-[26px] max-[720px]:pl-3.5"
               aria-expanded={panelOpen}
               onClick={() => setPanelOpen((open) => !open)}
               onKeyDown={(event) => {
@@ -625,7 +625,7 @@ export function WorkbenchPage() {
         <span className="wb-status-spacer flex-1" />
         {pending.length > 0 && (
           <span className="wb-status-item wb-status-item--kbd mono whitespace-nowrap text-(--wb-amber)">
-            <kbd className="rounded-[3px] border border-(--wb-line) px-1 font-(--wb-mono) text-[9px]">Y</kbd>/<kbd className="rounded-[3px] border border-(--wb-line) px-1 font-(--wb-mono) text-[9px]">N</kbd> · {t("intr.paused")}
+            <kbd className="rounded-[3px] border border-(--wb-line) px-1 font-(family-name:--wb-mono) text-[9px]">Y</kbd>/<kbd className="rounded-[3px] border border-(--wb-line) px-1 font-(family-name:--wb-mono) text-[9px]">N</kbd> · {t("intr.paused")}
           </span>
         )}
         <span className="wb-status-item mono whitespace-nowrap text-(--wb-faint)">{t("chat.tokens")} {tokenLabel(c.tokens)}</span>
@@ -689,7 +689,7 @@ function FoldGroupRow({
         <div className={WB_CELL}>
           <button
             type="button"
-            className="wb-fold-head mono flex min-w-0 w-full max-w-[760px] cursor-pointer items-center gap-2 rounded-md border border-dashed border-(--wb-line-soft) bg-none px-2.5 py-1 text-left text-[10px] text-(--wb-dim) [font:inherit] hover:border-[color-mix(in_srgb,var(--wb-cyan)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--wb-cyan)_5%,transparent)] hover:text-(--wb-text) active:border-[color-mix(in_srgb,var(--wb-cyan)_55%,transparent)] active:bg-[color-mix(in_srgb,var(--wb-cyan)_9%,transparent)] active:text-(--wb-text)"
+            className="wb-fold-head mono flex min-w-0 w-full max-w-[760px] cursor-pointer items-center gap-2 rounded-md border border-dashed border-(--wb-line-soft) bg-none px-2.5 py-1 text-left text-[10px] text-(--wb-dim) hover:border-[color-mix(in_srgb,var(--wb-cyan)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--wb-cyan)_5%,transparent)] hover:text-(--wb-text) active:border-[color-mix(in_srgb,var(--wb-cyan)_55%,transparent)] active:bg-[color-mix(in_srgb,var(--wb-cyan)_9%,transparent)] active:text-(--wb-text)"
             data-fold-head=""
             aria-expanded={open}
             onClick={onToggle}
@@ -760,7 +760,7 @@ function renderEntry(entry: Entry, ctx: RowCtx) {
     case "tool":
       // tool calls live in the terminal panel; the transcript keeps a slim jump line
       return (
-        <button type="button" className="wb-tool-jump mono flex min-w-0 w-full max-w-[760px] cursor-pointer items-center gap-2 rounded-md border border-dashed border-(--wb-line-soft) bg-none px-2.5 py-[5px] text-left text-[11px] text-(--wb-dim) [font:inherit] hover:border-[color-mix(in_srgb,var(--wb-violet)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--wb-violet)_5%,transparent)] hover:text-(--wb-text) active:border-[color-mix(in_srgb,var(--wb-violet)_55%,transparent)] active:bg-[color-mix(in_srgb,var(--wb-violet)_9%,transparent)] active:text-(--wb-text)" onClick={() => ctx.reveal(entry.id, { toolPanel: true })}>
+        <button type="button" className="wb-tool-jump mono flex min-w-0 w-full max-w-[760px] cursor-pointer items-center gap-2 rounded-md border border-dashed border-(--wb-line-soft) bg-none px-2.5 py-[5px] text-left text-[11px] text-(--wb-dim) hover:border-[color-mix(in_srgb,var(--wb-violet)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--wb-violet)_5%,transparent)] hover:text-(--wb-text) active:border-[color-mix(in_srgb,var(--wb-violet)_55%,transparent)] active:bg-[color-mix(in_srgb,var(--wb-violet)_9%,transparent)] active:text-(--wb-text)" onClick={() => ctx.reveal(entry.id, { toolPanel: true })}>
           <Icon name="chevron" size={10} className={`${CHEV} rotate-0 text-(--wb-violet)`} />
           <span className="wb-tool-jump-name truncate text-(--wb-violet)">{displayText((entry as ToolEntry).name)}</span>
           <span className={`wb-stage wb-stage--${toolStage((entry as ToolEntry).status)} shrink-0 rounded-[3px] px-1.5 text-[9px] tracking-[0.06em] ${STAGE[toolStage((entry as ToolEntry).status)] ?? ""}`}>{stageWord((entry as ToolEntry).status)}</span>
@@ -833,7 +833,7 @@ function AssistantRow({ entry }: { entry: AssistantEntry }) {
 function ReasoningRow({ entry, open, onToggle }: { entry: ReasoningEntry; open: boolean; onToggle: () => void }) {
   return (
     <div className="wb-reason max-w-[760px]">
-      <button type="button" className="wb-reason-head mono inline-flex cursor-pointer items-center gap-[7px] rounded-[5px] border-0 bg-[color-mix(in_srgb,var(--wb-cyan)_6%,transparent)] px-2.5 py-1 text-[10px] italic tracking-[0.06em] text-(--wb-dim) uppercase [font:inherit] hover:bg-[color-mix(in_srgb,var(--wb-cyan)_10%,transparent)] hover:text-(--wb-text) active:bg-[color-mix(in_srgb,var(--wb-cyan)_14%,transparent)] active:text-(--wb-text)" aria-expanded={open} onClick={onToggle}>
+      <button type="button" className="wb-reason-head mono inline-flex cursor-pointer items-center gap-[7px] rounded-[5px] border-0 bg-[color-mix(in_srgb,var(--wb-cyan)_6%,transparent)] px-2.5 py-1 text-[10px] italic tracking-[0.06em] text-(--wb-dim) uppercase hover:bg-[color-mix(in_srgb,var(--wb-cyan)_10%,transparent)] hover:text-(--wb-text) active:bg-[color-mix(in_srgb,var(--wb-cyan)_14%,transparent)] active:text-(--wb-text)" aria-expanded={open} onClick={onToggle}>
         <Icon name="brain" size={11} />
         <span>{entry.streaming ? t("status.thinking") : t("status.thought")}</span>
         {!!entry.tokens && <span className="wb-reason-meta normal-case tracking-normal">{entry.tokens} {t("chat.tokens")}</span>}
@@ -841,7 +841,7 @@ function ReasoningRow({ entry, open, onToggle }: { entry: ReasoningEntry; open: 
         <Icon name="chevron" size={9} className={CHEV} />
       </button>
       {open && (
-        <div className="wb-reason-body mb-1 ml-2.5 mt-2 border-l border-[color-mix(in_srgb,var(--wb-cyan)_25%,transparent)] pb-0.5 pl-3 pt-0.5 text-xs italic text-(--wb-dim)">
+        <div className="wb-reason-body mb-1 ml-2.5 mt-2 border-l border-[color-mix(in_srgb,var(--wb-cyan)_25%,transparent)] pb-0.5 pl-3 pt-0.5 text-[12px] italic text-(--wb-dim)">
           {entry.text ? <p className="mb-1.5 mt-0 whitespace-pre-wrap">{entry.text}</p> : <p className="mb-1.5 mt-0 whitespace-pre-wrap text-(--wb-dim)">encrypted reasoning item</p>}
           {entry.encryptedValue && <pre className={WB_PRE}>{entry.encryptedValue.slice(0, 160)}</pre>}
         </div>
@@ -856,7 +856,7 @@ function PlanRow({ entry }: { entry: PlanEntry }) {
     <div className="wb-plan max-w-[760px] rounded-lg border border-(--wb-line-soft) bg-(--wb-deep) px-3.5 py-2.5">
       <div className="wb-plan-head mb-[7px] flex items-center gap-2">
         <Icon name="layers" size={12} className="text-(--wb-cyan)" />
-        <span className="wb-plan-title min-w-0 truncate text-xs font-semibold">{displayText(entry.title)}</span>
+        <span className="wb-plan-title min-w-0 truncate text-[12px] font-semibold">{displayText(entry.title)}</span>
         <span className="wb-plan-count mono ml-auto text-[10px] text-(--wb-dim)">
           {view.steps.filter((step) => step.state === "done").length}/{view.steps.length || 0}
         </span>
@@ -866,7 +866,7 @@ function PlanRow({ entry }: { entry: PlanEntry }) {
       ) : (
         <ul className="wb-plan-list m-0 grid list-none gap-[5px] p-0">
           {view.steps.map((step) => (
-            <li key={step.id} data-state={step.state} className={`flex items-baseline gap-2 text-xs ${PLAN_STATE[step.state] ?? "text-(--wb-dim)"}`}>
+            <li key={step.id} data-state={step.state} className={`flex items-baseline gap-2 text-[12px] ${PLAN_STATE[step.state] ?? "text-(--wb-dim)"}`}>
               <span className={`wb-plan-check inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-[3px] border border-(--wb-line) ${PLAN_CHECK[step.state] ?? ""}`}>{step.state === "done" && <Icon name="check" size={10} />}</span>
               <span className="wb-plan-label">{step.label}</span>
             </li>
@@ -906,7 +906,7 @@ function CustomRow({ entry, plugins }: { entry: CustomEntry; plugins: ReturnType
   return (
     <details className="wb-custom max-w-[760px] text-[11px]">
       <summary className="mono flex cursor-pointer list-none items-center gap-2 rounded-md border border-dashed border-(--wb-line-soft) px-2.5 py-[5px] text-(--wb-dim) hover:text-(--wb-text) active:bg-(--wb-wash) active:text-(--wb-text) [.wb-custom[open]_&]:rounded-b-none">
-        <span className="wb-node-kind wb-node-kind--custom shrink-0 rounded-[3px] border border-(--wb-line-soft) px-[5px] text-[8.5px] tracking-[0.08em] uppercase font-(--wb-mono)">{t("wb.node.custom")}</span>
+        <span className="wb-node-kind wb-node-kind--custom shrink-0 rounded-[3px] border border-(--wb-line-soft) px-[5px] text-[8.5px] tracking-[0.08em] uppercase font-(family-name:--wb-mono)">{t("wb.node.custom")}</span>
         <span>{displayText(entry.name)}</span>
         <Icon name="chevron" size={9} className={`${CHEV} rotate-0 [&::-webkit-details-marker]:hidden [.wb-custom[open]_&]:rotate-90`} />
       </summary>
@@ -954,20 +954,20 @@ function InterruptRow({ entry, ctx }: { entry: InterruptEntry; ctx: RowCtx }) {
                 value={ctx.editJson[entry.id] ?? ""}
                 onChange={(event) => ctx.setEditJson((prev) => ({ ...prev, [entry.id]: event.target.value }))}
                 spellCheck={false}
-                className="min-h-[84px] w-full resize-y rounded-md border border-(--wb-line) bg-(--wb-deep) px-2.5 py-2 text-[11px] leading-[1.55] text-(--wb-text) outline-none font-(--wb-mono) focus-visible:outline-[1.5px] focus-visible:outline-(--wb-accent) focus-visible:outline-offset-0"
+                className="min-h-[84px] w-full resize-y rounded-md border border-(--wb-line) bg-(--wb-deep) px-2.5 py-2 text-[11px] leading-[1.55] text-(--wb-text) outline-none font-(family-name:--wb-mono) focus-visible:outline-[1.5px] focus-visible:outline-(--wb-accent) focus-visible:outline-offset-0"
               />
             </div>
           )}
           <div className="wb-approval-actions mt-[11px] flex flex-wrap items-center gap-2">
-            <button type="button" className="wb-btn wb-btn--primary cursor-pointer rounded-md border border-transparent bg-(--wb-accent) px-3 py-[5px] text-[11.5px] font-semibold text-(--wb-accent-fg) [font:inherit] hover:brightness-[1.12] active:brightness-90" onClick={() => ctx.approve(entry, true, true)}>
+            <button type="button" className="wb-btn wb-btn--primary cursor-pointer rounded-md border border-transparent bg-(--wb-accent) px-3 py-[5px] text-[11.5px] font-semibold text-(--wb-accent-fg) hover:brightness-[1.12] active:brightness-90" onClick={() => ctx.approve(entry, true, true)}>
               {ctx.editingId === entry.id ? t("intr.approveEdited") : t("intr.approve")}
             </button>
-            <button type="button" className="wb-btn cursor-pointer rounded-md border border-(--wb-line) bg-(--wb-wash-btn) px-3 py-[5px] text-[11.5px] text-(--wb-text) [font:inherit] hover:border-(--wb-border-hover) hover:bg-(--wb-hover-strong) active:border-(--wb-border-active) active:bg-(--wb-press-strong)" onClick={() => ctx.approve(entry, false, false)}>
+            <button type="button" className="wb-btn cursor-pointer rounded-md border border-(--wb-line) bg-(--wb-wash-btn) px-3 py-[5px] text-[11.5px] text-(--wb-text) hover:border-(--wb-border-hover) hover:bg-(--wb-hover-strong) active:border-(--wb-border-active) active:bg-(--wb-press-strong)" onClick={() => ctx.approve(entry, false, false)}>
               {t("intr.deny")}
             </button>
             <button
               type="button"
-              className="wb-btn wb-btn--ghost cursor-pointer rounded-md border border-transparent bg-none px-3 py-[5px] text-[11.5px] text-(--wb-dim) [font:inherit] hover:bg-(--wb-hover) hover:text-(--wb-text) active:bg-(--wb-press) active:text-(--wb-text)"
+              className="wb-btn wb-btn--ghost cursor-pointer rounded-md border border-transparent bg-none px-3 py-[5px] text-[11.5px] text-(--wb-dim) hover:bg-(--wb-hover) hover:text-(--wb-text) active:bg-(--wb-press) active:text-(--wb-text)"
               onClick={() => (ctx.editingId === entry.id ? ctx.setEditingId(null) : ctx.beginEdit(entry.id))}
             >
               {ctx.editingId === entry.id ? t("intr.cancel") : t("intr.edit")}
@@ -982,7 +982,7 @@ function InterruptRow({ entry, ctx }: { entry: InterruptEntry; ctx: RowCtx }) {
 
 function ErrorRow({ entry }: { entry: ErrorEntry }) {
   return (
-    <div className="wb-error flex max-w-[760px] items-start gap-2 rounded-md border border-[color-mix(in_srgb,var(--wb-red)_35%,transparent)] bg-[color-mix(in_srgb,var(--wb-red)_7%,transparent)] px-3 py-2 text-xs text-(--wb-red)" role="alert">
+    <div className="wb-error flex max-w-[760px] items-start gap-2 rounded-md border border-[color-mix(in_srgb,var(--wb-red)_35%,transparent)] bg-[color-mix(in_srgb,var(--wb-red)_7%,transparent)] px-3 py-2 text-[12px] text-(--wb-red)" role="alert">
       <Icon name="x" size={12} className="mt-[3px] shrink-0" />
       <span>{displayText(entry.message)}</span>
     </div>
@@ -1003,7 +1003,7 @@ function TerminalRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolea
   })();
   return (
     <div className={`wb-term-row my-1.5 overflow-hidden rounded-md border border-(--wb-line-soft) border-l-2 bg-(--wb-deep) ${TERM_STAGE[toolStage(entry.status)] ?? ""}`} data-stage={toolStage(entry.status)}>
-      <button type="button" className="wb-term-head mono flex min-w-0 w-full cursor-pointer items-center gap-2 border-0 bg-none px-[11px] py-[7px] text-left text-[11px] text-(--wb-text) [font:inherit] hover:bg-(--wb-wash) active:bg-(--wb-hover) active:shadow-[inset_0_0_0_1px_var(--wb-line)]" aria-expanded={open} onClick={onToggle}>
+      <button type="button" className="wb-term-head mono flex min-w-0 w-full cursor-pointer items-center gap-2 border-0 bg-none px-[11px] py-[7px] text-left text-[11px] text-(--wb-text) hover:bg-(--wb-wash) active:bg-(--wb-hover) active:shadow-[inset_0_0_0_1px_var(--wb-line)]" aria-expanded={open} onClick={onToggle}>
         <span className="wb-term-prompt shrink-0 text-(--wb-green)" aria-hidden="true">❯</span>
         <span className="wb-term-name shrink-0 text-(--wb-violet)">{displayText(entry.name)}</span>
         {brief && <span className="wb-term-brief min-w-0 flex-1 truncate text-[10px] text-(--wb-faint)">{brief}</span>}

@@ -7,12 +7,12 @@ import type { SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, 
    folded into the inline variant — the panel knows its variant, so the
    parent no longer reaches into it. */
 const T = "duration-(--t-fast) ease-(--ease)";
-const LABEL_SPAN = "font-(--font-mono) text-[11px] tracking-[0.12em] text-(--fg-muted) uppercase";
-const LABEL_EM = "not-italic font-(--font-mono) text-[10.5px] text-(--fg-muted)";
+const LABEL_SPAN = "font-(family-name:--font-mono) text-[11px] tracking-[0.12em] text-(--fg-muted) uppercase";
+const LABEL_EM = "not-italic font-(family-name:--font-mono) text-[10.5px] text-(--fg-muted)";
 const SEG = "customize-seg flex gap-1 rounded-[10px] bg-[rgba(0,0,0,0.045)] p-[3px]";
-const SEGBTN = `customize-segbtn flex-1 cursor-pointer rounded-[7px] border-none bg-transparent px-2 py-1.5 text-xs text-[#52525b] [font-family:inherit] transition-[background,color] hover:text-(--fg) ${T}`;
+const SEGBTN = `customize-segbtn flex-1 cursor-pointer rounded-[7px] border-none bg-transparent px-2 py-1.5 text-[12px] text-[#52525b] [font-family:inherit] transition-[background,color] hover:text-(--fg) ${T}`;
 const TILE = "customize-tile min-w-0";
-const LABEL = "customize-label mb-2 flex items-baseline justify-between text-xs text-[#3f3f46]";
+const LABEL = "customize-label mb-2 flex items-baseline justify-between text-[12px] text-[#3f3f46]";
 
 const ACCENTS = [
   { hex: "#2563eb", zh: "经典蓝", en: "Blue" },
@@ -133,19 +133,19 @@ export function CustomizePanel(props: {
     <section
       className={`customize rounded-[14px] ${
         inline
-          ? "customize--inline relative mt-0 border-0 bg-transparent p-0 backdrop-blur-none font-[inherit] text-(--fg-secondary)"
+          ? "customize--inline relative mt-0 border-0 bg-transparent p-0 text-[13px] leading-[1.45] backdrop-blur-none font-[inherit] text-(--fg-secondary)"
           : "customize--drawer fixed top-[86px] right-5 z-[70] w-[320px] max-h-[calc(100vh-120px)] overflow-auto border border-[rgba(17,17,20,0.1)] bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_24px_70px_rgba(24,24,27,0.18)] backdrop-blur-[18px] backdrop-saturate-[140%] text-[#18181b] [font:13px/1.45_system-ui,-apple-system,Segoe_UI,sans-serif] max-[720px]:inset-x-3 max-[720px]:top-[70px] max-[720px]:w-auto"
       }`}
       aria-label={zh ? "皮肤自定义" : "Customize skin"}
     >
       <header className={`customize-head flex items-start justify-between gap-2.5 border-b ${inline ? "pb-4 border-(--hairline-subtle)" : "pb-3 border-[rgba(17,17,20,0.08)]"}`}>
         <div>
-          <div className="customize-kicker font-(--font-mono) text-[11px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "自定义" : "Customize"}</div>
+          <div className="customize-kicker font-(family-name:--font-mono) text-[11px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "自定义" : "Customize"}</div>
           <h3 className={`mt-0.5 mb-0 text-[15px] font-semibold ${inline ? "text-(--fg)" : ""}`}>{props.skinName}</h3>
         </div>
         <div className="customize-head-actions flex items-center gap-2">
           <button
-            className={`customize-reset inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-[rgba(17,17,20,0.14)] bg-transparent px-2.5 py-[7px] text-xs text-[#3f3f46] [font-family:inherit] transition-[background,color,transform] hover:bg-[rgba(0,0,0,0.04)] active:scale-[0.98] ${T}`}
+            className={`customize-reset inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-[rgba(17,17,20,0.14)] bg-transparent px-2.5 py-[7px] text-[12px] text-[#3f3f46] [font-family:inherit] transition-[background,color,transform] hover:bg-[rgba(0,0,0,0.04)] active:scale-[0.98] ${T}`}
             onClick={() => props.onChange({})}
           >
             <Icon name="rotate" size={13} />
@@ -321,7 +321,7 @@ export function CustomizePanel(props: {
             {PRESETS.map((preset) => (
               <button
                 key={preset.en}
-                className={`customize-preset cursor-pointer rounded-[var(--r-sm)] border border-[rgba(17,17,20,0.14)] bg-transparent px-3 py-1.5 text-xs text-[#3f3f46] [font-family:inherit] transition-[background,border-color,color,transform] hover:bg-[rgba(0,0,0,0.04)] hover:text-(--fg) active:scale-[0.98] ${T} ${sameTuning(props.tuning, preset.tuning) ? "is-active border-(--accent-line) bg-(--accent-dim) text-(--accent-hover)" : ""}`}
+                className={`customize-preset cursor-pointer rounded-[var(--r-sm)] border border-[rgba(17,17,20,0.14)] bg-transparent px-3 py-1.5 text-[12px] text-[#3f3f46] [font-family:inherit] transition-[background,border-color,color,transform] hover:bg-[rgba(0,0,0,0.04)] hover:text-(--fg) active:scale-[0.98] ${T} ${sameTuning(props.tuning, preset.tuning) ? "is-active border-(--accent-line) bg-(--accent-dim) text-(--accent-hover)" : ""}`}
                 onClick={() => props.onChange({ ...preset.tuning, theme: props.tuning.theme })}
               >
                 {zh ? preset.zh : preset.en}

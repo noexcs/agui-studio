@@ -233,13 +233,13 @@ async function runTurn(text: string, signal?: AbortSignal) {
    Values reference the shell :root tokens via arbitrary var shorthand. */
 const T = "duration-(--t-fast) ease-(--ease)";
 
-const QS_CODE = "qs-code m-0 flex-1 overflow-x-hidden p-4 font-(--font-mono) text-[13px] leading-[1.6] text-[#a7a3b2] whitespace-pre-wrap [word-break:break-word] [overflow-wrap:anywhere]";
+const QS_CODE = "qs-code m-0 flex-1 overflow-x-hidden p-4 font-(family-name:--font-mono) text-[13px] leading-[1.6] text-[#a7a3b2] whitespace-pre-wrap [word-break:break-word] [overflow-wrap:anywhere]";
 const QS_CARD_NOTE = "qs-card-note m-0 px-4 pb-4 text-xs leading-[1.6] text-[#8a8798]";
 const QS_CARD_FOOT = "qs-card-foot flex items-center gap-2 bg-(--bg-surface) px-4 py-3";
-const QS_STEP_NO = "qs-step-no font-(--font-mono) text-[10px] tracking-[0.12em] text-(--fg-muted) [font-variant-numeric:tabular-nums]";
-const QS_LANG = "qs-lang ml-auto rounded-full border border-(--hairline-subtle) px-2 py-1 font-(--font-mono) text-[9.5px] tracking-[0.06em] text-(--fg-muted) lowercase";
-const QS_COPY_BTN = `qs-copy-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border bg-transparent px-3 font-(--font-mono) text-[10px] tracking-[0.08em] uppercase transition-[color,border-color,background,transform] active:scale-[0.98] ${T}`;
-const QS_MENU_ITEM = `qs-menu-item flex w-full cursor-pointer items-center gap-2 rounded-[10px] border-0 bg-none px-3 py-2 text-left text-xs text-(--fg-secondary) no-underline outline-none [font-family:inherit] transition-[background,color] focus-visible:shadow-[inset_0_0_0_1px_var(--accent)] hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg) data-[highlighted]:bg-[rgba(0,0,0,0.05)] data-[highlighted]:text-(--fg) ${T}`;
+const QS_STEP_NO = "qs-step-no font-(family-name:--font-mono) text-[10px] tracking-[0.12em] text-(--fg-muted) [font-variant-numeric:tabular-nums]";
+const QS_LANG = "qs-lang ml-auto rounded-full border border-(--hairline-subtle) px-2 py-1 font-(family-name:--font-mono) text-[9.5px] tracking-[0.06em] text-(--fg-muted) lowercase";
+const QS_COPY_BTN = `qs-copy-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border bg-transparent px-3 font-(family-name:--font-mono) text-[10px] tracking-[0.08em] uppercase transition-[color,border-color,background,transform] active:scale-[0.98] ${T}`;
+const QS_MENU_ITEM = `qs-menu-item flex w-full cursor-pointer items-center gap-2 rounded-[10px] border-0 bg-none px-3 py-2 text-left text-[12px] text-(--fg-secondary) no-underline outline-none [font-family:inherit] transition-[background,color] focus-visible:shadow-[inset_0_0_0_1px_var(--accent)] hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg) data-[highlighted]:bg-[rgba(0,0,0,0.05)] data-[highlighted]:text-(--fg) ${T}`;
 
 function HighlightedCode({ code, grammar }: { code: string; grammar: string }) {
   const html = useMemo(() => highlightCode(code, grammar), [code, grammar]);
@@ -362,7 +362,7 @@ export function QuickStart({ lang, activeSkin }: { lang: Lang; activeSkin: strin
     >
       <div className="section-head mb-4 flex items-end justify-between gap-8 max-[1180px]:flex-col max-[1180px]:items-start max-[1180px]:gap-4">
         <div>
-          <p className="section-kicker mt-0 mb-3 font-(--font-mono) text-[11px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "快速上手" : "Get started"}</p>
+          <p className="section-kicker mt-0 mb-3 font-(family-name:--font-mono) text-[11px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "快速上手" : "Get started"}</p>
           <h2 className={`m-0 text-[clamp(28px,3.2vw,40px)] leading-[1.12] font-medium ${zh ? "tracking-[-0.02em]" : "tracking-[-0.03em]"}`}>
             {zh ? "用在自己的网页里" : "Use them in your own app"}
           </h2>
@@ -455,13 +455,13 @@ export function QuickStart({ lang, activeSkin }: { lang: Lang; activeSkin: strin
                 </span>
                 <strong className="qs-skin-name min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-medium text-(--fg) [flex:0_1_auto]">{s.name}</strong>
                 {isCurrent && (
-                  <span className="qs-skin-current shrink-0 rounded-full border border-[rgba(124,58,237,0.35)] bg-(--accent-dim) px-2 py-1 font-(--font-mono) text-[8.5px] tracking-[0.1em] text-(--accent-hover) uppercase @min-[428px]:ml-auto">
+                  <span className="qs-skin-current shrink-0 rounded-full border border-[rgba(124,58,237,0.35)] bg-(--accent-dim) px-2 py-1 font-(family-name:--font-mono) text-[8.5px] tracking-[0.1em] text-(--accent-hover) uppercase @min-[428px]:ml-auto">
                     {zh ? "当前" : "current"}
                   </span>
                 )}
                 <span className="qs-skin-tagline min-w-0 flex-1 truncate text-[11px] text-(--fg-muted) @min-[428px]:hidden">{s.tagline}</span>
                 <span
-                  className={`qs-skin-open inline-flex shrink-0 items-center gap-1 font-(--font-mono) text-[9px] tracking-[0.1em] text-(--fg-muted) uppercase transition-colors group-hover:text-(--fg) @min-[428px]:ml-auto ${T} ${isCurrent ? "@min-[428px]:hidden" : ""}`}
+                  className={`qs-skin-open inline-flex shrink-0 items-center gap-1 font-(family-name:--font-mono) text-[9px] tracking-[0.1em] text-(--fg-muted) uppercase transition-colors group-hover:text-(--fg) @min-[428px]:ml-auto ${T} ${isCurrent ? "@min-[428px]:hidden" : ""}`}
                 >
                   {zh ? "打开" : "Open"}
                   <Icon name="arrow-up-right" size={11} />

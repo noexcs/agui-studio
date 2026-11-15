@@ -62,9 +62,9 @@ const GRID_ITEMS = [
    consumed inline so "exactly two durations" survives the migration. */
 const T = "duration-(--t-fast) ease-(--ease)";
 
-const EMBED_BTN = `embed-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border border-transparent bg-none px-3 font-(--font-mono) text-[10px] tracking-[0.04em] text-(--fg-muted) transition-[color,background,border-color,transform] hover:bg-[rgba(0,0,0,0.04)] hover:border-(--hairline) hover:text-(--fg) active:scale-[0.98] ${T}`;
+const EMBED_BTN = `embed-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border border-transparent bg-none px-3 font-(family-name:--font-mono) text-[10px] tracking-[0.04em] text-(--fg-muted) transition-[color,background,border-color,transform] hover:bg-[rgba(0,0,0,0.04)] hover:border-(--hairline) hover:text-(--fg) active:scale-[0.98] ${T}`;
 const QUICK_BTN = `quick-btn inline-flex h-8 cursor-pointer items-center gap-2 rounded-full border border-(--hairline-subtle) bg-transparent px-3 text-[11.5px] text-(--fg-secondary) [font-family:inherit] transition-[background,border-color,color,transform] hover:bg-[rgba(0,0,0,0.04)] hover:border-(--hairline) hover:text-(--fg) active:scale-[0.98] ${T}`;
-const QUICK_KBD = "font-(--font-mono) text-[9.5px] not-italic text-(--fg-muted)";
+const QUICK_KBD = "font-(family-name:--font-mono) text-[9.5px] not-italic text-(--fg-muted)";
 
 /**
  * Landing page: Grid Motion hero (light lavender colorway), skin cards with
@@ -109,7 +109,7 @@ export function Home(props: {
 
   return (
     <div
-      className={`home ${zh ? "home--zh" : ""} h-[100svh] overflow-x-hidden overflow-y-auto bg-(--bg-base) font-(--font-sans) text-(--fg) antialiased [scrollbar-width:thin] [scrollbar-color:#d4d4d8_transparent]`}
+      className={`home ${zh ? "home--zh" : ""} h-[100svh] overflow-x-hidden overflow-y-auto bg-(--bg-base) font-(family-name:--font-sans) text-(--fg) antialiased [scrollbar-width:thin] [scrollbar-color:#d4d4d8_transparent]`}
       ref={homeRef}
     >
       <section className="home-hero relative isolate flex h-[100svh] min-h-[620px] items-center overflow-hidden">
@@ -152,14 +152,14 @@ export function Home(props: {
               className={`home-cta inline-flex h-[30px] cursor-pointer items-center gap-2 rounded-full border-0 bg-none px-3 text-[12.5px] bg-[rgba(0,0,0,0.05)] text-(--fg) [font-family:inherit] transition-[background,color,transform] hover:bg-[rgba(0,0,0,0.09)] active:scale-[0.98] ${T}`}
               onClick={props.onPalette}
             >
-              <kbd className="font-(--font-mono) text-[10px] text-[rgba(24,24,27,0.5)]">⌘K</kbd>
+              <kbd className="font-(family-name:--font-mono) text-[10px] text-[rgba(24,24,27,0.5)]">⌘K</kbd>
               {zh ? "命令" : "Commands"}
             </button>
           </div>
         </header>
 
         <div className="hero-copy relative z-[3] max-w-[880px] px-[clamp(24px,6vw,92px)] animate-[hero-rise_var(--t-slow)_var(--ease)_0.1s_backwards]">
-          <p className="hero-kicker mt-0 mb-5 inline-flex items-center gap-2 font-(--font-mono) text-[11.5px] tracking-[0.14em] text-(--fg-muted) uppercase before:h-px before:w-6 before:bg-(--hairline-strong) before:content-['']">
+          <p className="hero-kicker mt-0 mb-5 inline-flex items-center gap-2 font-(family-name:--font-mono) text-[11.5px] tracking-[0.14em] text-(--fg-muted) uppercase before:h-px before:w-6 before:bg-(--hairline-strong) before:content-['']">
             AG-UI Studio — {zh ? "对话界面设计套件" : "conversation skins for AG-UI"}
           </p>
           <h1 className={`m-0 mb-6 text-[clamp(48px,6vw,68px)] leading-[1.04] [font-weight:640] text-(--fg) ${zh ? "tracking-[-0.02em]" : "tracking-[-0.04em]"}`}>
@@ -184,7 +184,7 @@ export function Home(props: {
           </p>
           <div className="hero-actions flex flex-wrap items-center gap-3">
             <button
-              className={`hero-primary inline-flex h-11 cursor-pointer items-center gap-2 rounded-[var(--r-sm)] border-0 bg-[#18181b] px-6 text-sm font-medium text-white [font-family:inherit] transition-[background,transform] hover:bg-[#27272a] active:scale-[0.98] ${T}`}
+              className={`hero-primary inline-flex h-11 cursor-pointer items-center gap-2 rounded-[var(--r-sm)] border-0 bg-[#18181b] px-6 text-[14px] font-medium text-white [font-family:inherit] transition-[background,transform] hover:bg-[#27272a] active:scale-[0.98] ${T}`}
               onClick={scrollToSkins}
             >
               {zh ? "直接体验" : "Try them inline"}
@@ -194,14 +194,14 @@ export function Home(props: {
               className={`hero-ghost inline-flex h-11 cursor-pointer items-center gap-2 rounded-[var(--r-sm)] border border-(--hairline) bg-[rgba(0,0,0,0.02)] px-5 text-[13.5px] text-(--fg-secondary) [font-family:inherit] transition-[border-color,background,color,transform] hover:border-(--hairline-strong) hover:bg-[rgba(0,0,0,0.04)] hover:text-(--fg) active:scale-[0.98] ${T}`}
               onClick={props.onPalette}
             >
-              <kbd className="font-(--font-mono) text-[10.5px] text-(--fg-muted)">⌘K</kbd>
+              <kbd className="font-(family-name:--font-mono) text-[10.5px] text-(--fg-muted)">⌘K</kbd>
               {zh ? "打开命令面板" : "Open commands"}
             </button>
           </div>
         </div>
 
         <div
-          className="hero-hint absolute bottom-6 left-1/2 z-[4] flex -translate-x-1/2 flex-col items-center gap-2 font-(--font-mono) text-[10px] tracking-[0.14em] text-(--fg-muted) uppercase"
+          className="hero-hint absolute bottom-6 left-1/2 z-[4] flex -translate-x-1/2 flex-col items-center gap-2 font-(family-name:--font-mono) text-[10px] tracking-[0.14em] text-(--fg-muted) uppercase"
           aria-hidden="true"
         >
           <span>{zh ? "向下，直接开始用" : "Scroll — everything is live"}</span>
@@ -216,7 +216,7 @@ export function Home(props: {
       >
         <div className="section-head mb-12 flex items-end justify-between gap-8 max-[1180px]:flex-col max-[1180px]:items-start max-[1180px]:gap-4">
           <div>
-            <p className="section-kicker mt-0 mb-3 font-(--font-mono) text-[11px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "皮肤" : "Skins"}</p>
+            <p className="section-kicker mt-0 mb-3 font-(family-name:--font-mono) text-[11px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "皮肤" : "Skins"}</p>
             <h2 className={`m-0 text-[clamp(28px,3.2vw,40px)] leading-[1.12] font-medium ${zh ? "tracking-[-0.02em]" : "tracking-[-0.03em]"}`}>
               {zh ? "选一种界面，就在上面用" : "Pick a surface and use it right here"}
             </h2>
@@ -240,7 +240,7 @@ export function Home(props: {
                 style={{ "--skin-accent": skin.accent } as CSSProperties}
                 onClick={() => props.onSkin(skin.id)}
               >
-                <span className="skin-tab-meta mb-3 flex items-center justify-between gap-2 font-(--font-mono) text-[10.5px] tracking-[0.08em] text-(--fg-muted)">
+                <span className="skin-tab-meta mb-3 flex items-center justify-between gap-2 font-(family-name:--font-mono) text-[10.5px] tracking-[0.08em] text-(--fg-muted)">
                   <span className="skin-tab-slug lowercase">{skin.id}</span>
                   {isCurrent ? (
                     <span className="skin-tab-status rounded-full border border-[rgba(124,58,237,0.35)] bg-(--accent-dim) px-2 py-1 text-[9px] tracking-[0.12em] text-(--accent-hover) uppercase">
@@ -254,7 +254,7 @@ export function Home(props: {
                   {skin.name}
                   <i className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: skin.accent }} />
                 </span>
-                <span className="skin-tab-tagline mb-4 text-xs leading-[1.55] text-(--fg-secondary)">{tagline(skin)}</span>
+                <span className="skin-tab-tagline mb-4 text-[12px] leading-[1.55] text-(--fg-secondary)">{tagline(skin)}</span>
                 <span className="skin-tab-swatches mt-auto flex items-center gap-1" aria-hidden="true">
                   {skinSwatches(skin.id, skin.accent).map((color, i) => (
                     <i key={i} className="h-3 w-3 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(17,17,20,0.14)]" style={{ background: color }} />
@@ -275,7 +275,7 @@ export function Home(props: {
             <div className="embed-actions flex items-center gap-1">
               <ScenarioMenu scenario={props.scenario} lang={props.lang} onScenario={props.onScenario} />
               {props.staticDemo ? (
-                <span className="embed-chip whitespace-nowrap rounded-full border border-[rgba(124,58,237,0.35)] bg-(--accent-dim) px-2 py-1 font-(--font-mono) text-[8.5px] tracking-[0.12em] text-(--accent-hover) uppercase">
+                <span className="embed-chip whitespace-nowrap rounded-full border border-[rgba(124,58,237,0.35)] bg-(--accent-dim) px-2 py-1 font-(family-name:--font-mono) text-[8.5px] tracking-[0.12em] text-(--accent-hover) uppercase">
                   {zh ? "演示模式" : "demo mode"}
                 </span>
               ) : (
@@ -310,7 +310,7 @@ export function Home(props: {
         <div className="custom-zone mt-6 rounded-[var(--r-lg)] border border-(--hairline-subtle) bg-(--bg-surface) p-6">{props.customize}</div>
 
         <div className="quick-bar mt-8 flex flex-wrap items-center gap-2">
-          <span className="quick-label mr-1 font-(--font-mono) text-[10px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "更多" : "More"}</span>
+          <span className="quick-label mr-1 font-(family-name:--font-mono) text-[10px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "更多" : "More"}</span>
           <button className={QUICK_BTN} onClick={props.onPalette}><Icon name="command" size={14} />{zh ? "命令面板" : "Command palette"}<kbd className={QUICK_KBD}>⌘K</kbd></button>
           <button className={QUICK_BTN} onClick={props.onLang}><Icon name="globe" size={14} />{zh ? "切换语言" : "Switch language"}<em className={QUICK_KBD}>{zh ? "中 / EN" : "EN / 中文"}</em></button>
           <button className={QUICK_BTN} onClick={props.onRunInfo}><Icon name="braces" size={14} />{zh ? "运行详情" : "Run details"}</button>
@@ -322,7 +322,7 @@ export function Home(props: {
             <Icon name="arrow-right" size={14} />
             {zh ? "快速上手" : "Get started"}
           </button>
-          <span className="quick-note ml-auto font-(--font-mono) text-[9px] tracking-[0.06em] text-(--fg-muted)">{props.piNote}</span>
+          <span className="quick-note ml-auto font-(family-name:--font-mono) text-[9px] tracking-[0.06em] text-(--fg-muted)">{props.piNote}</span>
         </div>
 
         <LazyMount minHeight={420}>
@@ -331,7 +331,7 @@ export function Home(props: {
           </Suspense>
         </LazyMount>
 
-        <footer className="home-foot mt-[clamp(64px,8vw,96px)] flex items-center justify-between gap-5 border-t border-(--hairline-subtle) pt-6 font-(--font-mono) text-[10.5px] tracking-[0.06em] text-(--fg-muted) max-[860px]:flex-col max-[860px]:items-start max-[860px]:gap-2">
+        <footer className="home-foot mt-[clamp(64px,8vw,96px)] flex items-center justify-between gap-5 border-t border-(--hairline-subtle) pt-6 font-(family-name:--font-mono) text-[10.5px] tracking-[0.06em] text-(--fg-muted) max-[860px]:flex-col max-[860px]:items-start max-[860px]:gap-2">
           <span>AG-UI Studio · protocol 1.0</span>
           <span>React · Vite · pi · DeepSeek</span>
         </footer>
