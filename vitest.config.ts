@@ -1,10 +1,11 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { aguiAliases } from "./config/agui-aliases";
 
 export default defineConfig({
   // one shared alias list drives dev / test / build (see config/agui-aliases.ts)
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: { alias: aguiAliases, dedupe: ["react", "react-dom"] },
   optimizeDeps: { exclude: ["agui-skins"] },
   test: {

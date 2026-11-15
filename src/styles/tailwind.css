@@ -1,0 +1,30 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Tailwind v4 entry — utilities only, NO preflight.
+
+   Why preflight is disabled: Tailwind's reset would restyle consumer
+   pages and the nine skins' baselines (button margins, heading sizes,
+   border-color defaults). The studio keeps its own base reset in
+   app.css (unlayered), skins keep theirs.
+
+   Why there is NO @theme color layer: @theme variables are emitted at
+   :root, and CSS custom properties are substituted at computed-value
+   time *on the element that declares them*. A theme token like
+   `--color-accent: var(--wb-accent)` would therefore freeze the :root
+   value and never see the per-skin / data-sk-theme="light" scope
+   overrides — breaking the multi-brand isolation this migration must
+   preserve. The site-wide convention is instead: utilities reference
+   the original scoped variable inline (`bg-(--wb-shell)`,
+   `text-(--fg-muted)`), so var() resolution happens on the consuming
+   element and 皮肤作用域变量 stays the single source of truth.
+   ═══════════════════════════════════════════════════════════════════ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Explicit sources: the app shell + the skins package (skin TSX carries
+   utilities from Phase 1 onward; Tailwind v4 never scans node_modules,
+   and the workspace package is consumed as source, not dist). Glob is
+   ts/tsx only — scanning CSS text would mint phantom utilities from
+   property names. */
+@source "../../src/**/*.{ts,tsx}";
+@source "../../packages/agui-skins/src/**/*.{ts,tsx}";
