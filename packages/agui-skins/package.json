@@ -71,6 +71,7 @@
   "dependencies": {
     "color2k": "^2.0.4",
     "three": "^0.187.0",
+    "troika-three-text": "^0.53.1",
     "use-stick-to-bottom": "^1.1.6"
   }
 }

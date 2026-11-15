@@ -41,4 +41,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   tsconfig: "tsconfig.json",
+  // The lazy Orbit scene imports these; npm consumers provide them as the
+  // package dependencies and they must never be inlined into dist JS.
+  external: ["three", "troika-three-text"],
 });

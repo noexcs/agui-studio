@@ -221,10 +221,17 @@ const en = {
   "bb.empty": "Say hello — the conversation starts here.",
   "bb.systemNote": "Update",
 
-  // orbit
-  "or.you": "You · outer ring",
+  // orbit (v2: 3D text tunnel)
+  "or.you": "You",
+  "or.assistant": "Assistant",
   "or.emptyTitle": "The room is listening.",
-  "or.emptySub": "Send a message — the agent answers from the core.",
+  "or.emptySub": "Send a message — it materializes out of the deep field.",
+  "or.emptyHint": "tunnel idle · wheel to travel",
+  "or.continued": "continued",
+  "or.state.done": "done",
+  "or.state.active": "active",
+  "or.state.pending": "pending",
+  "or.state.cancelled": "cancelled",
   "or.fold": "Holo panel",
   "or.plan": "Flight plan",
   "or.planEmpty": "No steps reported.",
@@ -247,7 +254,7 @@ const en = {
   "or.layer.outer": "Outer ring",
   "or.composer": "Message the AG-UI agent…",
   "or.composerPending": "Resolve the authorization above first",
-  "or.hint": "⏎ send · ⇧⏎ new line",
+  "or.hint": "wheel to travel · ⏎ send · ⇧⏎ new line",
 
   // filters
   "filter.all": "All",
@@ -486,9 +493,16 @@ const zh: Dict = {
   "bb.empty": "打个招呼吧 — 对话从这里开始。",
   "bb.systemNote": "动态",
 
-  "or.you": "你 · 外环",
+  "or.you": "你",
+  "or.assistant": "助手",
   "or.emptyTitle": "空间正在聆听。",
-  "or.emptySub": "发一条消息 — 助手会从核心回应。",
+  "or.emptySub": "发一条消息 — 文字会从深空中浮现。",
+  "or.emptyHint": "隧道待机 · 滚轮穿行",
+  "or.continued": "接续",
+  "or.state.done": "完成",
+  "or.state.active": "进行中",
+  "or.state.pending": "待处理",
+  "or.state.cancelled": "已取消",
   "or.fold": "全息面板",
   "or.plan": "飞行计划",
   "or.planEmpty": "未上报步骤。",
@@ -511,7 +525,7 @@ const zh: Dict = {
   "or.layer.outer": "外环",
   "or.composer": "给 AG-UI 助手发消息…",
   "or.composerPending": "先处理上方的授权请求",
-  "or.hint": "⏎ 发送 · ⇧⏎ 换行",
+  "or.hint": "滚轮穿行 · ⏎ 发送 · ⇧⏎ 换行",
 
   "filter.all": "全部",
   "filter.lifecycle": "生命周期",
