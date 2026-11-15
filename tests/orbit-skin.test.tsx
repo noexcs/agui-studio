@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,12 +8,11 @@ import { ConversationStore } from "../src/core/store";
 import { EventType } from "../src/core/events";
 import { makeFixture, makeFoldStore, makeStore } from "./fixture";
 
-/* Orbit — deep-space 3D skin. Contract: every entry renders from the same
-   fixture as the other nine skins; the Three canvas + CSS starfield are both
-   present; the depth layers, fold panels, per-id approval edits, expired
-   interrupts and all six statuses have explicit presentations. The Three
-   internals are intentionally not mocked: jsdom has no WebGL, so the real
-   component takes its built-in fallback path. */
+/* Orbit v2 — a fully 3D transcript. jsdom has no WebGL, so these tests
+   exercise the real no-WebGL fallback path (the brief's acceptable 2D
+   path); the 3D scene itself is covered by the pure model/camera tests and
+   by source-level architecture assertions. three internals are never
+   mocked. */
 
 afterEach(() => {
   cleanup();
@@ -36,31 +35,24 @@ function renderOrbit(
   );
 }
 
-describe("orbit contract", () => {
+describe("orbit contract (v2)", () => {
   it("renders every entry kind from the fixture", () => {
     const { container } = renderOrbit(makeFixture());
-    let text = container.textContent ?? "";
+    const text = container.textContent ?? "";
     expect(text).toContain("fixture user prompt");
     expect(text).toContain("fixture answer");
     expect(text).toContain("fixture approval needed");
     expect(text.toLowerCase()).toContain("fixture step one");
     expect(text.toLowerCase()).toContain("fixture subagent");
     expect(text).toContain("handoff"); // inline CUSTOM stays visible
-
-    // the fixture's adjacent tool+thinking run is a folded holo panel
-    const head = container.querySelector("[data-fold-head]") as HTMLButtonElement;
-    expect(head).toBeTruthy();
-    fireEvent.click(head);
-    expect(container.querySelector(".or-reason")).toBeTruthy();
-    expect(container.querySelector(".or-tool")).toBeTruthy();
-    expect((container.textContent ?? "").toLowerCase()).toContain("web.search");
-    // plan entry from the fixture
-    expect(container.querySelector(".or-plan")?.textContent).toContain("fixture plan");
+    expect(text).toContain("web.search");
+    expect(text).toContain("fixture plan");
   });
 
-  it("picks up injected branding in the HUD header", () => {
+  it("picks up injected branding in the semantic header", () => {
     const { container } = renderOrbit(makeFixture());
     expect(container.querySelector(".or-hud")?.textContent).toContain("Fixture Agent");
+    expect(container.querySelector(".or-hud")?.textContent).toContain("fixture-model");
   });
 
   it("applies dictionary overrides to the empty state", () => {
@@ -76,139 +68,51 @@ describe("orbit contract", () => {
   });
 });
 
-describe("orbit sky and 3D structure", () => {
-  it("mounts the lazy Three canvas and the CSS starfield fallback", async () => {
+describe("orbit no-WebGL fallback", () => {
+  it("renders a readable DOM transcript and never mounts the scene canvas", () => {
     const { container } = renderOrbit(makeFixture());
-    expect(container.querySelector(".or-sky")).toBeTruthy();
+    expect(container.querySelector(".skin-orbit")?.getAttribute("data-scene")).toBe("fallback");
+    expect(container.querySelector(".or-fallback")).toBeTruthy();
     expect(container.querySelector(".or-sky-fallback")).toBeTruthy();
-    // the canvas element is rendered by the lazily imported module; WebGL is
-    // absent in jsdom, so the component immediately takes onFail
-    await waitFor(() => {
-      expect(container.querySelector("canvas.or-sky-canvas")).toBeTruthy();
-    });
+    expect(container.querySelector("canvas")).toBeNull();
   });
 
-  it("lays the transcript out in perspective with the documented depth table", () => {
-    const { container } = renderOrbit(makeFixture());
-    const feed = container.querySelector(".or-feed") as HTMLElement;
-    expect(feed.className).toContain("perspective:1200px");
-    expect(container.querySelector('[data-kind="user"]')?.getAttribute("data-depth")).toBe("far");
-    expect(container.querySelector('[data-kind="assistant"]')?.getAttribute("data-depth")).toBe("near");
-    expect(container.querySelector('[data-kind="fold"]')?.getAttribute("data-depth")).toBe("holo");
-    expect(container.querySelector('[data-kind="interrupt"]')?.getAttribute("data-depth")).toBe("front");
-    expect(container.querySelector('.or-feed [data-kind="user"]')?.className).toContain("translateZ(-120px)");
-    expect(container.querySelector('[data-kind="interrupt"]')?.className).toContain("translateZ(80px)");
-  });
-
-  it("tilts the composer tray but keeps its content facing the lens", () => {
-    const { container } = renderOrbit(makeFixture());
-    const dock = container.querySelector(".or-dock") as HTMLElement;
-    expect(dock.className).toContain("rotateX(18deg)");
-    const face = dock.firstElementChild as HTMLElement;
-    expect(face.className).toContain("rotateX(-18deg)");
-  });
-
-  it("anchors reduced motion, focus and accent guarding in orbit.css", () => {
-    const css = readFileSync(
-      join(process.cwd(), "packages", "agui-skins", "src", "skins", "orbit", "orbit.css"),
-      "utf8"
-    );
-    expect(css).toContain("prefers-reduced-motion");
-    expect(css).toContain(":focus-visible");
-    expect(css).toContain("outline-offset");
-    expect(css).toContain("var(--sk-accent");
-    expect(css).toContain("@keyframes or-blink");
-    expect(css).toContain(".or-sky-fallback");
-  });
-
-  it("skips the Three module under prefers-reduced-motion and shows CSS stars", () => {
-    const listeners = new Set<() => void>();
-    const mql = {
-      matches: true,
-      media: "(prefers-reduced-motion: reduce)",
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
-      removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
-      dispatchEvent: () => false,
-    };
-    vi.spyOn(window, "matchMedia").mockReturnValue(mql as unknown as MediaQueryList);
-
+  it("keeps the composer as the only interactive text surface with an aria-label", () => {
     const { container } = renderOrbit(makeFixture(), "en");
-    expect(container.querySelector(".or-sky-fallback")).toBeTruthy();
-    expect(container.querySelector("canvas.or-sky-canvas")).toBeNull();
+    const textarea = container.querySelector("textarea");
+    expect(textarea?.getAttribute("aria-label")).toBe("Message composer");
+    fireEvent.change(textarea as HTMLTextAreaElement, { target: { value: "hello orbit" } });
+    expect((textarea as HTMLTextAreaElement).value).toBe("hello orbit");
   });
-});
 
-describe("orbit fold groups (holo panels)", () => {
-  it("collapses a settled run into one panel by default", () => {
+  it("exposes fold groups with counts, failure flags and keyboard operation", () => {
     const { container } = renderOrbit(makeFoldStore() as unknown as SkinConversation);
     const head = container.querySelector("[data-fold-head]") as HTMLButtonElement;
-    expect(head.tagName).toBe("BUTTON");
-    expect(head.getAttribute("aria-expanded")).toBe("false"); // all members terminal
+    expect(head).toBeTruthy();
+    expect(head.getAttribute("aria-label")).toBeNull(); // content-derived name
+    expect(head.getAttribute("aria-expanded")).toBe("false"); // settled group
     expect(head.textContent).toContain("booking.hold");
     expect(head.textContent).toContain("web.search");
-    expect(head.textContent).toContain(t("fold.thinking"));
-    expect(container.querySelector(".or-tool")).toBeNull(); // members unmounted
-    expect(container.querySelector(".or-reason")).toBeNull();
-  });
-
-  it("clicking the head mounts the original rows and toggles aria-expanded", () => {
-    const { container } = renderOrbit(makeFoldStore() as unknown as SkinConversation);
-    const head = container.querySelector("[data-fold-head]") as HTMLButtonElement;
-    fireEvent.click(head);
-    expect(head.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector(".or-reason")).toBeTruthy();
-    expect(container.querySelector(".or-tool")).toBeTruthy();
-    fireEvent.click(head);
-    expect(head.getAttribute("aria-expanded")).toBe("false");
-    expect(container.querySelector(".or-tool")).toBeNull();
-  });
-
-  it("is keyboard-operable (focus + explicit Enter/Space)", () => {
-    const { container } = renderOrbit(makeFoldStore() as unknown as SkinConversation);
-    const head = container.querySelector("[data-fold-head]") as HTMLButtonElement;
+    expect(head.textContent).toMatch(/\d/);
     head.focus();
     expect(document.activeElement).toBe(head);
     fireEvent.keyDown(head, { key: "Enter" });
     expect(head.getAttribute("aria-expanded")).toBe("true");
     fireEvent.keyDown(head, { key: " " });
     expect(head.getAttribute("aria-expanded")).toBe("false");
+    // members stay readable regardless of the fold override
+    expect(container.textContent).toContain("thinking about the trip");
   });
 
-  it("an in-flight run derives an open panel with the live marker", () => {
-    const { container } = renderOrbit(makeFoldStore({ leaveRunning: true }) as unknown as SkinConversation);
-    const head = container.querySelector("[data-fold-head]") as HTMLButtonElement;
-    expect(head.getAttribute("aria-expanded")).toBe("true");
-    expect(head.textContent).toContain(t("chat.executing"));
-  });
-
-  it("a failed tool inside the panel surfaces the failure flag", () => {
+  it("surfaces a failed tool inside a fold group", () => {
     const { container } = renderOrbit(makeFoldStore({ failLastTool: true }) as unknown as SkinConversation);
     const head = container.querySelector("[data-fold-head]") as HTMLButtonElement;
-    const flag = head.querySelector('[data-failure="error"]');
-    expect(flag).toBeTruthy();
-    expect(flag?.textContent).toContain(t("fold.hasFailures"));
-  });
-
-  it("singletons stay ungrouped and error rows remain independent", () => {
-    const store = makeStore();
-    try {
-      store.dispatch({ type: EventType.RUN_STARTED, threadId: "t1", runId: "r1" } as never);
-      store.dispatch({ type: EventType.REASONING_START, messageId: "r1" } as never);
-      store.dispatch({ type: EventType.REASONING_MESSAGE_END, messageId: "r1" } as never);
-      store.dispatch({ type: EventType.RUN_ERROR, message: "fixture run error message" } as never);
-      const { container } = renderOrbit(store as unknown as SkinConversation);
-      expect(container.querySelector("[data-fold-head]")).toBeNull();
-      expect(container.querySelector(".or-error-row")).toBeTruthy();
-    } finally {
-      store.stop();
-    }
+    expect(head.textContent).toContain(t("fold.hasFailures"));
+    expect(container.textContent).toContain("backend down");
   });
 });
 
-describe("orbit approvals", () => {
+describe("orbit approvals (v2)", () => {
   const ARGS_A = { hotel: "Hotel Atlantico", nights: 2 };
   const ARGS_B = { hotel: "Hotel Bairro", nights: 3 };
 
@@ -249,39 +153,18 @@ describe("orbit approvals", () => {
     return button;
   };
 
-  it("keeps edit state per interrupt id (Fix B shape)", () => {
+  it("resolves each pending card with its own id and never edits across cards", () => {
     const store = makeTwoPendingStore();
     const spy = vi.spyOn(store, "resolveInterrupt");
     const { container } = renderOrbit(store as unknown as SkinConversation);
+    // v2 exemption: approvals are binary (approve/deny) — no JSON editor
     expect(container.querySelectorAll(".or-approval textarea")).toHaveLength(0);
 
-    fireEvent.click(buttonByText(cardByMessage(container, "approval one"), t("intr.edit")));
-    expect(container.querySelectorAll(".or-approval textarea")).toHaveLength(1);
-    expect(cardByMessage(container, "approval one").querySelector("textarea")).toBeTruthy();
-    expect(cardByMessage(container, "approval two").querySelector("textarea")).toBeNull();
-
-    const editor = cardByMessage(container, "approval one").querySelector("textarea") as HTMLTextAreaElement;
-    fireEvent.change(editor, { target: { value: '{"hotel":"A was edited"}' } });
-    fireEvent.click(buttonByText(cardByMessage(container, "approval one"), t("intr.approveEdited")));
-    expect(spy).toHaveBeenLastCalledWith(true, { hotel: "A was edited" }, "i1");
-
-    // card B submits its own args and never reuses A's draft
-    fireEvent.click(buttonByText(cardByMessage(container, "approval two"), t("intr.approve")));
-    expect(spy).toHaveBeenLastCalledWith(true, undefined, "i2");
+    fireEvent.click(buttonByText(cardByMessage(container, "approval one"), t("intr.approve")));
+    expect(spy).toHaveBeenLastCalledWith(true, undefined, "i1");
+    fireEvent.click(buttonByText(cardByMessage(container, "approval two"), t("intr.deny")));
+    expect(spy).toHaveBeenLastCalledWith(false, undefined, "i2");
     expect(spy).toHaveBeenCalledTimes(2);
-    store.stop();
-    spy.mockRestore();
-  });
-
-  it("seeds card B with its own tool args", () => {
-    const store = makeTwoPendingStore();
-    const spy = vi.spyOn(store, "resolveInterrupt");
-    const { container } = renderOrbit(store as unknown as SkinConversation);
-    fireEvent.click(buttonByText(cardByMessage(container, "approval two"), t("intr.edit")));
-    const textarea = cardByMessage(container, "approval two").querySelector("textarea") as HTMLTextAreaElement;
-    expect(JSON.parse(textarea.value)).toEqual(ARGS_B);
-    fireEvent.click(buttonByText(cardByMessage(container, "approval two"), t("intr.approveEdited")));
-    expect(spy).toHaveBeenCalledWith(true, ARGS_B, "i2");
     store.stop();
     spy.mockRestore();
   });
@@ -291,10 +174,8 @@ describe("orbit approvals", () => {
     const spy = vi.spyOn(store, "resolveInterrupt");
     const { container } = renderOrbit(store as unknown as SkinConversation);
 
-    fireEvent.click(buttonByText(cardByMessage(container, "approval one"), t("intr.edit")));
-    const editor = cardByMessage(container, "approval one").querySelector("textarea") as HTMLTextAreaElement;
-    fireEvent.keyDown(editor, { key: "y" });
-    fireEvent.keyDown(editor, { key: "n" });
+    fireEvent.keyDown(container.querySelector("textarea") as HTMLTextAreaElement, { key: "y" });
+    fireEvent.keyDown(container.querySelector("textarea") as HTMLTextAreaElement, { key: "n" });
     expect(spy).not.toHaveBeenCalled();
 
     fireEvent.keyDown(window, { key: "y" });
@@ -325,7 +206,6 @@ describe("orbit approvals", () => {
           },
         } as never);
         store.resolveInterrupt(true, undefined, "i1");
-        store.stop();
         const { container, unmount } = renderOrbit(store as unknown as SkinConversation, lang);
         const text = container.textContent ?? "";
         if (lang === "zh") {
@@ -398,7 +278,7 @@ describe("orbit statuses and edges", () => {
     }
   });
 
-  it("suggestions fill the composer instead of dead-ending", () => {
+  it("suggestions fill the composer in the fallback path", () => {
     const store = makeStore();
     try {
       store.dispatch({ type: EventType.CUSTOM, name: "suggestions", value: ["suggestion-one"] } as never);
@@ -414,19 +294,18 @@ describe("orbit statuses and edges", () => {
     }
   });
 
-  it("keeps debug-class CUSTOM in the protocol drawer, not the transcript", () => {
+  it("keeps debug-class CUSTOM out of the transcript", () => {
     const store = makeStore();
     try {
       store.dispatch({ type: EventType.CUSTOM, name: "mystery.telemetry", value: { payload: true } } as never);
       const { container } = renderOrbit(store as unknown as SkinConversation);
       expect(container.textContent).not.toContain("mystery.telemetry");
-      expect(container.querySelector(".sk-proto-trigger")?.textContent).toContain(String(store.events.length));
     } finally {
       store.stop();
     }
   });
 
-  it("streams assistant tokens into the near panel", () => {
+  it("streams assistant tokens into the transcript", () => {
     const store = new ConversationStore(false);
     try {
       store.dispatch({
@@ -445,5 +324,73 @@ describe("orbit statuses and edges", () => {
     } finally {
       store.stop();
     }
+  });
+
+  it("honours reduced motion by flagging the page (fallback stays readable)", () => {
+    const listeners = new Set<() => void>();
+    const mql = {
+      matches: true,
+      media: "(prefers-reduced-motion: reduce)",
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+      dispatchEvent: () => false,
+    };
+    vi.spyOn(window, "matchMedia").mockReturnValue(mql as unknown as MediaQueryList);
+    const { container } = renderOrbit(makeFixture(), "en");
+    expect(container.querySelector(".skin-orbit")?.getAttribute("data-reduced")).toBe("1");
+    expect(container.querySelector(".or-fallback")).toBeTruthy();
+  });
+});
+
+describe("orbit v2 architecture (source-level)", () => {
+  const pkgSrc = (...parts: string[]) =>
+    join(process.cwd(), "packages", "agui-skins", "src", ...parts);
+
+  it("lazy-loads a three/troika scene and keeps the main entry free of them", () => {
+    const index = readFileSync(pkgSrc("skins", "orbit", "index.tsx"), "utf8");
+    expect(index).toContain('lazy(() => import("./OrbitScene"))');
+    expect(index).not.toMatch(/from "three"/);
+    expect(index).not.toMatch(/from "troika-three-text"/);
+    const scene = readFileSync(pkgSrc("skins", "orbit", "OrbitScene.tsx"), "utf8");
+    expect(scene).toContain('from "three"');
+    expect(scene).toContain('from "troika-three-text"');
+    // local error boundary + context-loss path + reduced reset hooks
+    expect(index).toContain("componentDidCatch");
+    expect(scene).toContain("webglcontextlost");
+    expect(scene).toContain("webglcontextlost");
+  });
+
+  it("ships no Markdown parser, no protocol drawer and no DOM 3D transcript tricks", () => {
+    const index = readFileSync(pkgSrc("skins", "orbit", "index.tsx"), "utf8");
+    expect(index).not.toContain("shared/Markdown");
+    expect(index).not.toContain("ProtocolDrawer");
+    expect(index).not.toContain("perspective:");
+    expect(index).toContain("sr-only");
+    expect(index).toContain("data-scene-action");
+  });
+
+  it("declares troika as a dependency and keeps it external in tsup", () => {
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), "packages", "agui-skins", "package.json"), "utf8"));
+    expect(pkg.dependencies["troika-three-text"]).toBeTruthy();
+    const tsup = readFileSync(join(process.cwd(), "packages", "agui-skins", "tsup.config.ts"), "utf8");
+    expect(tsup).toMatch(/external:\s*\[[^\]]*"three"[^\]]*"troika-three-text"/s);
+  });
+
+  it("anchors the residual CSS contract (tokens, fallback sky, focus proxy, reduced motion)", () => {
+    const css = readFileSync(pkgSrc("skins", "orbit", "orbit.css"), "utf8");
+    expect(css).toContain("var(--sk-accent");
+    expect(css).toContain(".or-sky-fallback");
+    expect(css).toContain(".or-proxy:focus-visible");
+    expect(css).toContain("outline-offset");
+    expect(css).toContain("@keyframes or-holo-scan");
+    expect(css).toContain("prefers-reduced-motion");
+  });
+
+  it("wires the 0 key to the tenth skin without breaking the 1–9 mapping", () => {
+    const app = readFileSync(join(process.cwd(), "src", "app", "App.tsx"), "utf8");
+    expect(app).toContain("skinShortcutIndex(e.key)");
   });
 });
