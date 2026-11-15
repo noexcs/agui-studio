@@ -348,6 +348,7 @@ describe("Fix C: zh i18n leak regression", () => {
     dispatch(store, { type: EventType.TOOL_CALL_END, toolCallId: "tc_h" });
     dispatch(store, { type: EventType.TOOL_CALL_RESULT, toolCallId: "tc_h", content: '{"reservation":"LIS-2481"}' });
     const { container } = renderSkin("paper", store, "zh");
+    fireEvent.click(container.querySelector("[data-fold-head]") as HTMLButtonElement); // unfold the tool note (sources live inside)
     const text = container.textContent ?? "";
     expect(text).toContain("回车发送");
     expect(text).toContain("已预留");
@@ -397,6 +398,7 @@ describe("Fix C: zh i18n leak regression", () => {
   it("terminal: reasoning label and thinking copy are zh", () => {
     const store = track(makeFixture() as unknown as ConversationStore);
     const { container } = renderSkin("terminal", store, "zh");
+    fireEvent.click(container.querySelector("[data-fold-head]") as HTMLButtonElement); // unfold the thinking line
     expect(container.textContent).toContain("思考中");
     expect(container.textContent).not.toContain("thinking");
   });
