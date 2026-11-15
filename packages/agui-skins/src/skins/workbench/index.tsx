@@ -905,10 +905,10 @@ function CustomRow({ entry, plugins }: { entry: CustomEntry; plugins: ReturnType
   if (plugin) return <div className="wb-custom max-w-[760px] text-[11px]">{plugin}</div>;
   return (
     <details className="wb-custom max-w-[760px] text-[11px]">
-      <summary className="mono flex cursor-pointer list-none items-center gap-2 rounded-md border border-dashed border-(--wb-line-soft) px-2.5 py-[5px] text-(--wb-dim) hover:text-(--wb-text) active:bg-(--wb-wash) active:text-(--wb-text) [.wb-custom[open]_&]:rounded-b-none">
+      <summary className="mono flex cursor-pointer list-none items-center gap-2 rounded-md border border-dashed border-(--wb-line-soft) px-2.5 py-[5px] text-(--wb-dim) hover:text-(--wb-text) active:bg-(--wb-wash) active:text-(--wb-text) [&::-webkit-details-marker]:hidden [.wb-custom[open]_&]:rounded-b-none">
         <span className="wb-node-kind wb-node-kind--custom shrink-0 rounded-[3px] border border-(--wb-line-soft) px-[5px] text-[8.5px] tracking-[0.08em] uppercase font-(family-name:--wb-mono)">{t("wb.node.custom")}</span>
         <span>{displayText(entry.name)}</span>
-        <Icon name="chevron" size={9} className={`${CHEV} rotate-0 [&::-webkit-details-marker]:hidden [.wb-custom[open]_&]:rotate-90`} />
+        <Icon name="chevron" size={9} className={`${CHEV} rotate-0 [.wb-custom[open]_&]:rotate-90`} />
       </summary>
       <pre className={`${WB_PRE} rounded-t-none -mt-px`}>{safeJson(entry.value, 2)}</pre>
     </details>
