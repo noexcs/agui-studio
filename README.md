@@ -744,3 +744,7 @@ http://127.0.0.1:5178/?agui=http://127.0.0.1:5180/agui&autosend=1&lang=zh
 三套均带：全状态呈现（running/done/stopped/error/interrupted/expired）、按卡独立审批编辑（Fix B 姿势）、未知 CUSTOM 折叠呈现、`--sk-accent-fg` 前景守卫、`:focus-visible`/`:active`/reduced-motion 全套。皮肤总数 9；`src/shared/skin-swatches.ts` 同步 swatch 行；首页计数/快捷键/QuickStart 行 registry 驱动自动扩展。
 
 测试增至 **459 个用例（31 文件）**；双评审（代码契约 + 视觉门）+ 修复轮全过。
+
+## 2026-11-15 连续思考+工具调用折叠组
+
+全部 9 套皮肤支持：相邻连续的思考（reasoning）与工具调用（tool）条目自动聚合为可折叠组（≥2 条成组，error 行永不入组、独立可见）。默认开合确定性派生——组内全部完成则折叠、任一进行中则展开，用户点击后以用户选择为准；组内有失败/暂停工具时折叠头透出状态标记，读屏可访问名=按钮完整内容（无 aria-label 遮蔽）。分组逻辑在包内 `shared/conversationGroups.ts` 纯函数一处，呈现由各皮肤用自己的视觉语言渲染。测试增至 **550 个用例（39 文件）**。
