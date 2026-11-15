@@ -145,3 +145,30 @@ describe("skin registry", () => {
     expect(skins.map((skin) => skin.id).sort()).toEqual(["aurora", "brutalist", "bubble", "classic", "dash", "paper", "particle", "terminal", "workbench"]);
   });
 });
+
+describe("theme tuning contract", () => {
+  it("lands the theme on the .sk-tune container like the other tuning attributes", () => {
+    const Page = skins.find((s) => s.id === "workbench")!.ChatPage;
+    const { container, unmount } = render(
+      <SkinHostProvider conversation={makeFixture()} branding={BRANDING} tuning={{ theme: "light" }}>
+        <Page />
+      </SkinHostProvider>
+    );
+    expect(wrapper(container).dataset.skTheme).toBe("light");
+    unmount();
+    const dark = render(
+      <SkinHostProvider conversation={makeFixture()} branding={BRANDING} tuning={{}}>
+        <Page />
+      </SkinHostProvider>
+    );
+    // no attribute when the user never picked a theme — the dark default must
+    // be indistinguishable from a skin that ships no variant at all
+    expect((dark.container.querySelector(".sk-tune") as HTMLElement).hasAttribute("data-sk-theme")).toBe(false);
+    dark.unmount();
+  });
+
+  it("declares theme support in the registry (only workbench opts in)", () => {
+    const withTheme = skins.filter((skin) => skin.tuningSupport?.theme === true).map((skin) => skin.id);
+    expect(withTheme).toEqual(["workbench"]);
+  });
+});

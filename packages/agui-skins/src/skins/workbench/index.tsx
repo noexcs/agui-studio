@@ -791,4 +791,5 @@ export default {
   tagline: "IDE shell · rounds as files",
   swatch: ["#1e2024", "#262930", "#7aa2f7"] as [string, string, string],
   ChatPage: WorkbenchPage,
+  tuningSupport: { theme: true },
 };

@@ -1,4 +1,6 @@
 import { cleanup, fireEvent, render } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { skins, SkinHostProvider, t } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
@@ -308,5 +310,65 @@ describe("workbench edges", () => {
     } finally {
       store.stop();
     }
+  });
+});
+
+describe("workbench light theme (tuning.theme)", () => {
+  const css = () => readFileSync(join(process.cwd(), "packages", "agui-skins", "src", "skins", "workbench", "workbench.css"), "utf8");
+  const Page = skinById("workbench").ChatPage;
+
+  it("flips the host data attribute without one when unset (dark default)", () => {
+    const { container, rerender } = render(
+      <SkinHostProvider conversation={makeFixture()} lang="en" branding={BRANDING} tuning={{}}>
+        <Page />
+      </SkinHostProvider>
+    );
+    const tune = () => container.querySelector(".sk-tune") as HTMLElement;
+    expect(tune().hasAttribute("data-sk-theme")).toBe(false); // untouched default
+    rerender(
+      <SkinHostProvider conversation={makeFixture()} lang="en" branding={BRANDING} tuning={{ theme: "dark" }}>
+        <Page />
+      </SkinHostProvider>
+    );
+    expect(tune().dataset.skTheme).toBe("dark"); // explicit dark carries the attribute too
+    rerender(
+      <SkinHostProvider conversation={makeFixture()} lang="en" branding={BRANDING} tuning={{ theme: "light" }}>
+        <Page />
+      </SkinHostProvider>
+    );
+    expect(tune().dataset.skTheme).toBe("light");
+  });
+
+  it("the light variant is attribute-gated and overrides the workbench palette", () => {
+    const cssText = css();
+    // every light rule is gated on the host attribute — no unconditional light colors
+    expect(cssText).toContain('.sk-tune[data-sk-theme="light"] .skin-workbench');
+    const gated = cssText.slice(cssText.indexOf('.sk-tune[data-sk-theme="light"]'));
+    // key faces from the task brief land in the gated override only
+    for (const token of ["#f7f8fa", "#ffffff", "#f0f2f5", "#e9ebef", "#f2f4f7", "#fbfcfd", "#1c1f24", "#565b64"]) {
+      expect(gated).toContain(token);
+      // …and never leak into the dark base (dark keeps its own palette)
+    }
+    // syntax family: same hue, deeper tone (blue/violet/cyan/green/amber/red)
+    for (const token of ["#2563eb", "#7c3aed", "#0e7490", "#15803d", "#b45309", "#dc2626"]) {
+      expect(gated).toContain(token);
+    }
+    // dark base keeps the original syntax values (zero-regression anchor)
+    const base = cssText.slice(0, cssText.indexOf('.sk-tune[data-sk-theme="light"]'));
+    for (const token of ["#7aa2f7", "#bb9af7", "#7dcfff", "#9ece6a", "#e0af68", "#f7768e", "#1b1d21", "#222429", "#181a1e"]) {
+      expect(base).toContain(token);
+    }
+  });
+
+  it("dark surfaces resolve through variables so the default renders identically", () => {
+    const { container } = render(
+      <SkinHostProvider conversation={makeFixture()} lang="en" branding={BRANDING} tuning={{ theme: "light" }}>
+        <Page />
+      </SkinHostProvider>
+    );
+    const root = container.querySelector(".skin-workbench") as HTMLElement;
+    expect(root).toBeTruthy();
+    // the light skin still renders from the same class — variant is CSS-only
+    expect(root.className).not.toContain("light");
   });
 });

@@ -1,6 +1,6 @@
 import { safeAccent } from "agui-skins";
 import { DEFAULT_SCENARIO, type DemoScenario } from "../core/demo-scenarios";
-import type { Lang, SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTuning } from "agui-skins";
+import type { Lang, SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTheme, SkinTuning } from "agui-skins";
 
 import type { StudioBackend } from "../core/store";
 
@@ -11,6 +11,7 @@ const DENSITIES: SkinDensity[] = ["comfortable", "compact"];
 const MOTIONS: SkinMotion[] = ["slow", "normal", "fast"];
 const RADII: SkinRadius[] = ["sharp", "soft", "round"];
 const TEXT_SCALES: SkinTextScale[] = ["compact", "normal", "large"];
+const THEMES: SkinTheme[] = ["dark", "light"];
 
 /**
  * Normalize user-supplied tuning (URL params are untrusted): drop unparseable
@@ -23,6 +24,7 @@ export function sanitizeTuning(input: {
   motion?: string | null;
   radius?: string | null;
   scale?: string | null;
+  theme?: string | null;
 }): SkinTuning {
   const tuning: SkinTuning = {};
   const accent = input.accent ? safeAccent(input.accent) : null;
@@ -41,6 +43,9 @@ export function sanitizeTuning(input: {
   }
   if (input.scale && (TEXT_SCALES as string[]).includes(input.scale)) {
     tuning.textScale = input.scale as SkinTextScale;
+  }
+  if (input.theme && (THEMES as string[]).includes(input.theme)) {
+    tuning.theme = input.theme as SkinTheme;
   }
   return tuning;
 }
@@ -75,5 +80,7 @@ export function buildAppQuery(input: {
   if (input.tuning.motion && input.tuning.motion !== "normal") params.set("motion", input.tuning.motion);
   if (input.tuning.radius) params.set("radius", input.tuning.radius);
   if (input.tuning.textScale && input.tuning.textScale !== "normal") params.set("scale", input.tuning.textScale);
+  // "dark" is the skin default — only an explicit light pick travels in the URL
+  if (input.tuning.theme && input.tuning.theme !== "dark") params.set("theme", input.tuning.theme);
   return params.toString();
 }

@@ -1,6 +1,6 @@
-import { Icon, accentGuard, type AccentGuard } from "agui-skins";
+import { Icon, accentGuard, getSkin, type AccentGuard } from "agui-skins";
 import { isZh } from "../i18n";
-import type { SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTuning } from "agui-skins";
+import type { SkinDensity, SkinMotion, SkinRadius, SkinTextAnim, SkinTextScale, SkinTheme, SkinTuning } from "agui-skins";
 
 const ACCENTS = [
   { hex: "#2563eb", zh: "经典蓝", en: "Blue" },
@@ -44,6 +44,11 @@ const SCALES: { value: SkinTextScale; zh: string; en: string }[] = [
   { value: "large", zh: "大", en: "Large" },
 ];
 
+const THEMES: { value: SkinTheme; zh: string; en: string }[] = [
+  { value: "dark", zh: "深色", en: "Dark" },
+  { value: "light", zh: "浅色", en: "Light" },
+];
+
 const PRESETS: { zh: string; en: string; tuning: SkinTuning }[] = [
   { zh: "原始", en: "Default", tuning: {} },
   { zh: "冷调", en: "Cool", tuning: { accent: "#0891b2", textAnim: "fade", density: "comfortable" } },
@@ -84,6 +89,8 @@ function contrastHint(guard: AccentGuard, zh: boolean): string {
 export function CustomizePanel(props: {
   open: boolean;
   variant?: "inline" | "drawer";
+  /** skin id, drives per-skin control gating via the skin's tuningSupport */
+  skinId?: string;
   skinName: string;
   tuning: SkinTuning;
   onChange: (next: SkinTuning) => void;
@@ -99,6 +106,11 @@ export function CustomizePanel(props: {
   const motion = props.tuning.motion ?? "normal";
   const radius = props.tuning.radius;
   const textScale = props.tuning.textScale ?? "normal";
+  const theme = props.tuning.theme ?? "dark";
+  // Theme is a per-skin capability: only skins declaring tuningSupport.theme
+  // (see SkinDefinition) get the segmented control — the registry stays the
+  // single source of truth for what a skin supports.
+  const themeSupported = props.skinId ? getSkin(props.skinId).tuningSupport?.theme === true : false;
   const inline = props.variant === "inline";
   // Fix E: guard the custom accent; hint only — rendering is auto-adjusted by
   // the skin host (--sk-accent-fg / --sk-accent-ink), never blocked here.
@@ -160,6 +172,26 @@ export function CustomizePanel(props: {
             </p>
           )}
         </div>
+
+        {themeSupported && (
+          <div className="customize-tile" data-testid="theme-tile">
+            <div className="customize-label">
+              <span>{zh ? "主题" : "Theme"}</span>
+              <em>{THEMES.find((item) => item.value === theme)?.[zh ? "zh" : "en"]}</em>
+            </div>
+            <div className="customize-seg">
+              {THEMES.map((item) => (
+                <button
+                  key={item.value}
+                  className={`customize-segbtn ${theme === item.value ? "is-active" : ""}`}
+                  onClick={() => set({ theme: item.value })}
+                >
+                  {zh ? item.zh : item.en}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="customize-tile">
           <div className="customize-label">
@@ -261,7 +293,7 @@ export function CustomizePanel(props: {
               <button
                 key={preset.en}
                 className={`customize-preset ${sameTuning(props.tuning, preset.tuning) ? "is-active" : ""}`}
-                onClick={() => props.onChange(preset.tuning)}
+                onClick={() => props.onChange({ ...preset.tuning, theme: props.tuning.theme })}
               >
                 {zh ? preset.zh : preset.en}
               </button>

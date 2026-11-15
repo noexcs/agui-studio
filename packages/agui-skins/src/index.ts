@@ -14,6 +14,7 @@ export type {
   SkinMotion,
   SkinRadius,
   SkinTextScale,
+  SkinTheme,
   StepEntry,
   CustomEntry,
   SkinPlugins,
