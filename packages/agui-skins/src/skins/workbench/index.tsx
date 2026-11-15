@@ -419,6 +419,16 @@ export function WorkbenchPage() {
               className="wb-panel-head"
               aria-expanded={panelOpen}
               onClick={() => setPanelOpen((open) => !open)}
+              onKeyDown={(event) => {
+                // Enter/Space activate a native button for free in browsers;
+                // spelling the handler out keeps the keydown contract testable
+                // (jsdom runs no activation behavior). preventDefault stops the
+                // browser's own click so the panel never double-toggles.
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setPanelOpen((open) => !open);
+                }
+              }}
             >
               <Icon name="chevron" size={10} className="wb-chev" />
               <span className="wb-panel-title mono">{t("wb.terminal").toUpperCase()}</span>

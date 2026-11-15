@@ -91,6 +91,23 @@ describe("workbench IDE chrome", () => {
     delete (Element.prototype as unknown as { scrollIntoView?: () => void }).scrollIntoView;
   });
 
+  it("terminal panel head is keyboard-operable: Tab-focusable, Enter/Space toggle via explicit keyDown", () => {
+    const { container } = renderWorkbench(makeFixture());
+    const panel = container.querySelector(".wb-panel")!;
+    const head = container.querySelector(".wb-panel-head") as HTMLButtonElement;
+    expect(head.tagName).toBe("BUTTON");
+    expect(head.tabIndex).toBe(0); // in the Tab order
+    head.focus(); // "Tab focuses": focus lands on the panel head
+    expect(document.activeElement).toBe(head);
+
+    fireEvent.keyDown(head, { key: "Enter" }); // Enter toggles it closed…
+    expect(panel.hasAttribute("data-open")).toBe(false);
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.keyDown(head, { key: " " }); // …and Space brings it back
+    expect(panel.hasAttribute("data-open")).toBe(true);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("tool calls live in the terminal panel; transcript jump lines open it", () => {
     const { container } = renderWorkbench(makeFixture());
     const panel = container.querySelector(".wb-panel");
