@@ -86,6 +86,12 @@
   .skin-aurora button { cursor: pointer; background: none; border: 0; padding: 0; }
   .skin-aurora a { color: inherit; text-decoration: none; }
   .skin-aurora svg { display: block; }
+  /* Phase 2a review fix: the composer / interrupt-editor textareas used to
+     carry `outline-none` as a utility. Utilities beat @layer base, so the
+     skin-level :focus-visible ring below (also base) was suppressed. Keep the
+     opt-out in base instead — the focus rule wins by specificity (0,2,0 vs
+     0,1,1) exactly like the original stylesheet. */
+  .skin-aurora textarea { outline: none; }
 }
 
 .skin-aurora ::selection { background: rgba(94, 240, 194, 0.25); color: #fff; }

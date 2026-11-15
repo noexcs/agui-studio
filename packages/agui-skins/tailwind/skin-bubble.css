@@ -1,0 +1,18 @@
+/* Tailwind v4 utilities for the npm dist — agui-skins/skins/bubble.css.
+   Same contract as skin-workbench.css: utilities only, NO preflight,
+   arbitrary var shorthand (`bg-(--bb-panel)`) so skin-scoped variables stay
+   the single source of truth and data-sk-theme overrides keep working on the
+   consuming element.
+   Sources: this skin's TSX + the shared layer every skin renders through
+   (shared/, host.tsx carry utilities since task-13 Phase 1). `source(none)`
+   kills the CLI's implicit cwd scan — dist/ contains compiled JS with class
+   strings and would mint phantom utilities.
+   scripts/build-tailwind.mjs compiles this entry and concatenates the result
+   with the tsup-emitted residual CSS into dist/skins/bubble.css. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" source(none) layer(utilities);
+@source "../src/skins/bubble/index.tsx";
+@source "../src/shared/**/*.{ts,tsx}";
+@source "../src/host.tsx";
+@source "../src/utils.ts";
