@@ -10,7 +10,12 @@ const T = "duration-(--t-fast) ease-(--ease)";
 const LABEL_SPAN = "font-(family-name:--font-mono) text-[11px] tracking-[0.12em] text-(--fg-muted) uppercase";
 const LABEL_EM = "not-italic font-(family-name:--font-mono) text-[10.5px] text-(--fg-muted)";
 const SEG = "customize-seg flex gap-1 rounded-[10px] bg-[rgba(0,0,0,0.045)] p-[3px]";
-const SEGBTN = `customize-segbtn flex-1 cursor-pointer rounded-[7px] border-none bg-transparent px-2 py-1.5 text-[12px] text-[#52525b] [font-family:inherit] transition-[background,color] hover:text-(--fg) ${T}`;
+/* segbtn state branches are mutually exclusive: bg/color live only in SEGBTN_ON/OFF —
+   the base string carries neither (one unconditional utility per CSS property, so
+   Tailwind's fixed utility sort can never decide the active state's winner) */
+const SEGBTN = `customize-segbtn flex-1 cursor-pointer rounded-[7px] border-none px-2 py-1.5 text-[12px] [font-family:inherit] transition-[background,color] hover:text-(--fg) ${T}`;
+const SEGBTN_ON = "is-active bg-white text-[#18181b] shadow-[0_1px_2px_rgba(24,24,27,0.14)]";
+const SEGBTN_OFF = "bg-transparent text-[#52525b]";
 const TILE = "customize-tile min-w-0";
 const LABEL = "customize-label mb-2 flex items-baseline justify-between text-[12px] text-[#3f3f46]";
 
@@ -196,7 +201,7 @@ export function CustomizePanel(props: {
             </label>
           </div>
           {hint && (
-            <p className="customize-hint text-[10px] text-[#8a8a94]" role="note">
+            <p className="customize-hint text-right text-[10px] text-[#8a8a94]" role="note">
               {hint}
             </p>
           )}
@@ -212,7 +217,7 @@ export function CustomizePanel(props: {
               {THEMES.map((item) => (
                 <button
                   key={item.value}
-                  className={`${SEGBTN} ${theme === item.value ? "is-active bg-white text-[#18181b] shadow-[0_1px_2px_rgba(24,24,27,0.14)]" : ""}`}
+                  className={`${SEGBTN} ${theme === item.value ? SEGBTN_ON : SEGBTN_OFF}`}
                   onClick={() => set({ theme: item.value })}
                 >
                   {zh ? item.zh : item.en}
@@ -231,7 +236,7 @@ export function CustomizePanel(props: {
             {TEXT_ANIMS.map((item) => (
               <button
                 key={item.value}
-                className={`${SEGBTN} ${anim === item.value ? "is-active bg-white text-[#18181b] shadow-[0_1px_2px_rgba(24,24,27,0.14)]" : ""}`}
+                className={`${SEGBTN} ${anim === item.value ? SEGBTN_ON : SEGBTN_OFF}`}
                 onClick={() => set({ textAnim: item.value })}
               >
                 {zh ? item.zh : item.en}
@@ -249,7 +254,7 @@ export function CustomizePanel(props: {
             {DENSITIES.map((item) => (
               <button
                 key={item.value}
-                className={`${SEGBTN} ${density === item.value ? "is-active bg-white text-[#18181b] shadow-[0_1px_2px_rgba(24,24,27,0.14)]" : ""}`}
+                className={`${SEGBTN} ${density === item.value ? SEGBTN_ON : SEGBTN_OFF}`}
                 onClick={() => set({ density: item.value })}
               >
                 {zh ? item.zh : item.en}
@@ -267,7 +272,7 @@ export function CustomizePanel(props: {
             {MOTIONS.map((item) => (
               <button
                 key={item.value}
-                className={`${SEGBTN} ${motion === item.value ? "is-active bg-white text-[#18181b] shadow-[0_1px_2px_rgba(24,24,27,0.14)]" : ""}`}
+                className={`${SEGBTN} ${motion === item.value ? SEGBTN_ON : SEGBTN_OFF}`}
                 onClick={() => set({ motion: item.value })}
               >
                 {zh ? item.zh : item.en}
@@ -285,7 +290,7 @@ export function CustomizePanel(props: {
             {RADII.map((item) => (
               <button
                 key={item.value}
-                className={`${SEGBTN} ${radius === item.value ? "is-active bg-white text-[#18181b] shadow-[0_1px_2px_rgba(24,24,27,0.14)]" : ""}`}
+                className={`${SEGBTN} ${radius === item.value ? SEGBTN_ON : SEGBTN_OFF}`}
                 onClick={() => set({ radius: radius === item.value ? undefined : item.value })}
               >
                 {zh ? item.zh : item.en}
@@ -303,7 +308,7 @@ export function CustomizePanel(props: {
             {SCALES.map((item) => (
               <button
                 key={item.value}
-                className={`${SEGBTN} ${textScale === item.value ? "is-active bg-white text-[#18181b] shadow-[0_1px_2px_rgba(24,24,27,0.14)]" : ""}`}
+                className={`${SEGBTN} ${textScale === item.value ? SEGBTN_ON : SEGBTN_OFF}`}
                 onClick={() => set({ textScale: item.value })}
               >
                 {zh ? item.zh : item.en}
@@ -319,9 +324,12 @@ export function CustomizePanel(props: {
           </div>
           <div className="customize-presets flex flex-wrap gap-1.5">
             {PRESETS.map((preset) => (
+              // state branches are mutually exclusive: bg/border-color/color (+ hover)
+              // exist only in the branches — base carries none of them (one unconditional
+              // utility per CSS property; Tailwind's fixed sort must never pick the winner)
               <button
                 key={preset.en}
-                className={`customize-preset cursor-pointer rounded-[var(--r-sm)] border border-[rgba(17,17,20,0.14)] bg-transparent px-3 py-1.5 text-[12px] text-[#3f3f46] [font-family:inherit] transition-[background,border-color,color,transform] hover:bg-[rgba(0,0,0,0.04)] hover:text-(--fg) active:scale-[0.98] ${T} ${sameTuning(props.tuning, preset.tuning) ? "is-active border-(--accent-line) bg-(--accent-dim) text-(--accent-hover)" : ""}`}
+                className={`customize-preset cursor-pointer rounded-[var(--r-sm)] border px-3 py-1.5 text-[12px] [font-family:inherit] transition-[background,border-color,color,transform] active:scale-[0.98] ${T} ${sameTuning(props.tuning, preset.tuning) ? "is-active border-(--accent-line) bg-(--accent-dim) text-(--accent-hover)" : "border-[rgba(17,17,20,0.14)] bg-transparent text-[#3f3f46] hover:bg-[rgba(0,0,0,0.04)] hover:text-(--fg)"}`}
                 onClick={() => props.onChange({ ...preset.tuning, theme: props.tuning.theme })}
               >
                 {zh ? preset.zh : preset.en}
@@ -331,12 +339,15 @@ export function CustomizePanel(props: {
         </div>
       </div>
 
+      {/* hint stays text-RIGHT in both variants: base CSS had `.customize-hint--inline
+          { text-align:left }` (line 625) but `.customize-hint { text-align:right }` (line
+          789) later — same (0,1,0) specificity, later wins, so left was always dead */}
       {inline ? (
-        <p className="customize-hint customize-hint--inline mt-3.5 mb-0 text-left text-[10px] text-[#8a8a94]">
+        <p className="customize-hint customize-hint--inline mt-3.5 mb-0 text-right text-[10px] text-[#8a8a94]">
           {zh ? "改动实时生效，按皮肤单独保存；链接会自动同步当前调参，可直接分享。" : "Changes apply live, saved per skin, and the URL syncs the current tuning — shareable."}
         </p>
       ) : (
-        <p className="customize-hint customize-hint--inline mt-3.5 mb-0 text-left text-[10px] text-[#8a8a94]">{zh ? "改动实时生效，按皮肤单独保存；链接同步调参" : "Live, saved per skin, URL-synced"}</p>
+        <p className="customize-hint customize-hint--inline mt-3.5 mb-0 text-right text-[10px] text-[#8a8a94]">{zh ? "改动实时生效，按皮肤单独保存；链接同步调参" : "Live, saved per skin, URL-synced"}</p>
       )}
     </section>
   );

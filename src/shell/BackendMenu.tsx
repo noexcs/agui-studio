@@ -9,7 +9,10 @@ type BackendId = StudioBackend;
 /* Tailwind compounds (app.css migration, task-13). */
 const T = "duration-(--t-fast) ease-(--ease)";
 const DEFAULT_TRIGGER = `embed-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border border-transparent bg-none px-3 font-(family-name:--font-mono) text-[10px] tracking-[0.04em] text-(--fg-muted) transition-[color,background,border-color,transform] hover:bg-[rgba(0,0,0,0.04)] hover:border-(--hairline) hover:text-(--fg) active:scale-[0.98] ${T}`;
-const MENU_ITEM = "backend-item flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#3f3f46] outline-none hover:bg-[rgba(0,0,0,0.04)] hover:text-[#18181b] data-[highlighted]:bg-[rgba(0,0,0,0.04)] data-[highlighted]:text-[#18181b] data-[active]:bg-[rgba(124,58,237,0.1)] data-[active]:text-[#6d28d9] data-[disabled]:opacity-45 data-[disabled]:cursor-not-allowed";
+/* data-[active] carries the trailing `!`: arbitrary data variants sort alphabetically
+   (data-[active] < data-[highlighted]), but base CSS had the [data-active] rule AFTER
+   [data-highlighted] — an item both highlighted and active must show violet */
+const MENU_ITEM = "backend-item flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[#3f3f46] outline-none hover:bg-[rgba(0,0,0,0.04)] hover:text-[#18181b] data-[highlighted]:bg-[rgba(0,0,0,0.04)] data-[highlighted]:text-[#18181b] data-[active]:bg-[rgba(124,58,237,0.1)]! data-[active]:text-[#6d28d9]! data-[disabled]:opacity-45 data-[disabled]:cursor-not-allowed";
 
 export function BackendMenu(props: {
   backend: BackendId;

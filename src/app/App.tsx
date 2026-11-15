@@ -364,9 +364,11 @@ export default function App() {
             </button>
             <span className="dock-sep mx-1 h-4 w-px bg-(--hairline)" />
             {skins.map((s) => (
+              // hover:border sits in the inactive branch only: base CSS had .is-active
+              // after :hover, so an active dot keeps its accent border while hovered
               <button
                 key={s.id}
-                className={`dock-dot grid h-6 w-6 cursor-pointer place-items-center rounded-full border transition-[border-color,background,transform] duration-(--t-fast) ease-(--ease) hover:-translate-y-px hover:border-(--hairline-strong) ${s.id === skinId ? "is-active border-(--accent) bg-(--accent-dim)" : "border-(--hairline) bg-[rgba(0,0,0,0.04)]"}`}
+                className={`dock-dot grid h-6 w-6 cursor-pointer place-items-center rounded-full border transition-[border-color,background,transform] duration-(--t-fast) ease-(--ease) hover:-translate-y-px ${s.id === skinId ? "is-active border-(--accent) bg-(--accent-dim)" : "border-(--hairline) bg-[rgba(0,0,0,0.04)] hover:border-(--hairline-strong)"}`}
                
                 onClick={() => openSkin(s.id)}
                 title={`${s.name} — ${s.tagline}`}

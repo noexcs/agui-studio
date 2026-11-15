@@ -53,13 +53,17 @@ import "./workbench.css";
 
 const CHEV = "wb-chev shrink-0 rotate-90 opacity-55 [transition:transform_0.15s_ease]";
 
+/* state maps follow the "branches write full values" rule: every entry that styles a CSS
+   property carries it explicitly (incl. the neutral default), and the consuming base
+   string keeps none of those properties unconditionally — otherwise Tailwind's fixed
+   utility sort, not intent, decides which same-property utility wins */
 const CHIP_STATUS: Record<string, string> = {
   running: "text-(--wb-cyan) border-[color-mix(in_srgb,var(--wb-cyan)_35%,transparent)]",
   done: "text-(--wb-green) border-[color-mix(in_srgb,var(--wb-green)_35%,transparent)]",
   error: "text-(--wb-red) border-[color-mix(in_srgb,var(--wb-red)_40%,transparent)]",
   interrupted: "text-(--wb-amber) border-[color-mix(in_srgb,var(--wb-amber)_40%,transparent)]",
-  stopped: "text-(--wb-dim)",
-  idle: "text-(--wb-faint)",
+  stopped: "text-(--wb-dim) border-(--wb-line-soft)",
+  idle: "text-(--wb-faint) border-(--wb-line-soft)",
 };
 
 const DOT: Record<string, string> = {
@@ -81,7 +85,7 @@ const ACT_LED: Record<string, string> = {
 
 const NODE_KIND: Record<string, string> = {
   user: "text-(--wb-accent) border-[color-mix(in_srgb,var(--wb-accent)_30%,transparent)]",
-  assistant: "text-(--wb-text)",
+  assistant: "text-(--wb-text) border-(--wb-line-soft)",
   tool: "text-(--wb-violet) border-[color-mix(in_srgb,var(--wb-violet)_30%,transparent)]",
   interrupt: "text-(--wb-amber) border-[color-mix(in_srgb,var(--wb-amber)_35%,transparent)]",
   error: "text-(--wb-red) border-[color-mix(in_srgb,var(--wb-red)_35%,transparent)]",
@@ -309,10 +313,10 @@ export function WorkbenchPage() {
       <header className="wb-titlebar flex-none flex h-[38px] items-center gap-2.5 border-b border-(--wb-line-soft) bg-(--wb-shell) px-3.5">
         <span className="wb-logo h-2.5 w-2.5 shrink-0 rounded-[3px] bg-[linear-gradient(135deg,var(--wb-accent),var(--wb-violet))]" aria-hidden="true" />
         <strong className="wb-title truncate text-[12.5px] font-semibold">{displayText(brand.agentName)}</strong>
-        <span className="wb-crumb mono min-w-0 truncate text-[10.5px] text-(--wb-faint)">
+        <span className="wb-crumb mono min-w-0 truncate text-[10.5px] text-(--wb-faint) max-[720px]:hidden">
           {displayText(workspace)} <i className="mx-1 not-italic text-(--wb-crumb-sep)">/</i> {c.threadId}
         </span>
-        <span className="wb-titlebar-right flex flex-none items-center gap-[7px]">
+        <span className="wb-titlebar-right ml-auto flex flex-none items-center gap-[7px]">
           <span className="wb-chip mono whitespace-nowrap rounded border border-(--wb-line-soft) bg-(--wb-wash) px-2 py-0.5 text-[10px] tracking-[0.04em] text-(--wb-dim)">{displayText(brand.modelLabel)}</span>
           <span className={`wb-chip wb-chip--status mono whitespace-nowrap rounded border bg-(--wb-wash) px-2 py-0.5 text-[10px] tracking-[0.04em] ${CHIP_STATUS[c.status] ?? ""}`} data-status={c.status}>{statusText}</span>
           {running && <span className="wb-chip mono whitespace-nowrap rounded border border-(--wb-line-soft) bg-(--wb-wash) px-2 py-0.5 text-[10px] tracking-[0.04em] text-(--wb-dim)">{clock(c.duration())}</span>}
@@ -356,7 +360,7 @@ export function WorkbenchPage() {
             <Icon name="activity" size={16} />
           </button>
           <span className="wb-act-spacer flex-1" />
-          <span className={`wb-act-led h-2 w-2 shrink-0 rounded-full bg-(--wb-faint) opacity-50 ${ACT_LED[c.status] ?? ""}`} aria-hidden="true" />
+          <span className={`wb-act-led h-2 w-2 shrink-0 rounded-full ${ACT_LED[c.status] ?? "bg-(--wb-faint) opacity-50"}`} aria-hidden="true" />
         </nav>
 
         {/* ── side panel ──────────────────────────────────────────── */}
@@ -372,7 +376,7 @@ export function WorkbenchPage() {
               >
                 <Icon name="globe" size={12} />
                 <span className="wb-tree-root-name min-w-0 truncate font-semibold">{threadLabel}</span>
-                <span className={`wb-dot h-1.5 w-1.5 shrink-0 rounded-full bg-(--wb-faint) opacity-60 ${DOT[c.status] ?? ""}`} aria-hidden="true" />
+                <span className={`wb-dot h-1.5 w-1.5 shrink-0 rounded-full ${DOT[c.status] ?? "bg-(--wb-faint) opacity-60"}`} aria-hidden="true" />
               </button>
               {rounds.length === 0 && <p className="wb-side-empty m-1.5 text-[11px] text-(--wb-faint)">{t("wb.empty")}</p>}
               {rounds.map((round, index) => {
@@ -402,7 +406,7 @@ export function WorkbenchPage() {
                             className="wb-tree-row wb-tree-row--leaf flex w-[calc(100%-8px)] min-w-0 cursor-pointer items-center gap-1.5 rounded-[5px] border-0 bg-none mx-1 py-1 pl-6 pr-2 text-left text-[11px] text-(--wb-dim) hover:bg-(--wb-hover) hover:text-(--wb-text) active:bg-(--wb-press) active:text-(--wb-text)"
                             onClick={() => reveal(entry.id, { toolPanel: entry.kind === "tool" })}
                           >
-                            <span className={`wb-node-kind wb-node-kind--${entry.kind} shrink-0 rounded-[3px] border border-(--wb-line-soft) px-[5px] text-[8.5px] tracking-[0.08em] uppercase font-(family-name:--wb-mono) ${NODE_KIND[entry.kind] ?? ""}`}>{kindLabel(entry.kind)}</span>
+                            <span className={`wb-node-kind wb-node-kind--${entry.kind} shrink-0 rounded-[3px] border px-[5px] text-[8.5px] tracking-[0.08em] uppercase font-(family-name:--wb-mono) ${NODE_KIND[entry.kind] ?? "text-(--wb-faint) border-(--wb-line-soft)"}`}>{kindLabel(entry.kind)}</span>
                             <span className="wb-tree-label min-w-0 flex-1 truncate">
                               {entry.kind === "user" || entry.kind === "assistant"
                                 ? plainText((entry as AssistantEntry).text, 22) || kindLabel(entry.kind)
@@ -412,7 +416,7 @@ export function WorkbenchPage() {
                                 ? plainText((entry as ErrorEntry).message, 22)
                                 : kindLabel(entry.kind)}
                             </span>
-                            <span className={`wb-dot h-1.5 w-1.5 shrink-0 rounded-full bg-(--wb-faint) opacity-60 ${DOT[statusDotOf(entry)] ?? ""}`} aria-hidden="true" />
+                            <span className={`wb-dot h-1.5 w-1.5 shrink-0 rounded-full ${DOT[statusDotOf(entry)] ?? "bg-(--wb-faint) opacity-60"}`} aria-hidden="true" />
                           </button>
                         ))}
                       </div>
@@ -470,7 +474,7 @@ export function WorkbenchPage() {
         <section className="wb-editor flex min-w-0 flex-1 flex-col bg-(--wb-editor)">
           <div className="wb-tabs flex h-[34px] flex-none items-center gap-3 border-b border-(--wb-line-soft) bg-(--wb-tabbar) px-2.5">
             <div className="wb-tab flex h-full min-w-0 items-center gap-2 rounded-t-md border border-b-0 border-(--wb-line-soft) bg-(--wb-tab-face) px-3.5 text-[11.5px]" data-active="true">
-              <span className={`wb-dot h-1.5 w-1.5 shrink-0 rounded-full bg-(--wb-faint) opacity-60 ${DOT[c.status] ?? ""}`} aria-hidden="true" />
+              <span className={`wb-dot h-1.5 w-1.5 shrink-0 rounded-full ${DOT[c.status] ?? "bg-(--wb-faint) opacity-60"}`} aria-hidden="true" />
               <span className="wb-tab-name max-w-[280px] truncate font-semibold">{threadLabel}</span>
               {running && <span className="wb-tab-dirty h-[7px] w-[7px] shrink-0 rounded-full bg-(--wb-accent) animate-[wb-pulse_1.2s_ease-in-out_infinite] motion-reduce:animate-none" aria-hidden="true" />}
             </div>
@@ -557,7 +561,11 @@ export function WorkbenchPage() {
                   }
                   if (event.key === "Escape") c.stop();
                 }}
-                className="max-h-[120px] min-h-5 w-full min-w-0 flex-1 resize-none border-0 bg-transparent py-0.5 pl-0 pr-0 text-[12.5px] leading-[1.6] text-(--wb-text) outline-none focus-visible:outline-none placeholder:text-(--wb-faint) disabled:opacity-60"
+                /* [font-family:inherit] restores the base rule `textarea { font: inherit }` —
+                   the @layer base reset covers button/a only, and with preflight disabled the
+                   UA textarea default (monospace) would win (longhand: no font shorthand
+                   conflict with text-[12.5px], per the template's iron rule 3) */
+                className="max-h-[120px] min-h-5 w-full min-w-0 flex-1 resize-none border-0 bg-transparent py-0.5 pl-0 pr-0 [font-family:inherit] text-[12.5px] leading-[1.6] text-(--wb-text) outline-none focus-visible:outline-none placeholder:text-(--wb-faint) disabled:opacity-60"
               />
               {running ? (
                 <button type="button" className="wb-send inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--wb-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--wb-accent)_12%,transparent)] text-(--wb-cyan) enabled:hover:bg-[color-mix(in_srgb,var(--wb-accent)_22%,transparent)] enabled:active:bg-[color-mix(in_srgb,var(--wb-accent)_30%,transparent)] disabled:cursor-not-allowed disabled:opacity-35" onClick={() => c.stop()} aria-label={t("chat.stop")} title={t("chat.stop")}>
@@ -613,7 +621,7 @@ export function WorkbenchPage() {
       {/* ── status bar ─────────────────────────────────────────────── */}
       <footer className="wb-statusbar flex h-[26px] flex-none items-center gap-3.5 overflow-hidden border-t border-(--wb-line-soft) bg-(--wb-shell) px-3.5 text-[10px] text-(--wb-dim)">
         <span className={`wb-status wb-status--${c.status} inline-flex items-center gap-1.5 ${STATUS_TEXT[c.status] ?? "text-(--wb-text)"}`}>
-          <i className={`wb-status-led h-[7px] w-[7px] shrink-0 rounded-full bg-(--wb-faint) ${STATUS_LED[c.status] ?? ""}`} aria-hidden="true" />
+          <i className={`wb-status-led h-[7px] w-[7px] shrink-0 rounded-full ${STATUS_LED[c.status] ?? "bg-(--wb-faint)"}`} aria-hidden="true" />
           {statusText}
         </span>
         <span className="wb-status-item mono whitespace-nowrap text-(--wb-faint)">{displayText(c.transport) || "—"}</span>
@@ -867,7 +875,7 @@ function PlanRow({ entry }: { entry: PlanEntry }) {
         <ul className="wb-plan-list m-0 grid list-none gap-[5px] p-0">
           {view.steps.map((step) => (
             <li key={step.id} data-state={step.state} className={`flex items-baseline gap-2 text-[12px] ${PLAN_STATE[step.state] ?? "text-(--wb-dim)"}`}>
-              <span className={`wb-plan-check inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-[3px] border border-(--wb-line) ${PLAN_CHECK[step.state] ?? ""}`}>{step.state === "done" && <Icon name="check" size={10} />}</span>
+              <span className={`wb-plan-check inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-[3px] border ${PLAN_CHECK[step.state] ?? "border-(--wb-line)"}`}>{step.state === "done" && <Icon name="check" size={10} />}</span>
               <span className="wb-plan-label">{step.label}</span>
             </li>
           ))}
@@ -881,7 +889,7 @@ function StepRow({ entry }: { entry: StepEntry }) {
   const word = entry.status === "running" ? t("status.running") : entry.status === "failed" ? t("chat.failed") : t("chat.done");
   return (
     <div className="wb-step mono flex max-w-[760px] items-center gap-2 text-[10.5px] text-(--wb-dim)" data-status={entry.status}>
-      <span className={`wb-step-dot h-1.5 w-1.5 shrink-0 rounded-full bg-(--wb-cyan) ${STEP_DOT[entry.status] ?? ""}`} aria-hidden="true" />
+      <span className={`wb-step-dot h-1.5 w-1.5 shrink-0 rounded-full ${STEP_DOT[entry.status] ?? "bg-(--wb-cyan)"}`} aria-hidden="true" />
       <span>{displayText(entry.name)}</span>
       <span className="wb-dim text-(--wb-dim)">{word}</span>
     </div>
@@ -924,8 +932,13 @@ function InterruptRow({ entry, ctx }: { entry: InterruptEntry; ctx: RowCtx }) {
     : entry.status === "approved"
     ? t("intr.approvedBy")
     : t("intr.deniedBy");
+  // pending background splits gradient (background-image) from var(--wb-deep)
+  // (background-color): the old comma shorthand `linear-gradient(...), var(--wb-deep)`
+  // lands in bg-[...] as one background-image whose trailing color layer is invalid at
+  // computed-value time — the whole declaration is then dropped. expired/pending border
+  // colors are mutually exclusive for the same reason.
   return (
-    <div className={`wb-approval max-w-[760px] rounded-lg border px-3.5 py-3 ${pendingCard ? "is-pending border-[color-mix(in_srgb,var(--wb-amber)_40%,transparent)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--wb-amber)_8%,transparent),color-mix(in_srgb,var(--wb-amber)_2%,transparent)),var(--wb-deep)]" : "is-resolved border-(--wb-line-soft) bg-(--wb-deep) opacity-75"} ${entry.expired ? "border-(--wb-line-soft)" : ""}`} data-expired={entry.expired || undefined}>
+    <div className={`wb-approval max-w-[760px] rounded-lg border px-3.5 py-3 ${pendingCard ? `is-pending ${entry.expired ? "border-(--wb-line-soft)" : "border-[color-mix(in_srgb,var(--wb-amber)_40%,transparent)]"} bg-(--wb-deep) bg-[linear-gradient(180deg,color-mix(in_srgb,var(--wb-amber)_8%,transparent),color-mix(in_srgb,var(--wb-amber)_2%,transparent))]` : "is-resolved border-(--wb-line-soft) bg-(--wb-deep) opacity-75"}`} data-expired={entry.expired || undefined}>
       <div className={`wb-approval-head flex items-center gap-2 text-[11px] font-semibold tracking-[0.04em] ${pendingCard ? "text-(--wb-amber)" : "text-(--wb-dim)"}`}>
         <Icon name={entry.expired ? "clock" : "shield"} size={13} />
         <span className="wb-approval-label">{headWord}</span>

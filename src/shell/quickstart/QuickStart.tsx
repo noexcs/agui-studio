@@ -238,7 +238,10 @@ const QS_CARD_NOTE = "qs-card-note m-0 px-4 pb-4 text-xs leading-[1.6] text-[#8a
 const QS_CARD_FOOT = "qs-card-foot flex items-center gap-2 bg-(--bg-surface) px-4 py-3";
 const QS_STEP_NO = "qs-step-no font-(family-name:--font-mono) text-[10px] tracking-[0.12em] text-(--fg-muted) [font-variant-numeric:tabular-nums]";
 const QS_LANG = "qs-lang ml-auto rounded-full border border-(--hairline-subtle) px-2 py-1 font-(family-name:--font-mono) text-[9.5px] tracking-[0.06em] text-(--fg-muted) lowercase";
-const QS_COPY_BTN = `qs-copy-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border bg-transparent px-3 font-(family-name:--font-mono) text-[10px] tracking-[0.08em] uppercase transition-[color,border-color,background,transform] active:scale-[0.98] ${T}`;
+/* copy-btn state branches are mutually exclusive: bg/color/border-color live only in
+   the copied / not-copied branches — base carries none (one unconditional utility per
+   CSS property; Tailwind's fixed utility sort must never pick the winner) */
+const QS_COPY_BTN = `qs-copy-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border px-3 font-(family-name:--font-mono) text-[10px] tracking-[0.08em] uppercase transition-[color,border-color,background,transform] active:scale-[0.98] ${T}`;
 const QS_MENU_ITEM = `qs-menu-item flex w-full cursor-pointer items-center gap-2 rounded-[10px] border-0 bg-none px-3 py-2 text-left text-[12px] text-(--fg-secondary) no-underline outline-none [font-family:inherit] transition-[background,color] focus-visible:shadow-[inset_0_0_0_1px_var(--accent)] hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg) data-[highlighted]:bg-[rgba(0,0,0,0.05)] data-[highlighted]:text-(--fg) ${T}`;
 
 function HighlightedCode({ code, grammar }: { code: string; grammar: string }) {
@@ -274,7 +277,7 @@ function CopyButton({ text, zh }: { text: string; zh: boolean }) {
   return (
     <>
       <button
-        className={`${QS_COPY_BTN} ${copied ? "is-copied text-(--accent-hover) border-(--accent-line) bg-(--accent-dim)" : "border-(--hairline) text-(--fg-secondary) hover:text-(--fg) hover:border-(--hairline-strong) hover:bg-[rgba(0,0,0,0.04)]"}`}
+        className={`${QS_COPY_BTN} ${copied ? "is-copied text-(--accent-hover) border-(--accent-line) bg-(--accent-dim)" : "bg-transparent border-(--hairline) text-(--fg-secondary) hover:text-(--fg) hover:border-(--hairline-strong) hover:bg-[rgba(0,0,0,0.04)]"}`}
         onClick={async () => flash(await copyText(text))}
         title={zh ? "复制" : "Copy"}
       >
@@ -438,11 +441,14 @@ export function QuickStart({ lang, activeSkin }: { lang: Lang; activeSkin: strin
           const isCurrent = s.id === skin.id;
           return (
             <li className="qs-skin-item block min-w-0" key={s.id}>
+              {/* is-current branches are mutually exclusive: bg + border-color live only
+                  in the branches — base carries neither (one unconditional utility per
+                  CSS property; Tailwind's fixed sort must never pick the winner) */}
               <a
-                className={`qs-skin-row group flex min-w-0 items-center gap-2 rounded-[var(--r-sm)] border bg-transparent px-4 py-3 text-inherit no-underline transition-[background,border-color] ${T} ${
+                className={`qs-skin-row group flex min-w-0 items-center gap-2 rounded-[var(--r-sm)] border px-4 py-3 text-inherit no-underline transition-[background,border-color] ${T} ${
                   isCurrent
                     ? "is-current border-(--accent-line) bg-(--accent-dim) hover:border-(--accent-line)"
-                    : "border-(--hairline-subtle) hover:bg-[rgba(0,0,0,0.03)] hover:border-(--hairline)"
+                    : "bg-transparent border-(--hairline-subtle) hover:bg-[rgba(0,0,0,0.03)] hover:border-(--hairline)"
                 }`}
                 href={openHref(s.id)}
                 title={`${s.name} — ${s.tagline}`}

@@ -234,7 +234,11 @@ export function Home(props: {
                 key={skin.id}                aria-pressed={isCurrent}
                 className={`skin-tab flex flex-col cursor-pointer rounded-[var(--r-md)] border p-4 text-left [font-family:inherit] transition-[transform,border-color,background,box-shadow] active:translate-y-0 active:scale-[0.98] ${T} ${
                   isCurrent
-                    ? "is-active border-(--accent-line) bg-[linear-gradient(180deg,rgba(124,58,237,0.07),rgba(124,58,237,0)_55%),var(--bg-elevated)]"
+                    /* old CSS comma shorthand `linear-gradient(...), var(--bg-elevated)` cannot
+                       survive as one arbitrary background-image (trailing color layer invalid
+                       at computed-value time) — split into a background-color var utility plus
+                       a background-image gradient utility */
+                    ? "is-active border-(--accent-line) bg-(--bg-elevated) bg-[linear-gradient(180deg,rgba(124,58,237,0.07),rgba(124,58,237,0)_55%)]"
                     : "border-(--hairline) bg-(--bg-surface) hover:-translate-y-0.5 hover:border-(--hairline-strong) hover:bg-(--bg-elevated) hover:shadow-(--shadow-hover)"
                 }`}
                 style={{ "--skin-accent": skin.accent } as CSSProperties}
