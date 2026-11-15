@@ -11,9 +11,10 @@
      winning over skin utilities until then;
    • pseudo-element chrome (::selection is inline in utilities; scrollbars
      are not) and the @keyframes consumed by animate-[...] utilities.
-   Dead rules removed during migration: .studio/.rail*/.stage*/.frame/
-   .backend-switch/.lang-switch (markup no longer exists), .customize-foot/
-   .customize-section (unused), .sr-only (Tailwind's own). */
+   Dead rules removed during migration: the old .studio grid + rail/stage/
+   frame chrome (markup no longer exists), .backend-switch and .lang-switch
+   (unused), .customize-foot and .customize-section (unused), .sr-only
+   (Tailwind ships its own). */
 @layer base {
   *,
   *::before,
