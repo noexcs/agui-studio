@@ -31,6 +31,7 @@ export default defineConfig({
     "skins/classic": "src/skins/classic/index.tsx",
     "skins/particle": "src/skins/particle/index.tsx",
     "skins/workbench": "src/skins/workbench/index.tsx",
+    "skins/dash": "src/skins/dash/index.tsx",
   },
   format: ["esm"],
   dts: true,

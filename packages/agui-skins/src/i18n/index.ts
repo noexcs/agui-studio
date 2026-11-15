@@ -194,6 +194,21 @@ const en = {
   "wb.node.error": "error",
   "wb.ynHint": "Y approve · N deny",
 
+  // dash
+  "ds.overview": "Run overview",
+  "ds.kpi.status": "Status",
+  "ds.kpi.duration": "Duration",
+  "ds.kpi.tools": "Tool calls",
+  "ds.kpi.tokens": "Tokens",
+  "ds.failed": "failed",
+  "ds.feed": "Activity feed",
+  "ds.telemetry": "Telemetry",
+  "ds.capabilities": "Capabilities",
+  "ds.tool": "Tool",
+  "ds.usage": "Usage",
+  "ds.empty": "No run data yet — send a request and the dashboard fills in.",
+  "ds.runSummary": "Run summary",
+
   // filters
   "filter.all": "All",
   "filter.lifecycle": "Lifecycle",
@@ -406,6 +421,20 @@ const zh: Dict = {
   "wb.node.custom": "自定义",
   "wb.node.error": "错误",
   "wb.ynHint": "Y 同意 · N 拒绝",
+
+  "ds.overview": "运行概览",
+  "ds.kpi.status": "状态",
+  "ds.kpi.duration": "耗时",
+  "ds.kpi.tools": "工具调用",
+  "ds.kpi.tokens": "词元",
+  "ds.failed": "失败",
+  "ds.feed": "活动流",
+  "ds.telemetry": "遥测",
+  "ds.capabilities": "能力",
+  "ds.tool": "工具",
+  "ds.usage": "用量",
+  "ds.empty": "暂无运行数据 — 发送请求后，仪表盘开始填充。",
+  "ds.runSummary": "运行小结",
 
   "filter.all": "全部",
   "filter.lifecycle": "生命周期",

@@ -20,6 +20,9 @@ export const SKIN_SWATCHES: Record<string, string[]> = {
   // workbench: graphite chrome / editor canvas / syntax blue (terminal violet
   // and cyan appear in the language's tool + state accents)
   workbench: ["#1b1d21", "#222429", "#7aa2f7", "#bb9af7", "#7dcfff"],
+  // dash: page / white panel / blue-green data accent (blue + red are the
+  // running / failed states in the KPI strip)
+  dash: ["#f7f8fa", "#ffffff", "#0d9488", "#2563eb", "#dc2626"],
 };
 
 /** Swatch list for a skin id; falls back to the skin accent (unknown/test ids). */
