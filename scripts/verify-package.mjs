@@ -8,7 +8,10 @@
  *   - dist/ or its required files are missing,
  *   - the published tarball would omit CSS,
  *   - the JS tries to import CSS (which would mean the docs' "bundled CSS"
- *     claim and the build have diverged again).
+ *     claim and the build have diverged again),
+ *   - a Tailwind-migrated skin's dist CSS lacks its utilities block
+ *     (task-13 Phase 2: element styling lives in utilities on the TSX; a
+ *     broken Tailwind compile would ship "valid but empty" CSS — silent).
  *
  * Run: node scripts/verify-package.mjs  (after `pnpm --filter agui-skins build`)
  */
@@ -21,6 +24,14 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const pkgDir = join(root, "packages", "agui-skins");
 const dist = join(pkgDir, "dist");
 const skins = ["aurora", "paper", "terminal", "brutalist", "classic", "particle"];
+// Tailwind-migrated skins = the per-skin compilation entries present in
+// packages/agui-skins/tailwind/ (single source of truth, grows per Phase 2
+// skin commit). Each must ship a utilities block inside its dist CSS.
+const migratedSkins = existsSync(join(pkgDir, "tailwind"))
+  ? readdirSync(join(pkgDir, "tailwind"))
+      .filter((file) => /^skin-.+\.css$/.test(file))
+      .map((file) => file.replace(/^skin-(.+)\.css$/, "$1"))
+  : [];
 
 const errors = [];
 const check = (ok, message) => {
@@ -50,6 +61,28 @@ if (existsSync(dist)) {
   for (const file of jsFiles) {
     const source = readFileSync(join(dist, file), "utf8");
     check(!/from\s+["'][^"']+\.css["']/.test(source), `dist/${file} imports CSS — CSS must stay a separate entry`);
+  }
+
+  // Content assertions: a migrated skin's dist CSS must carry its compiled
+  // Tailwind utilities — `@layer utilities` present plus a real body of
+  // arbitrary-value selectors (`bg-(--sk-…)` style, the site-wide variable
+  // convention; ≥20 keeps the bar far above the skeleton but below any real
+  // skin). dist/index.css is the documented all-skins union, so once any skin
+  // is migrated it must contain utilities too.
+  if (migratedSkins.length > 0) {
+    for (const skin of migratedSkins) {
+      const cssPath = join(dist, "skins", `${skin}.css`);
+      if (!existsSync(cssPath)) continue; // already covered by the required-files check
+      const css = readFileSync(cssPath, "utf8");
+      const arbSelectors = (css.match(/\\[(\[]/g) ?? []).length;
+      check(css.includes("@layer utilities"), `dist/skins/${skin}.css lacks an @layer utilities block — Tailwind compile step did not run (build-tailwind.mjs)`);
+      check(arbSelectors >= 20, `dist/skins/${skin}.css carries only ${arbSelectors} arbitrary-value utility selectors — utilities look missing/empty`);
+      check(!css.includes("@media layer("), `dist/skins/${skin}.css contains an unparsed @media layer(...) wrapper — browsers drop the whole utilities block (build-tailwind.mjs must down-level it)`);
+    }
+    const indexCss = readFileSync(join(dist, "index.css"), "utf8");
+    const indexArb = (indexCss.match(/\\[(\[]/g) ?? []).length;
+    check(indexCss.includes("@layer utilities"), "dist/index.css lacks @layer utilities — the package-wide Tailwind scan (tailwind/index.css) did not run");
+    check(indexArb >= 20, `dist/index.css carries only ${indexArb} arbitrary-value utility selectors — utilities look missing/empty`);
   }
 }
 

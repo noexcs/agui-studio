@@ -6,9 +6,9 @@
    • @layer base element resets — the project's own preflight replacement
      (Tailwind's is disabled; layered so utilities can override per element);
    • cross-skin rules keyed on classes that live in packages/agui-skins
-     (.lang-zh typography, aurora inspector, .tip tooltip) — they migrate
-     with their skins in the next phases and stay unlayered so they keep
-     winning over skin utilities until then;
+     (.lang-zh typography, .tip tooltip) — they migrate with their skins in
+     the next phases and stay unlayered so they keep winning over skin
+     utilities until then (aurora's inspector residual went with Phase 2a);
    • pseudo-element chrome (::selection is inline in utilities; scrollbars
      are not) and the @keyframes consumed by animate-[...] utilities.
    Dead rules removed during migration: the old .studio grid + rail/stage/
@@ -66,12 +66,13 @@
   letter-spacing: 0.02em;
 }
 
-/* ── aurora inspector: radix tabs + json viewer (migrates with aurora) ── */
-.skin-aurora .insp-root { display: flex; flex-direction: column; min-height: 0; height: 100%; }
-.skin-aurora .tab[data-state="active"] { color: var(--text); background: rgba(255, 255, 255, 0.07); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
-.skin-aurora .tab[data-state="active"] .tab-count { color: var(--violet); background: rgba(167, 139, 250, 0.12); }
-.skin-aurora .insp-pane[data-state="inactive"] { display: none; }
-.skin-aurora .ev-json .json-view { font-family: var(--mono); font-size: 9.5px; line-height: 1.55; }
+/* aurora inspector residual migrated in task-13 Phase 2a: .insp-root and the
+   radix tab data-state rules became branch utilities in
+   packages/agui-skins/src/skins/aurora/index.tsx; .insp-pane[data-state=
+   inactive] was dead (Radix unmounts inactive panes without forceMount) and
+   .ev-json .json-view was dead (react-json-view-lite ships hashed class
+   names, never .json-view / .j-*). */
+
 
 /* ── Radix tooltip ──────────────────────────────────────────────────
    INTENTIONALLY DARK: this surface belongs to the skins (packages/

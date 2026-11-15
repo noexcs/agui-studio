@@ -1,0 +1,10 @@
+/* Tailwind v4 utilities for the npm dist — agui-skins/index.css (the
+   all-skins union CSS). Package-wide scan: every skin entry + the shared
+   layer. Same contract as tailwind/skin-<id>.css (see that file): utilities
+   only, no preflight, arbitrary var shorthand, source(none) so dist/ is never
+   scanned. scripts/build-tailwind.mjs concatenates the compiled utilities
+   with the tsup-emitted residual CSS into dist/index.css. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" source(none) layer(utilities);
+@source "../src/**/*.{ts,tsx}";
