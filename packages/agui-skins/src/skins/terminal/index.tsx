@@ -9,6 +9,12 @@ import { displayText, safeJson } from "../../shared/safe";
 import { t } from "../../i18n";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupDuration,
+  foldGroupFailures,
+  foldGroupOpen,
+} from "../../shared/conversationGroups";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./terminal.css";
@@ -40,6 +46,8 @@ export function TerminalPage() {
   const trace = useStickToBottom<HTMLDivElement>();
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const [showDeltas, setShowDeltas] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
   const running = c.status === "running";
@@ -52,6 +60,8 @@ export function TerminalPage() {
     [c.events.length, showDeltas, c.getVersion()]
   );
   const pending = pendingInterrupts(c.entries)[0];
+  // Consecutive thinking/tool lines collapse into one trace fold block.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
 
   useEffect(() => {
     if (!pending) return;
@@ -101,16 +111,68 @@ export function TerminalPage() {
             </div>
 
             {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
-              {visible.map((entry) => (
-              <LogEntry
-                key={entry.id}
-                entry={entry}
-                open={!!open[entry.id]}
-                onToggle={() => setOpen((p) => ({ ...p, [entry.id]: !p[entry.id] }))}
-                live={pending?.id === entry.id}
-                onResolve={(approved, id) => c.resolveInterrupt(approved, undefined, id)}
-              />
-            ))}
+            {foldItems.map((item) => {
+              if (item.type === "entry") {
+                return (
+                  <LogEntry
+                    key={item.entry.id}
+                    entry={item.entry}
+                    open={!!open[item.entry.id]}
+                    onToggle={() => setOpen((p) => ({ ...p, [item.entry.id]: !p[item.entry.id] }))}
+                    live={pending?.id === item.entry.id}
+                    onResolve={(approved, id) => c.resolveInterrupt(approved, undefined, id)}
+                  />
+                );
+              }
+              const foldOpen = foldOverride[item.id] ?? foldGroupOpen(item.entries);
+              const failures = foldGroupFailures(item.entries);
+              const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+              const duration = foldGroupDuration(item.entries);
+              return (
+                <div key={item.id} className="term-fold" data-fold-id={item.id}>
+                  <button
+                    type="button"
+                    className="term-fold-head"
+                    data-fold-head=""
+                    aria-expanded={foldOpen}
+                    aria-label={t("fold.group")}
+                    onClick={() => setFoldOverride((p) => ({ ...p, [item.id]: !foldOpen }))}
+                    onKeyDown={(e) => {
+                      // explicit for the keydown contract test (jsdom runs no activation)
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setFoldOverride((p) => ({ ...p, [item.id]: !foldOpen }));
+                      }
+                    }}
+                  >
+                    <span className="term-caret">{foldOpen ? "▾" : "▸"}</span>
+                    <span className="term-fold-label">{t("fold.group")}</span>
+                    <span className="term-dim">
+                      {`${item.entries.length} ${t("fold.steps")}`}
+                      {duration !== undefined ? ` · ${formatDuration(duration)}` : ""}
+                    </span>
+                    {failure ? (
+                      <span className={`term-fold-flag term-fold-flag--${failure}`}>
+                        {failure === "error" ? `✕ ${t("fold.hasFailures")}` : `‖ ${t("chat.interrupted")}`}
+                      </span>
+                    ) : foldGroupOpen(item.entries) ? (
+                      <span className="term-fold-flag term-fold-flag--live">⟳ {t("chat.executing")}</span>
+                    ) : null}
+                  </button>
+                  {foldOpen &&
+                    item.entries.map((entry) => (
+                      <LogEntry
+                        key={entry.id}
+                        entry={entry}
+                        open={!!open[entry.id]}
+                        onToggle={() => setOpen((p) => ({ ...p, [entry.id]: !p[entry.id] }))}
+                        live={pending?.id === entry.id}
+                        onResolve={(approved, id) => c.resolveInterrupt(approved, undefined, id)}
+                      />
+                    ))}
+                </div>
+              );
+            })}
 
             {c.status === "done" && c.entries.length > 0 && (
               <div className="term-rule">
