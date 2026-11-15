@@ -12,6 +12,12 @@ import * as RadixTabs from "@radix-ui/react-tabs";
 import { JsonView, darkStyles } from "react-json-view-lite";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupFailures,
+  foldGroupOpen,
+  foldGroupStats,
+} from "../../shared/conversationGroups";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./aurora.css";
@@ -69,6 +75,8 @@ export function AuroraPage() {
   const { visible, hidden, showEarlier } = useVisibleEntries(c.entries);
   const brand = useSkinBranding();
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const [tab, setTab] = useState<"events" | "state">("events");
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<number | null>(null);
@@ -91,6 +99,8 @@ export function AuroraPage() {
   const firstTs = Date.parse(String(c.events[0]?.event.timestamp ?? ""));
   const running = c.status === "running";
   const interrupt = pendingInterrupts(c.entries)[0];
+  // Consecutive reasoning/tool blocks collapse into one glass fold block.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
 
   function send() {
     const text = draft.trim();
@@ -177,17 +187,35 @@ export function AuroraPage() {
               )}
 
               {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
-              {visible.map((entry) => (
-                <EntryView
-                  key={entry.id}
-                  entry={entry}
-                  open={!!openReasoning[entry.id]}
-                  onToggleReasoning={() => setOpenReasoning((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
-                  interrupt={entry.kind === "interrupt" ? interrupt : undefined}
-                  onApprove={(editedArgs) => c.resolveInterrupt(true, editedArgs, entry.id)}
-                  onDeny={() => c.resolveInterrupt(false, undefined, entry.id)}
-                />
-              ))}
+              {foldItems.map((item) => {
+                if (item.type === "entry") {
+                  return (
+                    <EntryView
+                      key={item.entry.id}
+                      entry={item.entry}
+                      open={!!openReasoning[item.entry.id]}
+                      onToggleReasoning={() => setOpenReasoning((prev) => ({ ...prev, [item.entry.id]: !prev[item.entry.id] }))}
+                      interrupt={item.entry.kind === "interrupt" ? interrupt : undefined}
+                      onApprove={(editedArgs) => c.resolveInterrupt(true, editedArgs, item.entry.id)}
+                      onDeny={() => c.resolveInterrupt(false, undefined, item.entry.id)}
+                    />
+                  );
+                }
+                const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
+                return (
+                  <FoldGroupBlock
+                    key={item.id}
+                    groupId={item.id}
+                    entries={item.entries}
+                    open={open}
+                    onToggle={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
+                    openReasoning={openReasoning}
+                    setOpenReasoning={setOpenReasoning}
+                    onApprove={(editedArgs, entryId) => c.resolveInterrupt(true, editedArgs, entryId)}
+                    onDeny={(entryId) => c.resolveInterrupt(false, undefined, entryId)}
+                  />
+                );
+              })}
 
               {(c.status === "done" || c.status === "stopped") && c.entries.length > 2 && (
                 <RunSummary />
@@ -384,6 +412,80 @@ export function AuroraPage() {
 }
 
 /* ── entries ──────────────────────────────────────────────────────── */
+
+/**
+ * One glass fold block standing in for a run of consecutive thinking/tool
+ * blocks; the original EntryView rendering mounts inside when unfolded.
+ * Failures surface on the header so a collapsed group cannot hide them.
+ */
+function FoldGroupBlock(props: {
+  groupId: string;
+  entries: Entry[];
+  open: boolean;
+  onToggle: () => void;
+  openReasoning: Record<string, boolean>;
+  setOpenReasoning: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onApprove: (editedArgs: Record<string, unknown> | undefined, entryId: string) => void;
+  onDeny: (entryId: string) => void;
+}) {
+  const { entries, open, onToggle } = props;
+  const stats = foldGroupStats(entries);
+  const failures = foldGroupFailures(entries);
+  const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+  const preview = stats.toolNames.slice(0, 3).join(", ");
+  const extra = stats.toolNames.length - 3;
+  return (
+    <>
+      <div className="block">
+        <div className={`reason reason--fold ${open ? "is-open" : ""}`} data-fold-id={props.groupId}>
+          <button
+            className="reason-toggle"
+            aria-expanded={open}
+            aria-label={t("fold.group")}
+            onClick={onToggle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggle();
+              }
+            }}
+          >
+            <Icon name="layers" className="icon-brain" />
+            <span className="reason-dot" />
+            <span className="reason-label">{t("fold.group")}</span>
+            <span className="reason-meta mono">
+              {stats.reasoningCount > 0 && `${t("fold.thinking")} ×${stats.reasoningCount}`}
+              {stats.reasoningCount > 0 && stats.toolCount > 0 && " · "}
+              {preview}
+              {extra > 0 && ` +${extra} ${t("fold.more")}`}
+            </span>
+            {failure ? (
+              <span className={`fold-flag fold-flag--${failure}`}>
+                {failure === "error" ? t("fold.hasFailures") : t("chat.interrupted")}
+              </span>
+            ) : foldGroupOpen(entries) ? (
+              <span className="fold-flag fold-flag--live">{t("chat.executing")}</span>
+            ) : null}
+            <Icon name="chevron" className="chev" />
+          </button>
+        </div>
+      </div>
+      {open &&
+        entries.map((entry) => (
+          <EntryView
+            key={entry.id}
+            entry={entry}
+            open={!!props.openReasoning[entry.id]}
+            onToggleReasoning={() =>
+              props.setOpenReasoning((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))
+            }
+            onApprove={(editedArgs) => props.onApprove(editedArgs, entry.id)}
+            onDeny={() => props.onDeny(entry.id)}
+          />
+        ))}
+    </>
+  );
+}
 
 function EntryView(props: {
   entry: Entry;
