@@ -68,6 +68,13 @@ const en = {
   "chat.commands": "Commands",
   "history.more": "Show earlier messages",
 
+  // fold groups (consecutive reasoning + tool entries)
+  "fold.group": "Reasoning & tools",
+  "fold.steps": "steps",
+  "fold.thinking": "thinking",
+  "fold.more": "more",
+  "fold.hasFailures": "contains failures",
+
   // interrupt
   "intr.paused": "Run paused · interrupt",
   "intr.resolved": "Resolved",
@@ -305,6 +312,12 @@ const zh: Dict = {
   "chat.retry": "重试",
   "chat.commands": "命令",
   "history.more": "加载更早的消息",
+
+  "fold.group": "思考与工具",
+  "fold.steps": "步",
+  "fold.thinking": "思考",
+  "fold.more": "更多",
+  "fold.hasFailures": "含失败",
 
   "intr.paused": "运行暂停 · 待确认",
   "intr.resolved": "已处理",
