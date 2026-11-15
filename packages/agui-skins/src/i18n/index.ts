@@ -209,6 +209,11 @@ const en = {
   "ds.empty": "No run data yet — send a request and the dashboard fills in.",
   "ds.runSummary": "Run summary",
 
+  // bubble
+  "bb.typing": "typing…",
+  "bb.empty": "Say hello — the conversation starts here.",
+  "bb.systemNote": "Update",
+
   // filters
   "filter.all": "All",
   "filter.lifecycle": "Lifecycle",
@@ -435,6 +440,10 @@ const zh: Dict = {
   "ds.usage": "用量",
   "ds.empty": "暂无运行数据 — 发送请求后，仪表盘开始填充。",
   "ds.runSummary": "运行小结",
+
+  "bb.typing": "正在输入…",
+  "bb.empty": "打个招呼吧 — 对话从这里开始。",
+  "bb.systemNote": "动态",
 
   "filter.all": "全部",
   "filter.lifecycle": "生命周期",

@@ -1,7 +1,7 @@
 {
   "name": "agui-skins",
   "version": "0.1.0",
-  "description": "Five reusable AG-UI conversation surfaces (Aurora, Paper, Terminal, Brutalist, Classic) for React.",
+  "description": "Nine reusable AG-UI conversation surfaces (Aurora, Paper, Terminal, Brutalist, Classic, Particle, Workbench, Dash, Bubble) for React.",
   "type": "module",
   "license": "MIT",
   "sideEffects": [
