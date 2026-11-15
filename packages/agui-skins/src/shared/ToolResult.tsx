@@ -216,12 +216,12 @@ function SourcesPaper({ sources }: { sources: ToolSource[] }) {
 
 function SourcesTerminal({ sources }: { sources: ToolSource[] }) {
   return (
-    <div className="term-tool-result">
+    <div className="term-tool-result mt-[5px] ml-[20px] text-[11px] text-[#a8c7b6]">
       {sources.map((source, index) => (
         <div key={`source-${index}`} className="term-tree">
-          <span className="term-dim">{index === sources.length - 1 ? "└" : "├"}</span>{" "}
+          <span className="term-dim text-(--dim)">{index === sources.length - 1 ? "└" : "├"}</span>{" "}
           {source.href ? (
-            <a href={source.href} target="_blank" rel="noreferrer">
+            <a href={source.href} target="_blank" rel="noreferrer" className="text-[#cfe9dc] border-b border-[rgba(140,255,176,0.26)] [border-bottom-style:dotted] hover:text-(--cyan)">
               {label(source)}
             </a>
           ) : (
@@ -409,21 +409,25 @@ function ToolResultPaper({ entry, model }: { entry: ToolEntry; model: ToolResult
 }
 
 function ToolResultTerminal({ entry, model }: { entry: ToolEntry; model: ToolResultModel }) {
+  /* former terminal.css rules for these classes, converted (task-13 Phase 2a) */
+  const T_RESULT = "term-tool-result mt-[5px] ml-[20px] text-[11px] text-[#a8c7b6]";
+  const T_JSON =
+    "term-tool-json mt-[6px] mb-0 ml-[20px] px-[11px] py-[8px] border border-dashed border-(--line) text-[#8fb3a1] text-[10.5px] leading-[1.55] max-h-[120px] overflow-auto whitespace-pre-wrap";
   return (
     <>
       {model.error !== undefined && (
-        <div className="term-tool-result">
-          <span className="term-dim">└</span> {model.error}
+        <div className={T_RESULT}>
+          <span className="term-dim text-(--dim)">└</span> {model.error}
         </div>
       )}
       {model.sources && <SourcesTerminal sources={model.sources} />}
       {model.reservation !== undefined && (
-        <div className="term-tool-result">
-          <span className="term-dim">└</span> {t("chat.held")} · {model.reservation}
+        <div className={T_RESULT}>
+          <span className="term-dim text-(--dim)">└</span> {t("chat.held")} · {model.reservation}
         </div>
       )}
-      {model.text !== undefined && <pre className="term-tool-json">{model.text}</pre>}
-      {model.json !== undefined && <pre className="term-tool-json">{model.json}</pre>}
+      {model.text !== undefined && <pre className={T_JSON}>{model.text}</pre>}
+      {model.json !== undefined && <pre className={T_JSON}>{model.json}</pre>}
     </>
   );
 }
