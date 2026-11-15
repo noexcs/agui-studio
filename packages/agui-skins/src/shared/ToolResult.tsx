@@ -147,27 +147,27 @@ function label(source: ToolSource): string {
 
 function SourcesAurora({ sources }: { sources: ToolSource[] }) {
   return (
-    <div className="tool-result">
-      <div className="tool-result-head">
+    <div className="tool-result mt-2 border-t border-dashed border-(--border) pt-2">
+      <div className="tool-result-head mb-[5px] flex items-center gap-[6px] text-[10px] text-(--text-3)">
         <Icon name="globe" />
         {sources.length} {t("chat.sources")}
       </div>
-      <div className="tool-result-list">
+      <div className="tool-result-list flex flex-col gap-[5px]">
         {sources.map((source, index) => {
           const title = label(source);
           const body = (
             <>
-              <span className="tool-source-num">{String(index + 1).padStart(2, "0")}</span>
-              <span className="tool-source-title">{title}</span>
+              <span className="tool-source-num [font-family:var(--mono)] text-[9.5px] text-(--text-3)">{String(index + 1).padStart(2, "0")}</span>
+              <span className="tool-source-title min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-[11px] text-(--text) group-hover:text-(--cyan)">{title}</span>
               <Icon name="arrow-up-right" />
             </>
           );
           return source.href ? (
-            <a key={`source-${index}`} className="tool-source" href={source.href} target="_blank" rel="noreferrer">
+            <a key={`source-${index}`} className="tool-source group flex items-center gap-2 rounded-lg border border-[rgba(255,255,255,0.045)] bg-[rgba(255,255,255,0.03)] px-[9px] py-[6px] no-underline [transition:background_0.2s] hover:bg-[rgba(255,255,255,0.06)]" href={source.href} target="_blank" rel="noreferrer">
               {body}
             </a>
           ) : (
-            <div key={`source-${index}`} className="tool-source">
+            <div key={`source-${index}`} className="tool-source group flex items-center gap-2 rounded-lg border border-[rgba(255,255,255,0.045)] bg-[rgba(255,255,255,0.03)] px-[9px] py-[6px] [transition:background_0.2s] hover:bg-[rgba(255,255,255,0.06)]">
               {body}
             </div>
           );
@@ -255,49 +255,62 @@ function duration(entry: ToolEntry): string {
 }
 
 function ToolResultAurora({ entry, model }: { entry: ToolEntry; model: ToolResultModel }) {
+  /* aurora + particle share this renderer. Values were aurora.css top-level
+     rules (never .skin-aurora-scoped), so they applied to particle too;
+     particle's unlayered .pt-tool rules still win over every utility they
+     override, and undefined aurora tokens (--border/--mono/…) degrade to
+     inherit exactly as the var() calls did before the migration. The old
+     `.tool-result-head .icon` / `.tool-source .icon` sizing rules are dead
+     (svgs carry no .icon class) and are deliberately NOT reproduced.
+     max-height: base 132px, aurora-scoped 148px (the original
+     .skin-aurora .tool-args override, kept via the arbitrary variant). */
+  const RESULT = "tool-result mt-2 border-t border-dashed border-(--border) pt-2";
+  const HEAD = "tool-result-head mb-[5px] flex items-center gap-[6px] text-[10px] text-(--text-3)";
+  const ARGS =
+    "tool-args max-h-[132px] [.skin-aurora_&]:max-h-[148px] overflow-auto whitespace-pre-wrap break-words rounded-[9px] border border-[rgba(255,255,255,0.05)] bg-[rgba(0,0,0,0.3)] px-[10px] py-2 [font-family:var(--mono)] text-[11px] leading-[1.62] text-[#a9b8cc]";
   return (
     <>
       {model.error !== undefined && (
-        <div className="tool-result">
-          <div className="tool-result-head">
+        <div className={RESULT}>
+          <div className={HEAD}>
             <Icon name="x" />
             {t("chat.failed")}
           </div>
-          <div className="tool-args" data-skin-text="">
+          <div className={ARGS} data-skin-text="">
             {model.error}
           </div>
         </div>
       )}
       {model.sources && <SourcesAurora sources={model.sources} />}
       {model.reservation !== undefined && (
-        <div className="tool-result">
-          <div className="tool-result-head">
+        <div className={RESULT}>
+          <div className={HEAD}>
             <Icon name="check" />
             {t("chat.held")}
           </div>
-          <div className="tool-args" data-skin-text="">
+          <div className={ARGS} data-skin-text="">
             {model.reservation}
           </div>
         </div>
       )}
       {model.text !== undefined && (
-        <div className="tool-result">
-          <div className="tool-result-head">
+        <div className={RESULT}>
+          <div className={HEAD}>
             <Icon name="check" />
             {t("chat.result")}
           </div>
-          <div className="tool-args" data-skin-text="">
+          <div className={ARGS} data-skin-text="">
             {model.text}
           </div>
         </div>
       )}
       {model.json !== undefined && (
-        <div className="tool-result">
-          <div className="tool-result-head">
+        <div className={RESULT}>
+          <div className={HEAD}>
             <Icon name="braces" />
             {t("chat.result")}
           </div>
-          <div className="tool-args" data-skin-text="">
+          <div className={ARGS} data-skin-text="">
             {model.json}
           </div>
         </div>
