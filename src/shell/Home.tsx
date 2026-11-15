@@ -24,6 +24,9 @@ const TAGLINE_ZH: Record<string, string> = {
   brutalist: "硬边框 · 强审批",
   classic: "中性经典 · 企业稳妥",
   particle: "粒子场 · 实时协议",
+  workbench: "石墨工作台 · 轮次即文件",
+  dash: "运营仪表盘 · 指标条",
+  bubble: "移动聊天 · 气泡尾巴",
 };
 
 /** Hero copy must track the registry: "Four skins" drifted once a fifth skin
@@ -138,8 +141,8 @@ export function Home(props: {
           </h1>
           <p className="hero-sub">
             {zh
-              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框、中性经典，以及粒子场。往下滚，就地切换、直接交互。"
-              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders, neutral classic, particle field. Scroll down — switch and use them right here."}
+              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框、中性经典、粒子场、石墨工作台、运营仪表盘，以及移动聊天气泡。往下滚，就地切换、直接交互。"
+              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders, neutral classic, particle field, graphite workbench, ops dashboard, and mobile chat. Scroll down — switch and use them right here."}
           </p>
           <div className="hero-actions">
             <button className="hero-primary" onClick={scrollToSkins}>
