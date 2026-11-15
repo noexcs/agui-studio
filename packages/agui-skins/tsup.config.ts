@@ -30,6 +30,7 @@ export default defineConfig({
     "skins/brutalist": "src/skins/brutalist/index.tsx",
     "skins/classic": "src/skins/classic/index.tsx",
     "skins/particle": "src/skins/particle/index.tsx",
+    "skins/workbench": "src/skins/workbench/index.tsx",
   },
   format: ["esm"],
   dts: true,

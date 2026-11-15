@@ -17,6 +17,9 @@ export const SKIN_SWATCHES: Record<string, string[]> = {
   brutalist: ["#f2efe6", "#111111", "#ffe14d", "#ff4d2e", "#fffdf7"],
   classic: ["#f7f8fa", "#ffffff", "#2563eb", "#111827"],
   particle: ["#05060f", "#101528", "#9b8cff", "#67f5d0", "#dfe2ff"],
+  // workbench: graphite chrome / editor canvas / syntax blue (terminal violet
+  // and cyan appear in the language's tool + state accents)
+  workbench: ["#1b1d21", "#222429", "#7aa2f7", "#bb9af7", "#7dcfff"],
 };
 
 /** Swatch list for a skin id; falls back to the skin accent (unknown/test ids). */
