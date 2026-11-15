@@ -142,7 +142,7 @@ describe("skin registry", () => {
   });
 
   it("exposes the ids the tuning CSS relies on", () => {
-    expect(skins.map((skin) => skin.id).sort()).toEqual(["aurora", "brutalist", "bubble", "classic", "dash", "paper", "particle", "terminal", "workbench"]);
+    expect(skins.map((skin) => skin.id).sort()).toEqual(["aurora", "brutalist", "bubble", "classic", "dash", "orbit", "paper", "particle", "terminal", "workbench"]);
   });
 });
 

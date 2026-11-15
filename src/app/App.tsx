@@ -3,6 +3,7 @@ import { SkinHostProvider } from "agui-skins";
 import type { SkinTuning } from "agui-skins";
 import { CustomizePanel } from "./CustomizePanel";
 import { buildAppQuery, sanitizeTuning } from "./urlState";
+import { skinShortcutIndex } from "./skinShortcut";
 import { createStudio, type ConversationStore, type StudioBackend } from "../core/store";
 import { DEFAULT_SCENARIO, isDemoScenario, type DemoScenario } from "../core/demo-scenarios";
 import { getAgentEndpoint, setAgentEndpoint as persistAgentEndpoint, type AgentEndpoint } from "../core/agui";
@@ -256,8 +257,8 @@ export default function App() {
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
       if (e.key.toLowerCase() === "r") store.replay();
       if (e.key.toLowerCase() === "l") chooseLang(lang === "zh" ? "en" : "zh");
-      const index = Number(e.key) - 1;
-      if (index >= 0 && index < skins.length) openSkin(skins[index].id);
+      const index = skinShortcutIndex(e.key);
+      if (index !== null && index < skins.length) openSkin(skins[index].id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

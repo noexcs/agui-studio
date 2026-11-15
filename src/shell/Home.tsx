@@ -27,6 +27,7 @@ const TAGLINE_ZH: Record<string, string> = {
   workbench: "石墨工作台 · 轮次即文件",
   dash: "运营仪表盘 · 指标条",
   bubble: "移动聊天 · 气泡尾巴",
+  orbit: "深空视差 · 真纵深",
 };
 
 /** Hero copy must track the registry: "Four skins" drifted once a fifth skin
@@ -179,8 +180,8 @@ export function Home(props: {
           </h1>
           <p className="hero-sub mt-0 mb-8 max-w-[34em] text-[16px] leading-[1.65] text-(--fg-secondary)">
             {zh
-              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框、中性经典、粒子场、石墨工作台、运营仪表盘，以及移动聊天气泡。往下滚，就地切换、直接交互。"
-              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders, neutral classic, particle field, graphite workbench, ops dashboard, and mobile chat. Scroll down — switch and use them right here."}
+              ? "为 AG-UI 协议设计的对话界面：深色玻璃、编辑排版、荧光终端、硬边框、中性经典、粒子场、石墨工作台、运营仪表盘、移动聊天气泡，以及深空 3D 的 orbit。往下滚，就地切换、直接交互。"
+              : "Conversation surfaces for the AG-UI protocol: dark glass, editorial print, phosphor CLI, hard borders, neutral classic, particle field, graphite workbench, ops dashboard, mobile chat, and the deep-space 3D orbit. Scroll down — switch and use them right here."}
           </p>
           <div className="hero-actions flex flex-wrap items-center gap-3">
             <button

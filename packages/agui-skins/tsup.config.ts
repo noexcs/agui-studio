@@ -33,11 +33,19 @@ export default defineConfig({
     "skins/workbench": "src/skins/workbench/index.tsx",
     "skins/dash": "src/skins/dash/index.tsx",
     "skins/bubble": "src/skins/bubble/index.tsx",
+    "skins/orbit": "src/skins/orbit/index.tsx",
   },
   format: ["esm"],
+  // Orbit ships its own subset CJK font. esbuild emits it under dist/assets/
+  // and the lazy scene chunk resolves it relative to import.meta.url, so
+  // consumers never download glyphs from a font CDN.
+  loader: { ".woff": "file", ".woff2": "file" },
   dts: true,
   splitting: true,
   sourcemap: true,
   clean: true,
   tsconfig: "tsconfig.json",
+  // The lazy Orbit scene imports these; npm consumers provide them as the
+  // package dependencies and they must never be inlined into dist JS.
+  external: ["three", "troika-three-text"],
 });
