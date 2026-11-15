@@ -234,12 +234,16 @@ function SourcesTerminal({ sources }: { sources: ToolSource[] }) {
 }
 
 function SourcesBrutalist({ sources }: { sources: ToolSource[] }) {
+  /* former brutalist.css rules for these classes, converted (task-13 Phase 2a) */
+  const LIST = "bru-tool-results flex flex-col gap-[3px] border-t-[1.5px] border-(--ink) [border-top-style:dashed] px-[12px] py-[7px]";
+  const LINK =
+    "[font-family:IBM_Plex_Mono,monospace] text-[10px] text-[#33302a] border-b-[1.5px] border-b-transparent hover:bg-(--yellow) hover:border-b-(--ink)";
   return (
-    <div className="bru-tool-results">
+    <div className={LIST}>
       {sources.map((source, index) => {
         const title = `${String(index + 1).padStart(2, "0")} ${label(source)} ↗`;
         return source.href ? (
-          <a key={`source-${index}`} href={source.href} target="_blank" rel="noreferrer">
+          <a key={`source-${index}`} href={source.href} target="_blank" rel="noreferrer" className={LINK}>
             {title}
           </a>
         ) : (
@@ -433,27 +437,31 @@ function ToolResultTerminal({ entry, model }: { entry: ToolEntry; model: ToolRes
 }
 
 function ToolResultBrutalist({ entry, model }: { entry: ToolEntry; model: ToolResultModel }) {
+  /* former brutalist.css rules for these classes, converted (task-13 Phase 2a) */
+  const LIST = "bru-tool-results flex flex-col gap-[3px] border-t-[1.5px] border-(--ink) [border-top-style:dashed] px-[12px] py-[7px]";
+  const ARGS =
+    "bru-tool-args m-0 max-h-[130px] overflow-auto whitespace-pre-wrap px-[12px] py-[10px] [font-family:IBM_Plex_Mono,monospace] text-[10.5px] leading-[1.55] text-[#33302a]";
   return (
     <>
       {model.error !== undefined && (
-        <div className="bru-tool-results">
+        <div className={LIST}>
           <span>{t("chat.failed")} · </span>
           {model.error}
         </div>
       )}
       {model.sources && <SourcesBrutalist sources={model.sources} />}
       {model.reservation !== undefined && (
-        <div className="bru-tool-results">
+        <div className={LIST}>
           {t("bru.held")} · {model.reservation}
         </div>
       )}
       {model.text !== undefined && (
-        <pre className="bru-tool-args" data-skin-text="">
+        <pre className={ARGS} data-skin-text="">
           {model.text}
         </pre>
       )}
       {model.json !== undefined && (
-        <pre className="bru-tool-args" data-skin-text="">
+        <pre className={ARGS} data-skin-text="">
           {model.json}
         </pre>
       )}
