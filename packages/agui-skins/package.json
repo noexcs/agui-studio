@@ -67,6 +67,7 @@
     "react-dom": "^18.3.1"
   },
   "dependencies": {
-    "color2k": "^2.0.4"
+    "color2k": "^2.0.4",
+    "use-stick-to-bottom": "^1.1.6"
   }
 }

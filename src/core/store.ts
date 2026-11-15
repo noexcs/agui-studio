@@ -12,6 +12,9 @@ import { promptFor, RUN_FIRST, THREAD_ID, type Decision } from "./demo";
 import { buildScenarioResume, buildScenarioRun, DEFAULT_SCENARIO, type DemoScenario } from "./demo-scenarios";
 import type { Lang } from "../i18n";
 import { streamPiRun, stopPiRun, type PiBackend } from "./pi";
+import { validateResumePayload } from "./validate";
+import { buildResumeArray, isInterruptExpired } from "@ag-ui/client";
+import type { Interrupt } from "@ag-ui/core";
 import {
   buildAgentInput,
   buildResumeInput,
@@ -412,7 +415,8 @@ export class ConversationStore {
     if (!entry) return;
 
     // protocol: never submit a resume past the interrupt's expiresAt
-    if (entry.expiresAt && Date.now() > Date.parse(entry.expiresAt)) {
+    // (official @ag-ui/client helper; expiresAt absent means never expires)
+    if (isInterruptExpired(entry as unknown as Interrupt)) {
       entry.status = "denied";
       entry.expired = true;
       entry.resolvedAt = Date.now();
@@ -445,43 +449,65 @@ export class ConversationStore {
       (entry): entry is InterruptEntry =>
         entry.kind === "interrupt" && (scope.size ? scope.has(entry.id) : true) && (entry.status === "approved" || entry.status === "denied")
     );
+    if (this.backend === "agui") {
+      /* Official strict coverage (@ag-ui/client buildResumeArray): the resume
+         must answer the run's open interrupts exactly once — `runInterruptIds`
+         is that open set (recorded from the RUN_FINISHED interrupt outcome)
+         and the resolved entries above are the answers, scoped to this run.
+         The previously soft-filtered mismatches (an open interrupt nobody
+         answered, an answer for an interrupt this run never opened) now
+         surface as a user-visible RUN_ERROR instead of being silently
+         narrowed or broadened. */
+      const openIds = scope.size ? [...scope] : interrupts.map((entry) => entry.id);
+      const responses: Record<string, { status: "resolved"; payload?: unknown } | { status: "cancelled" }> = {};
+      for (const entry of interrupts) {
+        responses[entry.id] =
+          entry.status === "approved"
+            ? {
+                status: "resolved",
+                payload: entry.editedArgs ? { approved: true, editedArgs: entry.editedArgs } : { approved: true },
+              }
+            : { status: "cancelled" };
+      }
+      try {
+        const resume = buildResumeArray(
+          openIds.map((id) => ({ id, reason: "resume" }) as Interrupt),
+          responses
+        );
+        const byId = new Map(interrupts.map((entry) => [entry.id, entry]));
+        const decisions: Decision[] = resume.map((entry) => ({
+          approved: entry.status === "resolved",
+          editedArgs: byId.get(entry.interruptId)?.editedArgs,
+        }));
+        this.lastResume = decisions;
+        void this.startAgentResume(
+          resume.map((entry) => ({
+            interruptId: entry.interruptId,
+            approved: entry.status === "resolved",
+            editedArgs: byId.get(entry.interruptId)?.editedArgs,
+          }))
+        );
+      } catch (error) {
+        this.status = "error";
+        this.errorMessage = (error as Error).message || "resume does not cover the run's open interrupts";
+        this.entries.push({ kind: "error", id: uid("err"), message: this.errorMessage, at: Date.now() });
+        this.notify();
+      }
+      return;
+    }
     const decisions: Decision[] = interrupts.map((entry) => ({
       approved: entry.status === "approved",
       editedArgs: entry.editedArgs,
     }));
     this.lastResume = decisions;
-    if (this.backend === "agui") {
-      void this.startAgentResume(
-        interrupts.map((entry) => ({
-          interruptId: entry.id,
-          approved: entry.status === "approved",
-          editedArgs: entry.editedArgs,
-        }))
-      );
-      return;
-    }
     this.beginRun();
     this.startEvents(buildScenarioResume(this.scenario, decisions, this.threadId, "run_7K2B", this.lang));
   }
 
-  /** Minimal JSON-Schema validation for interrupt resume payloads. */
+  /** zod-validated interrupt resume payloads (P1-6): the interrupt's
+   *  responseSchema is converted to an equivalent zod schema in validate.ts. */
   private validateInterruptPayload(entry: InterruptEntry, payload: Record<string, unknown>): boolean {
-    const schema = entry.responseSchema as
-      | { required?: string[]; properties?: Record<string, { type?: string }> }
-      | undefined;
-    if (!schema) return true;
-    for (const key of schema.required ?? []) {
-      if (!(key in payload)) return false;
-    }
-    for (const [key, property] of Object.entries(schema.properties ?? {})) {
-      const value = payload[key];
-      if (value === undefined) continue;
-      if (property.type === "boolean" && typeof value !== "boolean") return false;
-      if (property.type === "string" && typeof value !== "string") return false;
-      if (property.type === "number" && typeof value !== "number") return false;
-      if (property.type === "object" && (typeof value !== "object" || value === null)) return false;
-    }
-    return true;
+    return validateResumePayload(entry.responseSchema, payload);
   }
 
   stop() {

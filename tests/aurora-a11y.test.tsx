@@ -106,49 +106,67 @@ describe("Fix D: aurora ev-row keyboard access", () => {
 
 /* ── item 4: aurora inspector stick-to-bottom ──────────────────────── */
 
+/* The stick engine is use-stick-to-bottom: scrolls go through rAF-driven
+   animation frames and escape handling runs one tick after the scroll event,
+   so each step flushes real timers before asserting. The library targets
+   scrollHeight - 1 - clientHeight (its deliberate one-pixel margin). */
+const CLIENT_H = 400;
+const flush = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
+const atBottomOf = (scrollHeight: number) => scrollHeight - 1 - CLIENT_H;
+const setGeometry = (el: HTMLElement, scrollHeight: number) => {
+  Object.defineProperty(el, "clientHeight", { configurable: true, value: CLIENT_H });
+  Object.defineProperty(el, "scrollHeight", { configurable: true, value: scrollHeight });
+};
+
 describe("Fix D: aurora inspector stick-to-bottom", () => {
-  it("pins to the newest event while the reader sits at the bottom", () => {
+  it("pins to the newest event while the reader sits at the bottom", async () => {
     const store = makeEventsStore();
     const { container } = renderSkin("aurora", store, "en");
     const list = container.querySelector(".ev-list") as HTMLElement;
     expect(list).toBeTruthy();
 
-    // jsdom has no layout, so pin the three metrics useStickToBottom reads
-    const SCROLL_H = 1000;
-    const CLIENT_H = 400;
-    Object.defineProperty(list, "scrollHeight", { configurable: true, value: SCROLL_H });
-    Object.defineProperty(list, "clientHeight", { configurable: true, value: CLIENT_H });
+    // jsdom has no layout, so pin the metrics the engine reads
+    setGeometry(list, 1000);
+    Object.defineProperty(list, "scrollTop", { configurable: true, writable: true, value: atBottomOf(1000) });
+    list.dispatchEvent(new Event("scroll"));
+    await flush();
 
     // reader at the bottom: the next streamed batch keeps the pin
-    Object.defineProperty(list, "scrollTop", { configurable: true, writable: true, value: SCROLL_H - CLIENT_H });
-    list.dispatchEvent(new Event("scroll"));
+    setGeometry(list, 1400);
     moreEvents(store);
-    expect(list.scrollTop).toBe(SCROLL_H);
+    await flush();
+    expect(list.scrollTop).toBe(atBottomOf(1400));
   });
 
-  it("releases the pin when the reader scrolls up to inspect history", () => {
+  it("releases the pin when the reader scrolls up to inspect history", async () => {
     const store = makeEventsStore();
     const { container } = renderSkin("aurora", store, "en");
     const list = container.querySelector(".ev-list") as HTMLElement;
-    const SCROLL_H = 1000;
-    const CLIENT_H = 400;
-    Object.defineProperty(list, "scrollHeight", { configurable: true, value: SCROLL_H });
-    Object.defineProperty(list, "clientHeight", { configurable: true, value: CLIENT_H });
+    setGeometry(list, 1000);
+    Object.defineProperty(list, "scrollTop", { configurable: true, writable: true, value: atBottomOf(1000) });
+    list.dispatchEvent(new Event("scroll"));
+    await flush();
 
-    // reader scrolls up, far from the bottom edge (>140px away)
+    // reader scrolls up to inspect history
     const UP = 100;
     Object.defineProperty(list, "scrollTop", { configurable: true, writable: true, value: UP });
     list.dispatchEvent(new Event("scroll"));
+    await flush();
 
+    setGeometry(list, 1400);
     moreEvents(store);
+    await flush();
     // streaming must NOT yank the reader back to the bottom
     expect(list.scrollTop).toBe(UP);
 
-    // scrolling back down re-arms the pin
-    Object.defineProperty(list, "scrollTop", { configurable: true, writable: true, value: SCROLL_H - CLIENT_H });
+    // scrolling back down (within the near-bottom threshold) re-arms the pin
+    Object.defineProperty(list, "scrollTop", { configurable: true, writable: true, value: atBottomOf(1400) });
     list.dispatchEvent(new Event("scroll"));
+    await flush();
+    setGeometry(list, 1800);
     moreEvents(store);
-    expect(list.scrollTop).toBe(SCROLL_H);
+    await flush();
+    expect(list.scrollTop).toBe(atBottomOf(1800));
   });
 });
 

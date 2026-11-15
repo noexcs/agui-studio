@@ -140,7 +140,7 @@ Swap the last import + component name for another skin.
 - SkinHostProvider props: conversation (required), lang ("en" | "zh"), branding ({ agentName, modelLabel }), tuning (SkinTuning), messages (dictionary overrides). tuning.accent is consumed by each skin's own CSS — no skin prop needed.
 - SkinTuning: accent, textAnim ("none" | "fade" | "rise"), density ("comfortable" | "compact"), motion ("slow" | "normal" | "fast"), radius ("sharp" | "soft" | "round"), textScale ("compact" | "normal" | "large").
 - CSS is shipped separately and is NOT auto-injected: import "agui-skins/index.css" (all skins) or "agui-skins/skins/<id>.css" (one skin).
-- Real agent: the reference SSE transport is not part of the package — copy HttpAgentTransport (~50 lines) from this repo's src/core/transport.ts, then consume AG-UI BaseEvents (RUN_STARTED / TEXT_MESSAGE_* / TOOL_CALL_* / STATE_SNAPSHOT / STATE_DELTA / RUN_FINISHED).
+- Real agent: the reference SSE transport is not part of the package — copy HttpAgentTransport (built on the official @ag-ui/client pipeline) from this repo's src/core/transport.ts, then consume AG-UI BaseEvents (RUN_STARTED / TEXT_MESSAGE_* / TOOL_CALL_* / STATE_SNAPSHOT / STATE_DELTA / RUN_FINISHED).
 
 ## Pitfalls
 - Never pass raw BaseEvents to a skin; reduce them into entries first.
@@ -172,7 +172,7 @@ ${minSetupCode(skin.id, "zh")}
 - SkinHostProvider props:conversation(必填)、lang("en" | "zh")、branding({ agentName, modelLabel })、tuning(SkinTuning)、messages(字典覆盖)、plugins({ custom?:(entry)=>ReactNode } 覆盖 CUSTOM entry 渲染)。tuning.accent 由各皮肤自己的 CSS 消费,无需额外 skin prop。
 - SkinTuning 可调:accent(色值)、textAnim("none" | "fade" | "rise")、density("comfortable" | "compact")、motion("slow" | "normal" | "fast")、radius("sharp" | "soft" | "round")、textScale("compact" | "normal" | "large")。
 - CSS 随包分发但不会自动注入:必须显式 import "agui-skins/index.css"(整包)或按皮肤 import "agui-skins/skins/<id>.css"。
-- 接真实 agent:参考实现不在包内 —— 复制本仓库 src/core/transport.ts 的 HttpAgentTransport(约 50 行),逐个消费 AG-UI BaseEvent(type 如 RUN_STARTED / TEXT_MESSAGE_START|CONTENT|END / TOOL_CALL_* / STATE_SNAPSHOT / STATE_DELTA / RUN_FINISHED)。
+- 接真实 agent:参考实现不在包内 —— 复制本仓库 src/core/transport.ts 的 HttpAgentTransport(基于官方 @ag-ui/client 流水线),逐个消费 AG-UI BaseEvent(type 如 RUN_STARTED / TEXT_MESSAGE_START|CONTENT|END / TOOL_CALL_* / STATE_SNAPSHOT / STATE_DELTA / RUN_FINISHED)。
 
 ## 常见坑
 - 别把 BaseEvent 直接塞给皮肤:皮肤只认 entries 视图模型,事件必须先经 store 归约。
@@ -210,7 +210,7 @@ export async function copyText(text: string): Promise<boolean> {
 
 /* ── code sample: real agent (kept in sync with src/core/{transport,store}.ts) ── */
 
-const LIVE_AGENT_CODE = `// 1) SSE 适配层:复制本仓库 src/core/transport.ts(HttpAgentTransport,约 50 行零依赖,不在 npm 包内)
+const LIVE_AGENT_CODE = `// 1) SSE 适配层:复制本仓库 src/core/transport.ts(HttpAgentTransport,基于官方 @ag-ui/client,不在 npm 包内)
 import { HttpAgentTransport } from "./transport";
 
 const transport = new HttpAgentTransport({ url: "/api/agent" });
