@@ -440,6 +440,7 @@ function FoldGroupBlock(props: {
         <div className={`reason reason--fold ${open ? "is-open" : ""}`} data-fold-id={props.groupId}>
           <button
             className="reason-toggle"
+            data-fold-head=""
             aria-expanded={open}
             aria-label={t("fold.group")}
             onClick={onToggle}

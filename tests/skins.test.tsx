@@ -1,4 +1,4 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { skins, SkinHostProvider, t } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
@@ -19,13 +19,17 @@ describe.each(skins.map((skin) => [skin.id, skin] as const))("skin: %s", (_id, s
         <Page />
       </SkinHostProvider>
     );
-    const text = container.textContent ?? "";
-    const lower = text.toLowerCase();
-
+    let text = container.textContent ?? "";
     expect(text).toContain("fixture user prompt");
     expect(text).toContain("fixture answer");
-    expect(lower).toContain("web.search");
     expect(text).toContain("fixture approval needed");
+    // Foldable skins collapse the fixture's adjacent tool+thinking run; unfold
+    // it so the per-entry rendering (and the tool name) is on the page.
+    const foldHead = container.querySelector("[data-fold-head]") as HTMLButtonElement | null;
+    if (foldHead) fireEvent.click(foldHead);
+    text = container.textContent ?? "";
+    const lower = text.toLowerCase();
+    expect(lower).toContain("web.search");
     expect(lower).toContain("fixture step one");
     if (["aurora", "classic", "terminal", "paper", "brutalist"].includes(skin.id)) {
       expect(lower).toContain("fixture subagent");

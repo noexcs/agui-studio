@@ -140,6 +140,7 @@ export function BubblePage() {
                   <button
                     type="button"
                     className="bb-fold-head"
+                    data-fold-head=""
                     aria-expanded={open}
                     aria-label={t("fold.group")}
                     onClick={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}

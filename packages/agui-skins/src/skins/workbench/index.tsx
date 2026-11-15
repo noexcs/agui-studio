@@ -573,6 +573,7 @@ function FoldGroupRow({
           <button
             type="button"
             className="wb-fold-head mono"
+            data-fold-head=""
             aria-expanded={open}
             aria-label={t("fold.group")}
             onClick={onToggle}

@@ -333,6 +333,7 @@ function FoldGroupRow({
         <button
           type="button"
           className="ds-fold-head"
+          data-fold-head=""
           aria-expanded={open}
           aria-label={t("fold.group")}
           onClick={onToggle}
