@@ -25,6 +25,9 @@ export const SKIN_SWATCHES: Record<string, string[]> = {
   dash: ["#f7f8fa", "#ffffff", "#0f766e", "#1d4ed8", "#b91c1c"],
   // bubble: chat page / incoming bubble / outgoing bubble blue
   bubble: ["#eef0f4", "#ffffff", "#2e63d3", "#16794f", "#b45309"],
+  // orbit: void / panel / violet core (mint stars and cyan states are the
+  // supporting lights in the starfield and status chips)
+  orbit: ["#05060a", "#0a0f1e", "#9d8cff", "#67f5d0", "#7fdcff"],
 };
 
 /** Swatch list for a skin id; falls back to the skin accent (unknown/test ids). */

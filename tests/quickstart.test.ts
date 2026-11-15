@@ -28,7 +28,7 @@ describe("buildAiPrompt", () => {
   });
 
   it("lists every skin from the registry (name + tagline), not hard-coded copies", () => {
-    expect(skins.length).toBe(9);
+    expect(skins.length).toBe(10);
     for (const skin of skins) {
       expect(prompt).toContain(skin.name);
       expect(prompt).toContain(skin.tagline);

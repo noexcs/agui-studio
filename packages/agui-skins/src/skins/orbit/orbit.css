@@ -1,0 +1,265 @@
+/* Orbit v2 — residual CSS inventory (element styling stays in Tailwind
+   utilities on index.tsx; this file only carries what utilities cannot
+   express). Categories are deliberate and audited in the task-15 report:
+
+   A. TOKENS            skin-scoped custom properties (single source of truth)
+   B. SKY FALLBACK      2D star wash: chunk loading + no-WebGL only (never the
+                        primary visual; the WebGL canvas covers it when ready)
+   C. PSEUDO/KEYFRAMES  composer hologram scanline, caret blink, focus proxy
+   D. FALLBACK LIST     readable DOM transcript used only when WebGL fails
+   E. A11Y/REDUCED      focus ring + universal reduced-motion clamp        */
+
+/* ── A. tokens ─────────────────────────────────────────────────────── */
+
+.skin-orbit {
+  --or-void: #05060a;
+  --or-deep: #070a13;
+  --or-panel: rgba(10, 15, 30, 0.9);
+  --or-glass: rgba(15, 22, 44, 0.55);
+  --or-line: rgba(151, 164, 214, 0.16);
+  --or-line-strong: rgba(160, 174, 235, 0.3);
+  --or-text: #e7ebf7;
+  --or-dim: #aab3cc;
+  --or-faint: #8590ad;
+  --or-user-text: #c3cbe2;
+  /* accent text on the void rides the brightened guard when the host had to
+     darken the user's accent for a dark surface */
+  --or-accent: var(--sk-accent-on-dark, var(--sk-accent, #9d8cff));
+  --or-accent-fg: var(--sk-accent-fg, #05060a);
+  --or-violet: #9d8cff;
+  --or-cyan: #7fdcff;
+  --or-mint: #67f5d0;
+  --or-amber: #ffc76b;
+  --or-red: #ff8291;
+  --or-green: #8bf0b8;
+  --or-scroll: rgba(157, 140, 255, 0.28);
+  --or-mono: var(--sk-mono, ui-monospace, "SFMono-Regular", Menlo, monospace);
+  --or-sans: var(--sk-font, "Geist", "Inter", system-ui, sans-serif);
+}
+
+/* ── B. sky fallback (loading / WebGL unavailable) ─────────────────── */
+
+.or-sky-fallback {
+  background-image:
+    radial-gradient(1.7px 1.7px at 22px 34px, rgba(231, 235, 247, 0.95) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 138px 92px, rgba(157, 140, 255, 0.9) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 254px 178px, rgba(127, 220, 255, 0.85) 50%, transparent 51%),
+    radial-gradient(1.8px 1.8px at 64px 236px, rgba(231, 235, 247, 0.8) 50%, transparent 51%),
+    radial-gradient(1.3px 1.3px at 306px 62px, rgba(103, 245, 208, 0.8) 50%, transparent 51%),
+    radial-gradient(1.6px 1.6px at 190px 274px, rgba(231, 235, 247, 0.7) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 88px 148px, rgba(231, 235, 247, 0.55) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 332px 224px, rgba(157, 140, 255, 0.6) 50%, transparent 51%);
+  background-size: 360px 320px;
+  opacity: 1;
+  transition: opacity 900ms ease;
+}
+.or-sky-fallback::before,
+.or-sky-fallback::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.or-sky-fallback::before {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(113, 84, 255, 0.28), transparent 46%),
+    radial-gradient(circle at 82% 76%, rgba(54, 220, 205, 0.18), transparent 48%),
+    radial-gradient(circle at 52% 42%, rgba(74, 126, 255, 0.14), transparent 54%);
+}
+.or-sky-fallback::after {
+  opacity: 0.75;
+  background-image:
+    radial-gradient(1.3px 1.3px at 48px 58px, rgba(231, 235, 247, 0.9) 50%, transparent 51%),
+    radial-gradient(1.1px 1.1px at 172px 142px, rgba(157, 140, 255, 0.75) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 96px 196px, rgba(127, 220, 255, 0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 228px 36px, rgba(231, 235, 247, 0.7) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 308px 168px, rgba(231, 235, 247, 0.55) 50%, transparent 51%),
+    radial-gradient(1px 1px at 132px 262px, rgba(103, 245, 208, 0.55) 50%, transparent 51%);
+  background-size: 330px 290px;
+}
+/* canvas ready → the CSS wash fades away; WebGL owns the sky */
+.or-sky[data-state="ready"] .or-sky-fallback {
+  opacity: 0;
+}
+
+/* ── C. pseudo-elements, focus proxies, keyframes ──────────────────── */
+
+.or-dock {
+  position: relative;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--or-cyan) 34%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--or-panel) 92%, transparent), color-mix(in srgb, var(--or-deep) 96%, transparent));
+  box-shadow:
+    0 28px 70px -38px rgba(0, 0, 0, 1),
+    0 0 34px -14px color-mix(in srgb, var(--or-cyan) 55%, transparent);
+  overflow: hidden;
+}
+.or-dock::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset-inline: 0;
+  top: 0;
+  height: 22px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--or-cyan) 22%, transparent), transparent);
+  opacity: 0.45;
+  animation: or-holo-scan 6.5s linear infinite;
+}
+.or-composer {
+  border-radius: 12px;
+}
+.or-caret {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--or-accent);
+  animation: or-blink 1s steps(2, end) infinite;
+}
+
+/* Transparent projections of the 3D controls. They are real buttons (tab,
+   Enter/Space, screen readers); the visible ring is a 2D accessibility
+   affordance and deliberately independent of the WebGL look. */
+.or-proxy {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  font-size: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  /* Mouse input is raycast in the scene; the proxy exists for keyboard and
+     screen readers, and must not steal the canvas click. */
+  pointer-events: none;
+}
+.or-proxy:focus-visible {
+  outline: 2px solid var(--or-cyan);
+  outline-offset: 3px;
+  background: color-mix(in srgb, var(--or-cyan) 10%, transparent);
+}
+.skin-orbit:not([data-scene="ready"]) .or-proxy {
+  visibility: hidden;
+}
+
+@keyframes or-holo-scan {
+  from { transform: translateY(-140%); }
+  to { transform: translateY(620%); }
+}
+@keyframes or-blink {
+  50% { opacity: 0; }
+}
+
+/* ── D. readable fallback transcript (no WebGL only) ───────────────── */
+
+.or-fallback::-webkit-scrollbar { width: 8px; }
+.or-fallback::-webkit-scrollbar-thumb {
+  background: var(--or-scroll);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.or-fallback .or-hud {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--or-line);
+}
+.or-fallback .or-status {
+  justify-self: start;
+  border: 1px solid var(--or-line-strong);
+  border-radius: 99px;
+  padding: 1px 9px;
+  color: var(--or-cyan);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.or-fallback .or-status[data-status="interrupted"] { color: var(--or-amber); }
+.or-fallback .or-status[data-status="error"] { color: var(--or-red); }
+.or-fallback .or-status[data-status="done"] { color: var(--or-green); }
+.or-fallback .or-entry,
+.or-fallback .or-state {
+  border: 1px solid var(--or-line);
+  border-radius: 12px;
+  background: var(--or-panel);
+  padding: 10px 14px;
+}
+.or-fallback .or-entry[data-kind="user"] {
+  border-color: color-mix(in srgb, var(--or-violet) 32%, transparent);
+}
+.or-fallback .or-entry[data-kind="interrupt"] {
+  border-color: color-mix(in srgb, var(--or-amber) 48%, transparent);
+  box-shadow: 0 0 30px -14px color-mix(in srgb, var(--or-amber) 60%, transparent);
+}
+.or-fallback .or-approval[data-state="expired"] {
+  border-color: var(--or-line-strong);
+  opacity: 0.82;
+}
+.or-fallback .or-error-row {
+  border: 1px solid color-mix(in srgb, var(--or-red) 45%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--or-red) 9%, var(--or-panel));
+  padding: 10px 14px;
+}
+.or-fallback .or-btn {
+  cursor: pointer;
+  border: 1px solid var(--or-line-strong);
+  border-radius: 99px;
+  background: var(--or-panel);
+  padding: 5px 14px;
+  color: var(--or-text);
+  font: inherit;
+}
+.or-fallback .or-btn:hover {
+  border-color: var(--or-cyan);
+}
+.or-fallback .or-earlier {
+  cursor: pointer;
+  margin-bottom: 14px;
+  border: 1px solid currentColor;
+  border-radius: 99px;
+  background: transparent;
+  padding: 4px 12px;
+  color: var(--or-dim);
+  font: inherit;
+  font-size: 11px;
+}
+.or-fallback .or-empty {
+  border: 1px dashed var(--or-line-strong);
+  border-radius: 16px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+/* ── E. accessibility + reduced motion ─────────────────────────────── */
+
+.skin-orbit :focus-visible {
+  outline: 2px solid var(--or-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The sr-only mirror must not add hidden tab stops: scrollable <pre> blocks
+   are focusable in Chrome even when clipped. Its text is read linearly, so
+   overflow can stay visible (clipped by sr-only itself). */
+.or-a11y pre {
+  max-height: none;
+  overflow: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-orbit *,
+  .skin-orbit *::before,
+  .skin-orbit *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

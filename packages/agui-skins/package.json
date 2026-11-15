@@ -1,7 +1,7 @@
 {
   "name": "agui-skins",
   "version": "0.1.0",
-  "description": "Nine reusable AG-UI conversation surfaces (Aurora, Paper, Terminal, Brutalist, Classic, Particle, Workbench, Dash, Bubble) for React.",
+  "description": "Ten reusable AG-UI conversation surfaces (Aurora, Paper, Terminal, Brutalist, Classic, Particle, Workbench, Dash, Bubble, Orbit) for React.",
   "type": "module",
   "license": "MIT",
   "sideEffects": [
@@ -61,6 +61,7 @@
     "@radix-ui/react-tabs": "^1.2.1",
     "@tailwindcss/cli": "^4.3.5",
     "@types/react": "^18.3.12",
+    "@types/three": "^0.187.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-json-view-lite": "^2.5.0",
@@ -69,6 +70,8 @@
   },
   "dependencies": {
     "color2k": "^2.0.4",
+    "three": "^0.187.0",
+    "troika-three-text": "^0.53.1",
     "use-stick-to-bottom": "^1.1.6"
   }
 }
