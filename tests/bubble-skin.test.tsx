@@ -6,7 +6,7 @@ import { skins, SkinHostProvider, t } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
 import { ConversationStore } from "../src/core/store";
 import { EventType } from "../src/core/events";
-import { makeFixture, makeStore } from "./fixture";
+import { makeFixture, makeFoldStore, makeStore } from "./fixture";
 
 /* Bubble — mobile chat surface.
    Left/right bubbles with tails, a three-dot typing indicator (with a
@@ -34,11 +34,12 @@ describe("bubble contract", () => {
     expect(text).toContain("fixture user prompt");
     expect(container.querySelector(".bb-bubble--out")).toBeTruthy(); // user bubble, right side
     expect(container.querySelector(".bb-bubble--in")).toBeTruthy(); // assistant bubble, left side
-    expect(text.toLowerCase()).toContain("web.search");
+    fireEvent.click(container.querySelector(".bb-fold-head") as HTMLButtonElement); // unfold the tool+thinking run
+    expect((container.textContent ?? "").toLowerCase()).toContain("web.search"); // fresh read after unfold
     expect(text).toContain("fixture approval needed");
     expect(container.querySelector(".bb-card--approval")).toBeTruthy();
     expect(container.querySelector(".bb-card--plan")).toBeTruthy();
-    expect(container.querySelector(".bb-reason")).toBeTruthy();
+    expect(container.querySelector(".bb-reason")).toBeTruthy(); // now mounted inside the unfolded group
     expect(text.toLowerCase()).toContain("fixture subagent");
     expect(text).toContain("handoff");
     expect(container.querySelector(".bb-topbar")?.textContent).toContain("Fixture Agent");
@@ -261,6 +262,7 @@ describe("bubble edges", () => {
 
   it("tool cards expand to args and results", () => {
     const { container } = renderBubble(makeFixture());
+    fireEvent.click(container.querySelector(".bb-fold-head") as HTMLButtonElement); // unfold the tool card first
     const head = container.querySelector(".bb-tool-head") as HTMLButtonElement;
     expect(head.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(head);
@@ -274,6 +276,76 @@ describe("bubble edges", () => {
       const { container } = renderBubble(store as unknown as SkinConversation);
       expect(container.textContent).not.toContain("mystery.telemetry");
       expect(container.querySelector(".sk-proto-trigger")?.textContent).toContain(String(store.events.length));
+    } finally {
+      store.stop();
+    }
+  });
+});
+
+describe("bubble fold groups (consecutive reasoning + tools)", () => {
+  it("holds a settled run in one folded card bubble with the tool names in the summary", () => {
+    const { container } = renderBubble(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".bb-fold-head") as HTMLButtonElement;
+    expect(head).toBeTruthy();
+    expect(head.tagName).toBe("BUTTON");
+    expect(head.getAttribute("aria-expanded")).toBe("false"); // all terminal → folded
+    expect(head.textContent).toContain("booking.hold"); // summary surfaces tool names
+    expect(head.textContent).toContain(t("fold.thinking"));
+    expect(head.textContent).toContain(`4 ${t("fold.steps")}`); // settled chip = N steps
+    expect(container.querySelector(".bb-reason")).toBeNull(); // members stay in the body
+    expect(container.querySelector(".bb-card--tool")).toBeNull();
+    // the group itself is a card bubble in the chat column
+    expect(container.querySelector(".bb-card--fold")).toBeTruthy();
+  });
+
+  it("clicking the head toggles aria-expanded and mounts the original cards inside the group bubble", () => {
+    const { container } = renderBubble(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".bb-fold-head") as HTMLButtonElement;
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector(".bb-reason")).toBeTruthy(); // reused reason pill
+    expect(container.querySelector(".bb-card--tool")).toBeTruthy(); // reused tool card
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector(".bb-card--tool")).toBeNull();
+  });
+
+  it("fold head is keyboard-operable (focus + explicit Enter/Space keydown)", () => {
+    const { container } = renderBubble(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".bb-fold-head") as HTMLButtonElement;
+    head.focus();
+    expect(document.activeElement).toBe(head);
+    fireEvent.keyDown(head, { key: "Enter" });
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(head, { key: " " });
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("an in-flight run derives an open group with the running chip", () => {
+    const { container } = renderBubble(makeFoldStore({ leaveRunning: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".bb-fold-head") as HTMLButtonElement;
+    expect(head.getAttribute("aria-expanded")).toBe("true"); // tool executing → open
+    expect(head.querySelector(".bb-chip--running")?.textContent).toContain(t("chat.executing"));
+  });
+
+  it("a failed tool inside the group surfaces a failure chip on the header", () => {
+    const { container } = renderBubble(makeFoldStore({ failLastTool: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".bb-fold-head") as HTMLButtonElement;
+    const chip = head.querySelector(".bb-chip--error");
+    expect(chip).toBeTruthy();
+    expect(chip?.textContent).toContain(t("fold.hasFailures"));
+  });
+
+  it("singletons stay ungrouped and error cards remain independent", () => {
+    const store = makeStore();
+    try {
+      store.dispatch({ type: EventType.RUN_STARTED, threadId: "t1", runId: "r1" } as never);
+      store.dispatch({ type: EventType.REASONING_START, messageId: "r1" } as never);
+      store.dispatch({ type: EventType.REASONING_MESSAGE_END, messageId: "r1" } as never);
+      store.dispatch({ type: EventType.RUN_ERROR, message: "fixture run error message" } as never);
+      const { container } = renderBubble(store as unknown as SkinConversation);
+      expect(container.querySelector(".bb-fold-head")).toBeNull(); // one reasoning pill → no group
+      expect(container.querySelector(".bb-card--error")).toBeTruthy();
     } finally {
       store.stop();
     }

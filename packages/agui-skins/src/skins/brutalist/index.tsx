@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useConversation } from "../../host";
 import type { AssistantEntry, Entry, InterruptEntry, PlanEntry, ReasoningEntry, SubagentEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
@@ -10,6 +10,12 @@ import { asArray, asRecord, displayText, isEmptyState, safeJson } from "../../sh
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { ProtocolDrawer } from "../../shared/ProtocolDrawer";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupFailures,
+  foldGroupOpen,
+  foldGroupStats,
+} from "../../shared/conversationGroups";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import { t } from "../../i18n";
@@ -22,8 +28,12 @@ export function BrutalistPage() {
   const brand = useSkinBranding();
   const scroller = useStickToBottom<HTMLDivElement>();
   const [draft, setDraft] = useState("");
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const running = c.status === "running";
   const pending = pendingInterrupts(c.entries)[0];
+  // Consecutive thinking/tool blocks collapse into one hard-edged fold box.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
   // Shared state is typed as a record, but a third-party stream can send a
   // scalar/array snapshot. Never call Object.keys on it and never read `.trip`
   // off null: fall back to raw JSON when it is not our demo object.
@@ -90,9 +100,13 @@ export function BrutalistPage() {
               )}
 
               {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
-              {visible.map((entry) => (
-                <BruEntry key={entry.id} entry={entry} pending={pending} />
-              ))}
+              {foldItems.map((item) => {
+                if (item.type === "entry") {
+                  return <BruEntry key={item.entry.id} entry={item.entry} pending={pending} />;
+                }
+                const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
+                return <BruFoldGroup key={item.id} groupId={item.id} entries={item.entries} open={open} onToggle={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))} pending={pending} />;
+              })}
 
               {c.status === "done" && c.entries.length > 0 && (
                 <div className="bru-summary">
@@ -210,6 +224,68 @@ function BruEntry({ entry, pending }: { entry: Entry; pending?: InterruptEntry }
   if (entry.kind === "error") return <div className="bru-error">RUN_ERROR · {entry.message}</div>;
   if (entry.kind === "subagent") return <BruSubagent entry={entry} />;
   return null;
+}
+
+/** One hard-edged fold box for a run of consecutive thinking/tool blocks.
+    Failures stay loud on the head — a collapsed box never reads as "fine". */
+function BruFoldGroup({
+  groupId,
+  entries,
+  open,
+  onToggle,
+  pending,
+}: {
+  groupId: string;
+  entries: Entry[];
+  open: boolean;
+  onToggle: () => void;
+  pending?: InterruptEntry;
+}) {
+  const stats = foldGroupStats(entries);
+  const failures = foldGroupFailures(entries);
+  const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+  return (
+    <div className="bru-fold" data-fold-id={groupId}>
+      <button
+        type="button"
+        className="bru-fold-head"
+        data-fold-head=""
+        aria-expanded={open}
+        onClick={onToggle}
+        onKeyDown={(event) => {
+          // explicit for the keydown contract test (jsdom runs no activation)
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
+      >
+        <span className="bru-fold-mark" aria-hidden="true">{open ? "▼" : "▶"}</span>
+        <span>{t("fold.group").toUpperCase()}</span>
+        <span className="bru-fold-meta">
+          {stats.reasoningCount > 0 ? `${t("fold.thinking").toUpperCase()} ×${stats.reasoningCount}` : ""}
+          {stats.reasoningCount > 0 && stats.toolCount > 0 ? " · " : ""}
+          {stats.toolCount > 0 ? `TOOLS ×${stats.toolCount}` : ""}
+        </span>
+        <span className="bru-fold-count">{`${entries.length} ${t("fold.steps").toUpperCase()}`}</span>
+        {failure && (
+          <span className={`bru-fold-flag bru-fold-flag--${failure}`}>
+            {failure === "error" ? `✕ ${t("fold.hasFailures").toUpperCase()}` : `‖ ${t("chat.interrupted").toUpperCase()}`}
+          </span>
+        )}
+        {!failure && foldGroupOpen(entries) && (
+          <span className="bru-fold-flag bru-fold-flag--live">▶ {t("chat.executing").toUpperCase()}</span>
+        )}
+      </button>
+      {open && (
+        <div className="bru-fold-body">
+          {entries.map((entry) => (
+            <BruEntry key={entry.id} entry={entry} pending={pending} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function BruSubagent({ entry }: { entry: SubagentEntry }) {

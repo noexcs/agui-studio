@@ -13,6 +13,12 @@ import { useSkinBranding } from "../../host";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { ProtocolDrawer } from "../../shared/ProtocolDrawer";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupFailures,
+  foldGroupOpen,
+  foldGroupStats,
+} from "../../shared/conversationGroups";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./paper.css";
@@ -31,6 +37,8 @@ export function PaperPage() {
   const notesRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
   const [signingId, setSigningId] = useState<string | null>(null);
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const [editJson, setEditJson] = useState<Record<string, string>>({});
   const input = useRef<HTMLTextAreaElement>(null);
   const running = c.status === "running";
@@ -47,8 +55,28 @@ export function PaperPage() {
     !!shared && ["trip", "budget", "itinerary", "bookings"].some((key) => Object.prototype.hasOwnProperty.call(shared, key));
   const showRawState = !isEmptyState(c.sharedState) && !hasDemoState;
 
-  const letters = visibleEntries.filter((e) => e.kind === "user" || e.kind === "assistant" || e.kind === "interrupt" || e.kind === "error");
-  const notes = visibleEntries.filter((e) => e.kind === "reasoning" || e.kind === "tool" || e.kind === "plan" || e.kind === "subagent");
+  // Consecutive reasoning/tool artefacts collapse into one margin-note group.
+  // Grouping runs on the full stream so only truly adjacent entries merge —
+  // then the two columns pick their items from the same list.
+  const foldItems = useMemo(() => conversationGroups(visibleEntries), [visibleEntries]);
+  const letters = foldItems.flatMap((item) =>
+    item.type === "entry" && (item.entry.kind === "user" || item.entry.kind === "assistant" || item.entry.kind === "interrupt" || item.entry.kind === "error")
+      ? [item.entry]
+      : []
+  );
+  const noteItems = foldItems.filter(
+    (item) =>
+      item.type === "group" ||
+      (item.type === "entry" && (item.entry.kind === "reasoning" || item.entry.kind === "tool" || item.entry.kind === "plan" || item.entry.kind === "subagent"))
+  );
+  const notes = noteItems.flatMap((item): (ReasoningEntry | ToolEntry | PlanEntry | SubagentEntry)[] => {
+    if (item.type === "group") {
+      return item.entries.filter((e): e is ReasoningEntry | ToolEntry => e.kind === "reasoning" || e.kind === "tool");
+    }
+    return item.entry.kind === "reasoning" || item.entry.kind === "tool" || item.entry.kind === "plan" || item.entry.kind === "subagent"
+      ? [item.entry]
+      : [];
+  });
   const firstAssistant = useMemo(() => c.entries.find((e) => e.kind === "assistant")?.id, [c.entries]);
   // While the run is mid-tool the main column would otherwise sit empty
   // (letters only gain an entry as they are written) — name the activity in
@@ -262,13 +290,25 @@ export function PaperPage() {
             <div className="pap-rail-scroll" ref={notesRef}>
               {notes.length === 0 && <p className="pap-empty">{t("paper.marginEmpty")}</p>}
 
-              {notes.map((entry, i) => (
-                <div key={entry.id} className="pap-note">
+              {noteItems.map((item, i) => (
+                <div key={item.type === "group" ? item.id : item.entry.id} className="pap-note">
                   <span className="pap-note-no">{String(i + 1).padStart(2, "0")}</span>
-                  {entry.kind === "reasoning" && <ReasoningNote entry={entry} />}
-                  {entry.kind === "tool" && <ToolNote entry={entry} />}
-                  {entry.kind === "plan" && <PlanNote entry={entry} />}
-                  {entry.kind === "subagent" && <SubagentNote entry={entry} />}
+                  {item.type === "group" ? (
+                    <FoldNote
+                      entries={item.entries}
+                      open={foldOverride[item.id] ?? foldGroupOpen(item.entries)}
+                      onToggle={() =>
+                        setFoldOverride((prev) => ({ ...prev, [item.id]: !(foldOverride[item.id] ?? foldGroupOpen(item.entries)) }))
+                      }
+                    />
+                  ) : (
+                    <>
+                      {item.entry.kind === "reasoning" && <ReasoningNote entry={item.entry} />}
+                      {item.entry.kind === "tool" && <ToolNote entry={item.entry} />}
+                      {item.entry.kind === "plan" && <PlanNote entry={item.entry} />}
+                      {item.entry.kind === "subagent" && <SubagentNote entry={item.entry} />}
+                    </>
+                  )}
                 </div>
               ))}
 
@@ -335,6 +375,59 @@ export function PaperPage() {
         </footer>
       </div>
       <ProtocolDrawer />
+    </div>
+  );
+}
+
+/**
+ * One footnote standing in for a run of consecutive thinking/tool notes.
+ * Letterpress fold head (+/− mark); failures surface in the meta line so a
+ * collapsed group never reads as "all fine".
+ */
+function FoldNote({ entries, open, onToggle }: { entries: Entry[]; open: boolean; onToggle: () => void }) {
+  const failures = foldGroupFailures(entries);
+  const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+  const stats = foldGroupStats(entries);
+  return (
+    <div className="pap-note-body">
+      <button
+        type="button"
+        className="pap-fold-head"
+        data-fold-head=""
+        aria-expanded={open}
+        data-failure={failure}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          // explicit for the keydown contract test (jsdom runs no activation)
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
+        <span className="pap-note-label pap-fold-label">
+          {t("fold.group")}
+          <span className="pap-note-meta">
+            {entries.length} {t("fold.steps")}
+            {stats.toolCount > 0 ? ` · ${stats.toolCount} ${t("paper.toolCall")}` : ""}
+            {failure ? ` · ${failure === "error" ? t("fold.hasFailures") : t("chat.interrupted")}` : foldGroupOpen(entries) ? ` · ${t("paper.inProgress")}` : ""}
+          </span>
+        </span>
+        <span className="pap-fold-mark" aria-hidden="true">
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      {open && (
+        <div className="pap-fold-notes">
+          {entries.map((entry) =>
+            entry.kind === "reasoning" ? (
+              <ReasoningNote key={entry.id} entry={entry} />
+            ) : entry.kind === "tool" ? (
+              <ToolNote key={entry.id} entry={entry} />
+            ) : null
+          )}
+        </div>
+      )}
     </div>
   );
 }

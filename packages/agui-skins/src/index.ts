@@ -41,5 +41,13 @@ export { t, setLang, getLang, isZh, getDict, setOverrides } from "./i18n";
 
 export { toolStage } from "./shared/toolStatus";
 export type { ToolStage } from "./shared/toolStatus";
+export {
+  conversationGroups,
+  foldGroupOpen,
+  foldGroupFailures,
+  foldGroupStats,
+  foldGroupDuration,
+} from "./shared/conversationGroups";
+export type { ConversationItem, FoldFailure } from "./shared/conversationGroups";
 export { pendingInterrupts, firstPendingInterrupt } from "./shared/interrupts";
 export { windowEntries, useVisibleEntries, HistoryMore } from "./shared/history";

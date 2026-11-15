@@ -422,6 +422,18 @@ svg { display: block; }
 .reason-text { font-size: 12px; line-height: 1.7; color: rgba(154, 164, 182, 0.92); font-style: italic; border-left: 1px solid rgba(167, 139, 250, 0.25); padding-left: 10px; white-space: pre-wrap; }
 .reason-tokens { margin-top: 7px; font-family: var(--mono); font-size: 9.5px; color: var(--text-3); }
 
+/* fold groups: one glass block stands in for consecutive thinking/tool blocks */
+.reason--fold { border-style: dashed; background: linear-gradient(180deg, rgba(90, 200, 255, 0.06), rgba(90, 200, 255, 0.015)); }
+.reason--fold .reason-toggle { cursor: pointer; background: none; border: 0; font-family: inherit; text-align: left; min-width: 0; }
+.reason--fold .reason-toggle:hover { color: var(--text); }
+.reason--fold .reason-toggle .icon-brain { color: var(--cyan); }
+.reason--fold .reason-toggle .chev { transition: none; }
+.reason--fold.is-open .reason-toggle .chev { transform: rotate(90deg); }
+.fold-flag { flex: none; padding: 1px 8px; border-radius: 99px; font-size: 9.5px; }
+.fold-flag--error { color: var(--rose); background: rgba(255, 122, 138, 0.1); }
+.fold-flag--interrupted { color: var(--amber); background: var(--amber-soft); }
+.fold-flag--live { color: var(--cyan); background: rgba(90, 200, 255, 0.1); }
+
 /* ── tool call ────────────────────────────────────────────────────── */
 .tool {
   margin: 0 0 14px; border-radius: 14px; overflow: hidden;

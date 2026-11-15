@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useConversation, useSkinBranding, useSkinPlugins } from "../../host";
 import type {
   AssistantEntry,
@@ -19,6 +19,12 @@ import { planRawText, planView } from "../../shared/plan";
 import { displayText, entriesOf, isEmptyState, safeJson } from "../../shared/safe";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupDuration,
+  foldGroupFailures,
+  foldGroupOpen,
+} from "../../shared/conversationGroups";
 import { toolStage } from "../../shared/toolStatus";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import { Icon } from "../../shared/Icon";
@@ -45,11 +51,15 @@ export function DashPage() {
   const [draft, setDraft] = useState("");
   const [openTools, setOpenTools] = useState<Record<string, boolean>>({});
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editJson, setEditJson] = useState<Record<string, string>>({});
 
   const running = c.status === "running";
   const pending = pendingInterrupts(c.entries);
+  // Consecutive reasoning/tool rows collapse into one hairline fold row.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
   const tools = c.entries.filter((entry): entry is ToolEntry => entry.kind === "tool");
   const failedTools = tools.filter((tool) => tool.status === "error").length;
   const metadata = entriesOf(c.metadata ?? {});
@@ -161,11 +171,28 @@ export function DashPage() {
               </div>
             ) : (
               <div className="ds-rows">
-                {visible.map((entry) => (
-                  <div key={entry.id} className="ds-row" data-kind={entry.kind}>
-                    {renderEntry(entry, { zh, plugins, openTools, setOpenTools, openReasoning, setOpenReasoning, editingId, editJson, setEditJson, setEditingId, beginEdit, approve })}
-                  </div>
-                ))}
+                {(() => {
+                  const rowCtx = { zh, plugins, openTools, setOpenTools, openReasoning, setOpenReasoning, editingId, editJson, setEditJson, setEditingId, beginEdit, approve };
+                  const rowFor = (entry: Entry) => (
+                    <div key={entry.id} className="ds-row" data-kind={entry.kind}>
+                      {renderEntry(entry, rowCtx)}
+                    </div>
+                  );
+                  return foldItems.map((item) => {
+                    if (item.type === "entry") return rowFor(item.entry);
+                    const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
+                    return (
+                      <FoldGroupRow
+                        key={item.id}
+                        groupId={item.id}
+                        entries={item.entries}
+                        open={open}
+                        onToggle={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
+                        rowFor={rowFor}
+                      />
+                    );
+                  });
+                })()}
                 {c.status === "done" && (
                   <div className="ds-run-end" data-testid="ds-run-end">
                     <span>{t("ds.runSummary")}</span>
@@ -278,6 +305,64 @@ export function DashPage() {
 }
 
 /* ── feed rows ─────────────────────────────────────────────────────── */
+
+/**
+ * One hairline data row standing in for a run of consecutive thinking/tool
+ * rows. Numeric summary (N steps · duration); failures always surface on the
+ * row so a collapsed group cannot hide a broken tool.
+ */
+function FoldGroupRow({
+  groupId,
+  entries,
+  open,
+  onToggle,
+  rowFor,
+}: {
+  groupId: string;
+  entries: Entry[];
+  open: boolean;
+  onToggle: () => void;
+  rowFor: (entry: Entry) => React.ReactNode;
+}) {
+  const failures = foldGroupFailures(entries);
+  const duration = foldGroupDuration(entries);
+  const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+  return (
+    <>
+      <div className="ds-row ds-row--fold" data-kind="fold" data-fold-id={groupId}>
+        <button
+          type="button"
+          className="ds-fold-head"
+          data-fold-head=""
+          aria-expanded={open}
+          onClick={onToggle}
+          onKeyDown={(event) => {
+            // explicit for the keydown contract test (jsdom runs no activation)
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onToggle();
+            }
+          }}
+        >
+          <span className="ds-tag ds-tag--fold mono">{t("fold.group")}</span>
+          <span className="ds-fold-summary mono">
+            {entries.length} {t("fold.steps")}
+            {duration !== undefined ? ` · ${formatDuration(duration)}` : ""}
+          </span>
+          {failure ? (
+            <span className={`ds-stage ds-stage--${failure === "error" ? "error" : "interrupted"}`}>
+              {failure === "error" ? t("fold.hasFailures") : t("chat.interrupted")}
+            </span>
+          ) : foldGroupOpen(entries) ? (
+            <span className="ds-stage ds-stage--running">{t("chat.executing")}</span>
+          ) : null}
+          <Icon name="chevron" size={9} className="ds-chev" />
+        </button>
+      </div>
+      {open && <div className="ds-fold-body">{entries.map((entry) => rowFor(entry))}</div>}
+    </>
+  );
+}
 
 interface RowCtx {
   zh: boolean;

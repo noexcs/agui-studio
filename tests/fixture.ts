@@ -77,6 +77,49 @@ export function makeRecordedFixture(overrides: Partial<SkinConversation> = {}): 
 }
 
 /**
+ * A transcript built for fold-group coverage: two reasoning blocks followed by
+ * two tool calls, then an assistant reply. Variants: `leaveRunning` keeps the
+ * last tool executing (group derives open), `failLastTool` fails the second
+ * tool (header must surface the failure).
+ */
+export interface FoldStoreOptions {
+  leaveRunning?: boolean;
+  failLastTool?: boolean;
+}
+
+export function makeFoldStore(options: FoldStoreOptions = {}): ConversationStore {
+  const store = makeStore();
+  const dispatch = (event: Record<string, unknown>) => store.dispatch(event as never);
+  dispatch({ type: EventType.RUN_STARTED, threadId: "t_fold", runId: "r_fold" });
+  for (const [id, text] of [
+    ["fr1", "thinking about the trip"],
+    ["fr2", "narrowing the dates"],
+  ] as const) {
+    dispatch({ type: EventType.REASONING_START, messageId: id });
+    dispatch({ type: EventType.REASONING_MESSAGE_CONTENT, messageId: id, delta: text });
+    dispatch({ type: EventType.REASONING_MESSAGE_END, messageId: id });
+  }
+  dispatch({ type: EventType.TOOL_CALL_START, toolCallId: "ft1", toolCallName: "booking.hold" });
+  dispatch({ type: EventType.TOOL_CALL_ARGS, toolCallId: "ft1", delta: '{"city":"Lisbon"}' });
+  dispatch({ type: EventType.TOOL_CALL_END, toolCallId: "ft1" });
+  dispatch({ type: EventType.TOOL_CALL_RESULT, toolCallId: "ft1", content: '{"ok":true}' });
+  dispatch({ type: EventType.TOOL_CALL_START, toolCallId: "ft2", toolCallName: "web.search" });
+  dispatch({ type: EventType.TOOL_CALL_ARGS, toolCallId: "ft2", delta: '{"q":"lisbon"}' });
+  if (options.leaveRunning) return store; // still executing → the group is in flight
+  dispatch({ type: EventType.TOOL_CALL_END, toolCallId: "ft2" });
+  dispatch(
+    options.failLastTool
+      ? { type: EventType.TOOL_CALL_RESULT, toolCallId: "ft2", content: '{"error":"backend down"}' }
+      : { type: EventType.TOOL_CALL_RESULT, toolCallId: "ft2", content: '{"ok":true}' }
+  );
+  dispatch({ type: EventType.TEXT_MESSAGE_START, messageId: "fa1", role: "assistant" });
+  dispatch({ type: EventType.TEXT_MESSAGE_CONTENT, messageId: "fa1", delta: "All set — the trip is booked." });
+  dispatch({ type: EventType.TEXT_MESSAGE_END, messageId: "fa1" });
+  dispatch({ type: EventType.RUN_FINISHED, outcome: {} });
+  return store;
+}
+
+/**
  * Build the fixture the same way production does: dispatch a recorded AG-UI
  * event stream into ConversationStore, then hand the store to the skins.
  * This keeps reducer and UI on one path.

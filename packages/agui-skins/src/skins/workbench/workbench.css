@@ -269,6 +269,29 @@
 .wb-stage--done { color: var(--wb-green); background: color-mix(in srgb, var(--wb-green) 10%, transparent); }
 .wb-stage--error { color: var(--wb-red); background: color-mix(in srgb, var(--wb-red) 12%, transparent); }
 
+/* fold groups: consecutive reasoning/tool rows collapse into one region */
+.wb-row--fold .wb-line { color: var(--wb-faint); }
+.wb-fold-head {
+  display: flex; align-items: center; gap: 8px;
+  max-width: 760px; width: 100%; padding: 4px 10px;
+  border: 1px dashed var(--wb-line-soft); border-radius: 6px; background: none;
+  color: var(--wb-dim); font: inherit; font-size: 10px; cursor: pointer; text-align: left;
+  min-width: 0;
+}
+.wb-fold-head:hover { border-color: color-mix(in srgb, var(--wb-cyan) 40%, transparent); color: var(--wb-text); background: color-mix(in srgb, var(--wb-cyan) 5%, transparent); }
+.wb-fold-head:active { border-color: color-mix(in srgb, var(--wb-cyan) 55%, transparent); color: var(--wb-text); background: color-mix(in srgb, var(--wb-cyan) 9%, transparent); }
+.wb-row--fold .wb-chev { transform: rotate(0deg); color: var(--wb-cyan); }
+.wb-fold-head[aria-expanded="true"] .wb-chev { transform: rotate(90deg); }
+.wb-fold-title { flex: none; text-transform: uppercase; letter-spacing: 0.06em; }
+.wb-fold-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
+.wb-fold-meta { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.wb-fold-time { color: var(--wb-faint); }
+.wb-fold-flag { padding: 0 6px; border-radius: 3px; font-size: 9px; letter-spacing: 0.06em; }
+.wb-fold-flag[data-failure="error"] { color: var(--wb-red); background: color-mix(in srgb, var(--wb-red) 12%, transparent); }
+.wb-fold-flag[data-failure="interrupted"] { color: var(--wb-amber); background: color-mix(in srgb, var(--wb-amber) 12%, transparent); }
+.wb-fold-flag--live { color: var(--wb-cyan); background: color-mix(in srgb, var(--wb-cyan) 10%, transparent); }
+.wb-fold-body + .wb-row .wb-cell { border-top: 1px solid var(--wb-sep); }
+
 /* plan */
 .wb-plan { max-width: 760px; padding: 10px 14px; border: 1px solid var(--wb-line-soft); border-radius: 8px; background: var(--wb-deep); }
 .wb-plan-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }

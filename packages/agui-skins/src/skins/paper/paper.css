@@ -555,6 +555,42 @@
   color: var(--ink-3);
   margin-bottom: 6px;
 }
+
+/* fold groups: a run of consecutive thinking/tool notes as one footnote */
+.pap-fold-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  font-family: inherit;
+}
+.pap-fold-label { flex: 1; min-width: 0; margin-bottom: 0; }
+.pap-fold-head:hover .pap-fold-label { color: var(--ink-2); }
+.pap-fold-head:active .pap-fold-label { color: var(--ink); }
+.pap-fold-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule-2);
+  border-radius: 50%;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ink-3);
+}
+.pap-fold-head:hover .pap-fold-mark { color: var(--ink-2); border-color: var(--ink-3); }
+.pap-fold-head[data-failure] .pap-fold-mark { color: var(--vermilion); border-color: var(--vermilion); }
+.pap-fold-head[data-failure] .pap-note-meta { color: var(--vermilion); }
+.pap-fold-notes { display: grid; gap: 12px; margin-top: 4px; }
 .pap-note-meta { margin-left: auto; font-family: var(--mono); font-size: 8.5px; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
 .pap-toolname { text-transform: none; letter-spacing: 0; color: var(--ink-2); font-size: 9px; }
 .pap-quote {

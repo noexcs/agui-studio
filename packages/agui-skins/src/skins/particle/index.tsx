@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useConversation, useSkinBranding, useSkinLang, useSkinPlugins } from "../../host";
 import type {
   AssistantEntry,
@@ -19,6 +19,12 @@ import { planRawText, planView } from "../../shared/plan";
 import { displayText, entriesOf, isEmptyState, safeJson } from "../../shared/safe";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupFailures,
+  foldGroupOpen,
+  foldGroupStats,
+} from "../../shared/conversationGroups";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import { Icon } from "../../shared/Icon";
 import { formatDuration } from "../../utils";
@@ -39,11 +45,15 @@ export function ParticlePage() {
   const [draft, setDraft] = useState("");
   const [openTools, setOpenTools] = useState<Record<string, boolean>>({});
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<string | null>(null);
 
   const pending = pendingInterrupts(c.entries);
   const running = c.status === "running";
+  // Consecutive reasoning/tool rows collapse into one protocol fold card.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
   const stateEntries = entriesOf(c.sharedState);
   const metadata = entriesOf(c.metadata ?? {});
 
@@ -94,8 +104,8 @@ export function ParticlePage() {
           <main className="pt-transcript" ref={scroller} role="log" aria-live="polite" aria-label="Conversation">
             {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
             <div className="pt-feed">
-            {visible.map((entry) => {
-              const row = renderEntry(entry, {
+            {(() => {
+              const ctx = {
                 zh,
                 openTools,
                 setOpenTools,
@@ -107,13 +117,69 @@ export function ParticlePage() {
                 setEditing,
                 approve,
                 plugins,
+              };
+              return foldItems.map((item) => {
+                if (item.type === "entry") {
+                  const row = renderEntry(item.entry, ctx);
+                  return row ? (
+                    <div key={item.entry.id} className="pt-entry" data-kind={item.entry.kind}>
+                      {row}
+                    </div>
+                  ) : null;
+                }
+                const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
+                const stats = foldGroupStats(item.entries);
+                const failures = foldGroupFailures(item.entries);
+                const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+                const preview = stats.toolNames.slice(0, 3).join(", ");
+                const extra = stats.toolNames.length - 3;
+                return (
+                  <div key={item.id} className="pt-entry pt-entry--fold" data-kind="fold" data-fold-id={item.id}>
+                    <div className="pt-fold">
+                      <button
+                        type="button"
+                        className="pt-fold-head"
+                        data-fold-head=""
+                        aria-expanded={open}
+                        onClick={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
+                        onKeyDown={(event) => {
+                          // explicit for the keydown contract test (jsdom runs no activation)
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setFoldOverride((prev) => ({ ...prev, [item.id]: !open }));
+                          }
+                        }}
+                      >
+                        <Icon name="layers" size={12} />
+                        <span>{t("fold.group")}</span>
+                        <span className="pt-fold-summary">
+                          {stats.reasoningCount > 0 && `${t("fold.thinking")} ×${stats.reasoningCount}`}
+                          {stats.reasoningCount > 0 && stats.toolCount > 0 && " · "}
+                          {preview}
+                          {extra > 0 && ` +${extra} ${t("fold.more")}`}
+                        </span>
+                        {failure ? (
+                          <span className={`pt-fold-flag pt-fold-flag--${failure}`}>
+                            {failure === "error" ? t("fold.hasFailures") : t("chat.interrupted")}
+                          </span>
+                        ) : foldGroupOpen(item.entries) ? (
+                          <span className="pt-fold-flag pt-fold-flag--live">{t("chat.executing")}</span>
+                        ) : null}
+                        <Icon name="chevron" size={11} className="pt-chev" />
+                      </button>
+                      {open && (
+                        <div className="pt-fold-items">
+                          {item.entries.map((entry) => {
+                            const row = renderEntry(entry, ctx);
+                            return row ? <div key={entry.id}>{row}</div> : null;
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
               });
-              return row ? (
-                <div key={entry.id} className="pt-entry" data-kind={entry.kind}>
-                  {row}
-                </div>
-              ) : null;
-            })}
+            })()}
             {!c.entries.length && (
               <p className="pt-empty">
                 {zh ? "问点什么，粒子会先替你把答案聚拢。" : "Ask something — the field will gather the answer first."}

@@ -364,6 +364,34 @@
 .cl-chev { transition: transform 0.2s; }
 .cl-reason.is-open .cl-chev,
 .cl-tool.is-open .cl-chev { transform: rotate(90deg); }
+
+/* fold groups: a run of consecutive thinking/tool rows as one neutral row */
+.cl-fold-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px dashed var(--border-2);
+  border-radius: 7px;
+  background: #fafbfc;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  font-family: inherit;
+}
+.cl-fold-head:hover { background: #f3f4f6; }
+.cl-fold-head:active { background: #eef0f3; }
+.cl-fold-head[aria-expanded="true"] .cl-chev { transform: rotate(90deg); }
+.cl-fold-summary { color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cl-fold-flag { flex: none; padding: 1px 7px; border-radius: 99px; font-size: 10px; }
+.cl-fold-flag--error { color: var(--danger); background: rgba(220, 38, 38, 0.07); }
+.cl-fold-flag--interrupted { color: var(--warn-text); background: var(--warn-bg); }
+.cl-fold-flag--live { color: var(--accent); background: var(--accent-soft); }
+.cl-fold-count { margin-left: auto; color: var(--faint); font-size: 10px; }
+.cl-fold-body .cl-row:first-child { margin-top: 2px; }
 .cl-reason-body {
   margin-top: 6px;
   padding: 9px 11px;

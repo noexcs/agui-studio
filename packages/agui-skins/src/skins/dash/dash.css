@@ -134,6 +134,21 @@
 .ds-tag--plan { color: var(--ds-blue); background: rgba(37, 99, 235, 0.08); }
 .ds-tag--sub { color: var(--ds-accent-ink); background: rgba(13, 148, 136, 0.09); }
 .ds-tag--custom { color: var(--ds-dim); background: #eef1f5; }
+.ds-tag--fold { color: var(--ds-dim); background: #f0f2f5; }
+
+/* fold groups: a run of consecutive thinking/tool rows as one data row */
+.ds-row--fold { padding: 3px 0; }
+.ds-fold-head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 6px 10px; border: 1px solid var(--ds-line-soft); border-radius: 8px;
+  background: none; color: var(--ds-ink); font: inherit; font-size: 11px;
+  cursor: pointer; text-align: left; min-width: 0;
+}
+.ds-fold-head:hover { background: #f6f8fa; border-color: var(--ds-line); }
+.ds-fold-head:active { background: #eef1f5; }
+.ds-fold-head[aria-expanded="true"] .ds-chev { transform: rotate(-90deg); }
+.ds-fold-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ds-dim); font-size: 10.5px; }
+.ds-fold-body .ds-row:first-child { padding-top: 3px; }
 .ds-badge { padding: 0 5px; border-radius: 3px; font-size: 8.5px; letter-spacing: 0.06em; }
 .ds-badge--violet { color: #6d28d9; background: rgba(109, 40, 217, 0.08); }
 .ds-stage { flex: none; padding: 1px 7px; border-radius: 99px; font-size: 9.5px; font-weight: 600; }

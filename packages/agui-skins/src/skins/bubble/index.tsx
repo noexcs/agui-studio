@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useConversation, useSkinBranding, useSkinPlugins } from "../../host";
 import type {
   AssistantEntry,
@@ -19,6 +19,12 @@ import { planRawText, planView } from "../../shared/plan";
 import { displayText, safeJson } from "../../shared/safe";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupFailures,
+  foldGroupOpen,
+  foldGroupStats,
+} from "../../shared/conversationGroups";
 import { toolStage } from "../../shared/toolStatus";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import { Icon } from "../../shared/Icon";
@@ -45,11 +51,15 @@ export function BubblePage() {
   const [draft, setDraft] = useState("");
   const [openTools, setOpenTools] = useState<Record<string, boolean>>({});
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editJson, setEditJson] = useState<Record<string, string>>({});
 
   const running = c.status === "running";
   const pending = pendingInterrupts(c.entries);
+  // Consecutive reasoning/tool bubbles collapse into one card bubble.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
   const lastAssistant = [...c.entries].reverse().find((entry): entry is AssistantEntry => entry.kind === "assistant");
   // The typing bubble covers the moment before the first words land.
   const typing = running && (!lastAssistant || (lastAssistant.streaming && !lastAssistant.text));
@@ -114,9 +124,67 @@ export function BubblePage() {
               <p className="bb-empty-sub mono">{displayText(brand.modelLabel)} · {c.threadId}</p>
             </div>
           )}
-          {visible.map((entry) => (
-            <Row key={entry.id} entry={entry} ctx={{ zh, plugins, openTools, setOpenTools, openReasoning, setOpenReasoning, editingId, editJson, setEditJson, setEditingId, beginEdit, approve }} />
-          ))}
+          {foldItems.map((item) => {
+            if (item.type === "entry") {
+              return <Row key={item.entry.id} entry={item.entry} ctx={{ zh, plugins, openTools, setOpenTools, openReasoning, setOpenReasoning, editingId, editJson, setEditJson, setEditingId, beginEdit, approve }} />;
+            }
+            const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
+            const failures = foldGroupFailures(item.entries);
+            const stats = foldGroupStats(item.entries);
+            const preview = stats.toolNames.slice(0, 3).join(", ");
+            const extra = stats.toolNames.length - 3;
+            const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+            return (
+              <div key={item.id} className="bb-row bb-row--in">
+                <div className="bb-card bb-card--fold" data-fold-id={item.id}>
+                  <button
+                    type="button"
+                    className="bb-fold-head"
+                    data-fold-head=""
+                    aria-expanded={open}
+                    onClick={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
+                    onKeyDown={(event) => {
+                      // explicit for the keydown contract test (jsdom runs no activation)
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setFoldOverride((prev) => ({ ...prev, [item.id]: !open }));
+                      }
+                    }}
+                  >
+                    <Icon name="layers" size={11} />
+                    <span className="bb-fold-title">{t("fold.group")}</span>
+                    <span className="bb-fold-summary mono">
+                      {stats.reasoningCount > 0 && `${t("fold.thinking")} ×${stats.reasoningCount}`}
+                      {stats.reasoningCount > 0 && stats.toolCount > 0 && " · "}
+                      {preview}
+                      {extra > 0 && ` +${extra} ${t("fold.more")}`}
+                    </span>
+                    {failure ? (
+                      <span className={`bb-chip bb-chip--${failure}`}>{failure === "error" ? t("fold.hasFailures") : t("chat.interrupted")}</span>
+                    ) : foldGroupOpen(item.entries) ? (
+                      <span className="bb-chip bb-chip--running">{t("chat.executing")}</span>
+                    ) : (
+                      <span className="bb-chip bb-chip--done">{`${item.entries.length} ${t("fold.steps")}`}</span>
+                    )}
+                    <Icon name="chevron" size={9} className="bb-chev" />
+                  </button>
+                  {open && (
+                    <div className="bb-fold-items">
+                      {item.entries.map((entry) => {
+                        if (entry.kind === "tool") {
+                          return <ToolCard key={entry.id} entry={entry} open={!!openTools[entry.id]} onToggle={() => setOpenTools((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))} />;
+                        }
+                        if (entry.kind === "reasoning") {
+                          return <ReasonCard key={entry.id} entry={entry} open={!!openReasoning[entry.id]} onToggle={() => setOpenReasoning((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))} />;
+                        }
+                        return null; // group members are reasoning/tool by construction
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
           {typing && (
             <div className="bb-row bb-row--in" data-testid="bb-typing">
               <div className="bb-bubble bb-bubble--in bb-typing" role="status" aria-label={t("bb.typing")}>
@@ -266,6 +334,15 @@ function stageWord(status: ToolEntry["status"]): string {
 }
 
 function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; onToggle: () => void }) {
+  return (
+    <div className="bb-row bb-row--in">
+      <ToolCard entry={entry} open={open} onToggle={onToggle} />
+    </div>
+  );
+}
+
+/** The tool card without its chat-row wrapper — reused inside fold groups. */
+function ToolCard({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; onToggle: () => void }) {
   const brief = (() => {
     const args = entry.args;
     if (!args || typeof args !== "object" || Array.isArray(args)) return "";
@@ -276,25 +353,23 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
       .join(" · ");
   })();
   return (
-    <div className="bb-row bb-row--in">
-      <div className={`bb-card bb-card--tool ${open ? "is-open" : ""}`} data-stage={toolStage(entry.status)}>
-        <button type="button" className="bb-tool-head" aria-expanded={open} onClick={onToggle}>
-          <Icon name="wrench" size={11} />
-          <span className="bb-tool-name mono">{displayText(entry.name)}</span>
-          {brief && <span className="bb-tool-brief mono">{brief}</span>}
-          <span className={`bb-chip bb-chip--${toolStage(entry.status)}`}>{stageWord(entry.status)}</span>
-          {entry.durationMs ? <span className="bb-tool-time mono">{formatDuration(entry.durationMs)}</span> : null}
-          <Icon name="chevron" size={9} className="bb-chev" />
-        </button>
-        {open && (
-          <div className="bb-tool-body">
-            <pre className="bb-pre mono">{displayText(entry.argsRaw) || safeJson(entry.args, 2)}</pre>
-            <ToolResult entry={entry} variant="particle" />
-            {entry.error && <p className="bb-tool-error">{displayText(entry.error)}</p>}
-          </div>
-        )}
-        {!open && entry.status === "error" && <p className="bb-tool-error">{displayText(entry.error) || t("chat.failed")}</p>}
-      </div>
+    <div className={`bb-card bb-card--tool ${open ? "is-open" : ""}`} data-stage={toolStage(entry.status)}>
+      <button type="button" className="bb-tool-head" aria-expanded={open} onClick={onToggle}>
+        <Icon name="wrench" size={11} />
+        <span className="bb-tool-name mono">{displayText(entry.name)}</span>
+        {brief && <span className="bb-tool-brief mono">{brief}</span>}
+        <span className={`bb-chip bb-chip--${toolStage(entry.status)}`}>{stageWord(entry.status)}</span>
+        {entry.durationMs ? <span className="bb-tool-time mono">{formatDuration(entry.durationMs)}</span> : null}
+        <Icon name="chevron" size={9} className="bb-chev" />
+      </button>
+      {open && (
+        <div className="bb-tool-body">
+          <pre className="bb-pre mono">{displayText(entry.argsRaw) || safeJson(entry.args, 2)}</pre>
+          <ToolResult entry={entry} variant="particle" />
+          {entry.error && <p className="bb-tool-error">{displayText(entry.error)}</p>}
+        </div>
+      )}
+      {!open && entry.status === "error" && <p className="bb-tool-error">{displayText(entry.error) || t("chat.failed")}</p>}
     </div>
   );
 }
@@ -303,21 +378,30 @@ function ReasoningRow({ entry, open, onToggle }: { entry: ReasoningEntry; open: 
   return (
     <div className="bb-row bb-row--in">
       <div className="bb-stack">
-        <button type="button" className={`bb-reason ${open ? "is-open" : ""}`} aria-expanded={open} onClick={onToggle}>
-          <Icon name="brain" size={11} />
-          <span>{entry.streaming ? t("status.thinking") : t("status.thought")}</span>
-          {!!entry.tokens && <span className="bb-reason-meta mono">{entry.tokens} {t("chat.tokens")}</span>}
-          {entry.encryptedValue && <span className="bb-reason-badge">enc</span>}
-          <Icon name="chevron" size={9} className="bb-chev" />
-        </button>
-        {open && (
-          <div className="bb-bubble bb-bubble--in bb-reason-body">
-            {entry.text || "encrypted reasoning item"}
-            {entry.encryptedValue && <pre className="bb-pre mono">{entry.encryptedValue.slice(0, 140)}</pre>}
-          </div>
-        )}
+        <ReasonCard entry={entry} open={open} onToggle={onToggle} />
       </div>
     </div>
+  );
+}
+
+/** The reason pill (+ body) without its chat-row wrapper — reused in fold groups. */
+function ReasonCard({ entry, open, onToggle }: { entry: ReasoningEntry; open: boolean; onToggle: () => void }) {
+  return (
+    <>
+      <button type="button" className={`bb-reason ${open ? "is-open" : ""}`} aria-expanded={open} onClick={onToggle}>
+        <Icon name="brain" size={11} />
+        <span>{entry.streaming ? t("status.thinking") : t("status.thought")}</span>
+        {!!entry.tokens && <span className="bb-reason-meta mono">{entry.tokens} {t("chat.tokens")}</span>}
+        {entry.encryptedValue && <span className="bb-reason-badge">enc</span>}
+        <Icon name="chevron" size={9} className="bb-chev" />
+      </button>
+      {open && (
+        <div className="bb-bubble bb-bubble--in bb-reason-body">
+          {entry.text || "encrypted reasoning item"}
+          {entry.encryptedValue && <pre className="bb-pre mono">{entry.encryptedValue.slice(0, 140)}</pre>}
+        </div>
+      )}
+    </>
   );
 }
 

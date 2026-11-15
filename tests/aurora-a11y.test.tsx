@@ -2,10 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { skins, SkinHostProvider, type SkinConversation } from "agui-skins";
+import { skins, SkinHostProvider, t, type SkinConversation } from "agui-skins";
 import { ConversationStore } from "../src/core/store";
 import { EventType } from "../src/core/events";
-import { makeStore } from "./fixture";
+import { makeFoldStore, makeStore } from "./fixture";
 
 /* ── Fix D: a11y alignment. aurora ev-rows become keyboard-activatable,
    the inspector event list stops stealing scrolls (useStickToBottom),
@@ -205,6 +205,72 @@ describe("Fix D: css prefers-reduced-motion guards", () => {
     for (const id of ["aurora", "brutalist", "paper", "terminal", "classic"]) {
       expect(reducedMotionBlock(id)).toContain("animation-duration: 0.01ms");
       expect(reducedMotionBlock(id)).toContain("transition-duration: 0.01ms");
+    }
+  });
+});
+
+describe("aurora fold groups (consecutive reasoning + tools)", () => {
+  it("collapses a settled run into one glass fold block by default", () => {
+    const { container } = renderSkin("aurora", makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".reason--fold .reason-toggle") as HTMLButtonElement;
+    expect(head).toBeTruthy();
+    expect(head.tagName).toBe("BUTTON");
+    expect(head.getAttribute("aria-expanded")).toBe("false"); // all terminal → folded
+    expect(head.textContent).toContain("booking.hold"); // tool names surface in the summary
+    expect(container.querySelector(".tool")).toBeNull(); // original tool block stays in the body
+    expect(container.querySelector(".reason:not(.reason--fold)")).toBeNull();
+  });
+
+  it("clicking the head toggles aria-expanded and mounts the original blocks", () => {
+    const { container } = renderSkin("aurora", makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".reason--fold .reason-toggle") as HTMLButtonElement;
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector(".reason:not(.reason--fold)")).toBeTruthy(); // reused reasoning block
+    expect(container.querySelector(".tool")).toBeTruthy(); // reused tool block
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector(".tool")).toBeNull();
+  });
+
+  it("fold head is keyboard-operable (focus + explicit Enter/Space keydown)", () => {
+    const { container } = renderSkin("aurora", makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".reason--fold .reason-toggle") as HTMLButtonElement;
+    head.focus();
+    expect(document.activeElement).toBe(head);
+    fireEvent.keyDown(head, { key: "Enter" });
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(head, { key: " " });
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("an in-flight run derives an open group with the live marker", () => {
+    const { container } = renderSkin("aurora", makeFoldStore({ leaveRunning: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".reason--fold .reason-toggle") as HTMLButtonElement;
+    expect(head.getAttribute("aria-expanded")).toBe("true"); // tool executing → open
+    expect(head.querySelector(".fold-flag--live")?.textContent).toContain("running");
+  });
+
+  it("a failed tool inside the group surfaces a failure flag on the header", () => {
+    const { container } = renderSkin("aurora", makeFoldStore({ failLastTool: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".reason--fold .reason-toggle") as HTMLButtonElement;
+    const flag = head.querySelector(".fold-flag--error");
+    expect(flag).toBeTruthy();
+    expect(flag?.textContent).toContain(t("fold.hasFailures"));
+  });
+
+  it("singletons stay ungrouped and error rows remain independent", () => {
+    const store = makeStore();
+    try {
+      dispatch(store, { type: EventType.RUN_STARTED, threadId: "t1", runId: "r1" });
+      dispatch(store, { type: EventType.REASONING_START, messageId: "r1" });
+      dispatch(store, { type: EventType.REASONING_MESSAGE_END, messageId: "r1" });
+      dispatch(store, { type: EventType.RUN_ERROR, message: "fixture run error message" });
+      const { container } = renderSkin("aurora", store as unknown as SkinConversation);
+      expect(container.querySelector(".reason--fold")).toBeNull(); // one reasoning block → no group
+      expect(container.textContent).toContain("fixture run error message"); // error stays visible
+    } finally {
+      store.stop();
     }
   });
 });

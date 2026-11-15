@@ -333,6 +333,40 @@
   color: #4a463d;
 }
 
+/* ── fold groups: consecutive thinking/tool blocks in one hard box ── */
+.bru-fold { border: 2px solid var(--ink); background: var(--white); box-shadow: 4px 4px 0 var(--ink); }
+.bru-fold-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 0;
+  background: none;
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.bru-fold-head:hover { background: #efe9da; }
+.bru-fold-head:active { background: #e6dfcc; }
+.bru-fold-head[aria-expanded="true"] { border-bottom: 2px solid var(--ink); }
+.bru-fold-mark { flex: none; font-size: 8px; }
+.bru-fold-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: #4a463d; }
+.bru-fold-count { margin-left: auto; flex: none; color: #4a463d; }
+.bru-fold-flag { flex: none; padding: 1px 6px; }
+.bru-fold-flag--error { background: var(--red); color: var(--white); }
+.bru-fold-flag--interrupted { background: var(--yellow); color: var(--ink); }
+.bru-fold-flag--live { background: var(--ink); color: var(--white); }
+.bru-fold-body { padding: 10px 12px; display: grid; gap: 10px; }
+.bru-fold-body .bru-think,
+.bru-fold-body .bru-tool { box-shadow: none; }
+
 /* ── tool ─────────────────────────────────────────────────────────── */
 .bru-tool { border: 2px solid var(--ink); background: var(--white); box-shadow: 4px 4px 0 var(--ink); }
 .bru-tool-head {
