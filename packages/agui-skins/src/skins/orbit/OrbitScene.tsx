@@ -2,11 +2,13 @@
 import { useEffect, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { Text } from "troika-three-text";
+import orbitFontUrl from "./fonts/NotoSansSC-Orbit.woff";
 import { createStarfield } from "./Starfield";
 import {
   TONE_COLOR,
   TUNNEL,
   hashUnit,
+  planLiveTail,
   visualUnits,
   type SceneAction,
   type SceneModel,
@@ -53,6 +55,29 @@ const FOV = 56;
 const MATERIALIZE_MS = 400;
 const SYNC_THROTTLE_MS = 80;
 const HUD_DISTANCE = 4;
+/** Self-contained subset font: full ASCII + GB2312 level-1 + demo glyphs.
+    Every Text mesh points at this URL, so no UFR/CDN fetch happens for
+    supported text (offline-safe). */
+const FONT_URL = (() => {
+  // tsup's file loader emits a path relative to the output chunk; resolve it
+  // against import.meta.url so the font works in native ESM too. Vite has
+  // already produced an absolute/hashed URL by this point.
+  try {
+    return new URL(orbitFontUrl, import.meta.url).href;
+  } catch {
+    return orbitFontUrl;
+  }
+})();
+/** If the bundled font cannot be parsed in this browser, the whole 3D
+    transcript is abandoned in favour of the readable DOM list. */
+const FONT_TIMEOUT_MS = 3000;
+const LIVE_TAIL_LINE_HEIGHT = 1.36;
+const LIVE_TAIL_FADE_MS = 420;
+
+function applyFont(text: Text): Text {
+  text.font = FONT_URL;
+  return text;
+}
 
 const TONE_CACHE = new Map<string, THREE.Color>();
 function toneColor(tone: Tone): THREE.Color {
@@ -134,10 +159,17 @@ function wrapForMesh(text: string, maxWidth: number, fontSize: number): string {
 
 interface SegmentView {
   segment: SceneSegment;
+  /** stable paragraph mesh (committed text) */
   text: Text;
+  /** live tail mesh (characters added since the last commit) */
+  tailText: Text;
+  /** full protocol text this view currently represents */
   content: string;
+  committed: string;
+  tail: string;
   bornAt: number;
   pulseAt: number;
+  tailBornAt: number;
   /** x offset inside the station (tool labels sit beside the polyhedron) */
   offsetX: number;
 }
@@ -152,6 +184,15 @@ interface ActionView {
   baseScale: number;
 }
 
+interface PanelView {
+  group: THREE.Group;
+  plane: THREE.Mesh;
+  border: THREE.LineSegments;
+  width: number;
+  height: number;
+  anchorX: number;
+}
+
 interface NodeView {
   node: SceneNode;
   group: THREE.Group;
@@ -159,6 +200,7 @@ interface NodeView {
   actions: ActionView[];
   signature: string;
   bornAt: number;
+  panel: PanelView | null;
   panelBorder: THREE.LineBasicMaterial | null;
   spinner: THREE.Object3D | null;
 }
@@ -211,25 +253,20 @@ function nodeSignature(node: SceneNode): string {
     node.status ?? "",
     node.tone,
     node.mesh,
-    node.actions.map((action) => action.id).join(","),
+    // labels are part of the signature: a language switch must rebuild the
+    // 3D approval buttons, not leave the previous locale baked into SDF
+    node.actions.map((action) => `${action.id}:${action.label}`).join(","),
   ].join("|");
 }
 
-function makeText(
-  segment: SceneSegment,
-  color: string,
-  offsetX: number,
-  bornAt: number,
-  onSynced?: () => void
-): SegmentView {
-  const text = new Text();
-  text.text = wrapForMesh(segment.text, segment.maxWidth, segment.size);
+function tuneTextMesh(text: Text, segment: SceneSegment, color: string): void {
+  applyFont(text);
   text.fontSize = segment.size;
   text.maxWidth = segment.maxWidth;
   text.anchorX = segment.anchorX;
   text.anchorY = "top";
   text.textAlign = segment.align;
-  text.lineHeight = 1.36;
+  text.lineHeight = LIVE_TAIL_LINE_HEIGHT;
   text.color = color;
   text.fillOpacity = 0;
   text.outlineWidth = segment.size * 0.016;
@@ -239,22 +276,73 @@ function makeText(
   text.material.depthWrite = false;
   text.material.fog = true;
   text.renderOrder = 2;
+  text.frustumCulled = false;
+}
+
+/** World-space y where a live tail starts: directly below the last stable
+    line. Both meshes use the same pre-wrapped line model. */
+function tailPosition(segment: SceneSegment, stableText: string, offsetX: number): [number, number, number] {
+  const lines = stableText
+    ? wrapForMesh(stableText, segment.maxWidth, segment.size).split("\n").length
+    : 0;
+  return [
+    offsetX,
+    -segment.offsetY - lines * segment.size * LIVE_TAIL_LINE_HEIGHT,
+    segment.depthJitter + 0.22,
+  ];
+}
+
+function makeText(
+  segment: SceneSegment,
+  color: string,
+  offsetX: number,
+  bornAt: number,
+  streaming: boolean,
+  onSynced?: () => void
+): SegmentView {
+  const split = planLiveTail("", "", segment.text, streaming);
+
+  const text = new Text();
+  tuneTextMesh(text, segment, color);
+  text.text = wrapForMesh(split.stable, segment.maxWidth, segment.size);
   text.position.set(offsetX, -segment.offsetY, segment.depthJitter);
   text.rotation.y = (hashUnit(segment.id) - 0.5) * 0.06; // ≤ ~3.4°
-  text.frustumCulled = false;
   text.sync(onSynced);
+
+  const tailText = new Text();
+  tuneTextMesh(tailText, segment, color);
+  tailText.renderOrder = 3;
+  tailText.text = split.tail ? wrapForMesh(split.tail, segment.maxWidth, segment.size) : "";
+  tailText.position.set(...tailPosition(segment, split.stable, offsetX));
+  tailText.rotation.y = text.rotation.y;
+  tailText.visible = Boolean(split.tail);
+  if (split.tail) tailText.sync(onSynced);
+
   return {
     segment,
     text,
+    tailText,
     content: segment.text,
+    committed: split.stable,
+    tail: split.tail,
     bornAt,
     pulseAt: bornAt,
+    tailBornAt: bornAt,
     offsetX,
   };
 }
 
+function disposeSegmentView(view: SegmentView): void {
+  view.text.removeFromParent();
+  view.tailText.removeFromParent();
+  disposeText(view.text);
+  disposeText(view.tailText);
+}
+
 function panelAnchorX(node: SceneNode): number {
-  if (node.kind === "interrupt" || node.kind === "error") return 0;
+  // centered lanes (approval, error, history) use a centered panel; the
+  // left-anchored plan lane keeps its panel starting at the station origin
+  if (node.kind === "interrupt" || node.kind === "error" || node.kind === "history") return 0;
   return node.width / 2;
 }
 
@@ -417,6 +505,7 @@ export default function OrbitScene(props: OrbitSceneProps) {
     camera.add(hudGroup);
 
     const hudTitle = new Text();
+    applyFont(hudTitle);
     hudTitle.fontSize = 0.2;
     hudTitle.maxWidth = 20;
     hudTitle.anchorX = "left";
@@ -434,6 +523,7 @@ export default function OrbitScene(props: OrbitSceneProps) {
     hudGroup.add(hudTitle);
 
     const hudStatus = new Text();
+    applyFont(hudStatus);
     hudStatus.fontSize = 0.13;
     hudStatus.maxWidth = 20;
     hudStatus.anchorX = "left";
@@ -448,6 +538,7 @@ export default function OrbitScene(props: OrbitSceneProps) {
     hudGroup.add(hudStatus);
 
     const hudLine = new Text();
+    applyFont(hudLine);
     hudLine.fontSize = 0.105;
     hudLine.maxWidth = 20;
     hudLine.anchorX = "left";
@@ -576,6 +667,7 @@ export default function OrbitScene(props: OrbitSceneProps) {
       group.add(edges);
 
       const label = new Text();
+      applyFont(label);
       label.text = action.label;
       label.fontSize = Math.min(0.26, action.height * 0.42);
       label.maxWidth = action.width * 0.88;
@@ -617,6 +709,7 @@ export default function OrbitScene(props: OrbitSceneProps) {
       group.rotation.y = (hashUnit(node.id) - 0.5) * 0.04;
       group.userData.nodeId = node.id;
 
+      let panelView: PanelView | null = null;
       let panelBorder: THREE.LineBasicMaterial | null = null;
       let spinner: THREE.Object3D | null = null;
 
@@ -647,6 +740,7 @@ export default function OrbitScene(props: OrbitSceneProps) {
         border.scale.set(width, height, 1);
         panel.add(border);
         group.add(panel);
+        panelView = { group: panel, plane, border, width, height, anchorX };
       }
 
       if (node.mesh === "icosa") {
@@ -674,16 +768,21 @@ export default function OrbitScene(props: OrbitSceneProps) {
       const segments = new Map<string, SegmentView>();
       for (const segment of node.segments) {
         const offsetX = node.mesh === "icosa" ? 1.15 : 0;
-        const view = makeText(segment, TONE_COLOR[segment.tone], offsetX, now, () => {
+        const streaming = node.streaming === true && segment.role === "body";
+        const view = makeText(segment, TONE_COLOR[segment.tone], offsetX, now, streaming, () => {
           if (reduced) requestRender();
         });
         segments.set(segment.id, view);
         group.add(view.text);
+        group.add(view.tailText);
       }
 
       const actions: ActionView[] = [];
       for (const action of node.actions) {
-        const view = makeButton(action, action.kind === "approve" ? "amber" : "red");
+        const view = makeButton(
+          action,
+          action.kind === "approve" ? "amber" : action.kind === "earlier" ? "violet" : "red"
+        );
         group.add(view.group);
         actions.push(view);
       }
@@ -695,6 +794,7 @@ export default function OrbitScene(props: OrbitSceneProps) {
         actions,
         signature: nodeSignature(node),
         bornAt: now,
+        panel: panelView,
         panelBorder,
         spinner,
       };
@@ -709,13 +809,15 @@ export default function OrbitScene(props: OrbitSceneProps) {
       const offsetX = node.mesh === "icosa" ? 1.15 : 0;
       for (const segment of node.segments) {
         seen.add(segment.id);
+        const streaming = node.streaming === true && segment.role === "body";
         const existing = view.segments.get(segment.id);
         if (!existing) {
-          const created = makeText(segment, TONE_COLOR[segment.tone], offsetX, now, () => {
+          const created = makeText(segment, TONE_COLOR[segment.tone], offsetX, now, streaming, () => {
             if (reduced) requestRender();
           });
           view.segments.set(segment.id, created);
           view.group.add(created.text);
+          view.group.add(created.tailText);
           continue;
         }
         existing.segment = segment;
@@ -726,22 +828,60 @@ export default function OrbitScene(props: OrbitSceneProps) {
         existing.text.textAlign = segment.align;
         existing.text.color = TONE_COLOR[segment.tone];
         existing.text.position.set(offsetX, -segment.offsetY, segment.depthJitter);
-        if (existing.content !== segment.text) {
+        existing.tailText.fontSize = segment.size;
+        existing.tailText.maxWidth = segment.maxWidth;
+        existing.tailText.anchorX = segment.anchorX;
+        existing.tailText.textAlign = segment.align;
+        existing.tailText.color = TONE_COLOR[segment.tone];
+        existing.tailText.rotation.y = existing.text.rotation.y;
+
+        const split = planLiveTail(existing.committed, existing.tail, segment.text, streaming);
+        if (split.changed) {
+          existing.committed = split.stable;
+          existing.tail = split.tail;
           existing.content = segment.text;
-          existing.text.text = wrapForMesh(segment.text, segment.maxWidth, segment.size);
+          existing.text.text = wrapForMesh(split.stable, segment.maxWidth, segment.size);
+          existing.tailText.text = split.tail
+            ? wrapForMesh(split.tail, segment.maxWidth, segment.size)
+            : "";
+          existing.tailText.visible = Boolean(split.tail);
+          existing.tailText.position.set(...tailPosition(segment, split.stable, offsetX));
           existing.pulseAt = now;
+          existing.tailBornAt = split.tailReset ? now : existing.tailBornAt;
           markDirty(existing.text);
+          markDirty(existing.tailText);
+        } else {
+          existing.tailText.position.set(...tailPosition(segment, split.stable, offsetX));
         }
       }
       for (const [id, segmentView] of view.segments) {
         if (seen.has(id)) continue;
         view.segments.delete(id);
-        segmentView.text.removeFromParent();
-        segmentView.text.dispose();
+        disposeSegmentView(segmentView);
       }
 
-      // Panels grow when a streamed paragraph adds lines; text stations need
-      // no mesh resize, and approvals are rebuilt on state changes.
+      // Plan panels grow while steps stream in: resize the existing plane and
+      // border instead of rebuilding the station (which would re-materialize
+      // the whole plan on every step).
+      if (view.panel) {
+        const width = node.width;
+        const height = node.height + 0.45;
+        const anchorX = panelAnchorX(node);
+        if (
+          view.panel.width !== width ||
+          view.panel.height !== height ||
+          view.panel.anchorX !== anchorX
+        ) {
+          view.panel.width = width;
+          view.panel.height = height;
+          view.panel.anchorX = anchorX;
+          view.panel.group.position.set(anchorX, -height / 2, -0.06);
+          view.panel.plane.scale.set(width, height, 1);
+          view.panel.border.scale.set(width, height, 1);
+        }
+      }
+      // Approvals keep their buttons at the bottom of the panel; their
+      // geometry is rebuilt on state changes (signature includes status).
     }
 
     function reconcile(model: SceneModel): void {
@@ -968,10 +1108,14 @@ export default function OrbitScene(props: OrbitSceneProps) {
     if (!reduced) window.addEventListener("pointermove", onPointerMoveWindow, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
 
-    const proxyRoot = proxyRootRef.current.current;
+    // Focus is delegated from the document, not bound to the proxy layer:
+    // the layer does not exist while the model has zero actions, and a
+    // listener attached to null would never highlight the first approval.
     const onFocusIn = (event: FocusEvent) => {
       const target = event.target as HTMLElement | null;
-      const id = target?.dataset?.sceneAction ?? null;
+      const element = target?.closest?.("[data-scene-action]") as HTMLElement | null;
+      const id = element?.dataset.sceneAction ?? null;
+      if (id === highlightId) return;
       highlightId = id;
       if (reduced) requestRender();
     };
@@ -979,8 +1123,8 @@ export default function OrbitScene(props: OrbitSceneProps) {
       highlightId = null;
       if (reduced) requestRender();
     };
-    proxyRoot?.addEventListener("focusin", onFocusIn);
-    proxyRoot?.addEventListener("focusout", onFocusOut);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
 
     // ── resize ────────────────────────────────────────────────────────
     let viewportWidth = 1;
@@ -1028,6 +1172,28 @@ export default function OrbitScene(props: OrbitSceneProps) {
             segment.text.outlineWidth = segment.segment.size * 0.016;
             segment.text.outlineOpacity = 0.75;
           }
+
+          // Live tail: newly appended characters keep their own mesh, close
+          // to the lens and slightly scaled down, fading in from the void.
+          // While tokens keep arriving the tail stays a touch dimmer than
+          // the committed paragraph, which is what makes the新旧 layering
+          // readable in motion.
+          if (segment.tail) {
+            const tailEase = reduced
+              ? 1
+              : clamped01(easeOutCubic(clamp((now - segment.tailBornAt) / LIVE_TAIL_FADE_MS, 0, 1)));
+            segment.tailText.visible = true;
+            segment.tailText.fillOpacity = opacity * (0.5 + 0.5 * tailEase);
+            segment.tailText.scale.setScalar(0.955 + 0.045 * tailEase);
+            segment.tailText.position.z =
+              segment.segment.depthJitter + 0.3 * (1 - tailEase);
+            segment.tailText.outlineColor = TONE_COLOR[segment.segment.tone];
+            segment.tailText.outlineWidth =
+              segment.segment.size * (0.016 + 0.045 * (1 - tailEase));
+            segment.tailText.outlineOpacity = 0.35 + 0.45 * (1 - tailEase);
+          } else if (segment.tailText.visible) {
+            segment.tailText.visible = false;
+          }
         }
         if (view.panelBorder && view.node.kind === "interrupt" && view.node.status === "pending" && !reduced) {
           view.panelBorder.opacity = 0.5 + 0.24 * Math.sin(now / 360);
@@ -1040,7 +1206,17 @@ export default function OrbitScene(props: OrbitSceneProps) {
           const focused = highlightId === action.action.id;
           const pulse = focused ? 1.08 + Math.sin(now / 160) * 0.03 : 1;
           action.group.scale.setScalar(pulse);
-          action.border.color.set(focused ? 0xffffff : TONE_COLOR[action.action.kind === "approve" ? "amber" : "red"]);
+          action.border.color.set(
+            focused
+              ? 0xffffff
+              : TONE_COLOR[
+                  action.action.kind === "approve"
+                    ? "amber"
+                    : action.action.kind === "earlier"
+                      ? "violet"
+                      : "red"
+                ]
+          );
         }
       }
       for (const action of actionViews.values()) {
@@ -1094,6 +1270,13 @@ export default function OrbitScene(props: OrbitSceneProps) {
         }
       }
       if (!focusNode) focusNode = fallback;
+      // The entrance history station is only one backGap (13) away at maxZ,
+      // which is less than followGap (14), so the "ahead" rule above would
+      // skip it forever. When the dolly is parked at the far end, frame the
+      // entrance station so its "earlier messages" control is reachable.
+      if (fallback?.kind === "history" && camZ >= cameraCtl.maxZ - 0.05) {
+        focusNode = fallback;
+      }
       focusId = focusNode?.id ?? null;
 
       // Magnetic chamber snap: once the wheel has been idle for a beat,
@@ -1145,7 +1328,49 @@ export default function OrbitScene(props: OrbitSceneProps) {
       });
     }
 
+    // ── bundled-font readiness (self-contained, offline-safe) ─────────
+    // A throwaway Text forces troika to parse the bundled subset. If that
+    // fails (corrupt/unsupported font, blocked asset) or takes longer than
+    // FONT_TIMEOUT_MS, the page swaps the whole 3D transcript for the DOM
+    // list instead of leaving an empty tunnel. One probe covers every mesh:
+    // troika caches parsed fonts by URL.
+    let fontTimer: ReturnType<typeof setTimeout> | null = null;
+    let fontReady = false;
+    const probe = new Text();
+    applyFont(probe);
+    probe.fontSize = 1;
+    probe.text = "汉字、。€";
+
+    const clearFontTimer = () => {
+      if (fontTimer) {
+        clearTimeout(fontTimer);
+        fontTimer = null;
+      }
+    };
+    const releaseProbe = () => {
+      try {
+        disposeText(probe);
+      } catch {
+        /* already disposed */
+      }
+    };
+    const markReady = () => {
+      if (fontReady || disposed) return;
+      fontReady = true;
+      clearFontTimer();
+      releaseProbe();
+      onReadyRef.current();
+    };
+    const failFont = (reason: string) => {
+      if (fontReady || disposed) return;
+      clearFontTimer();
+      releaseProbe();
+      onFailRef.current(reason);
+    };
     // ── kick off ──────────────────────────────────────────────────────
+    // runtimeRef is assigned before the probe starts: a synchronous
+    // font/worker failure can call onFail immediately, and the React
+    // cleanup must find a dispose() that owns the renderer/canvas.
     runtimeRef.current = {
       reconcile,
       updateHud: (hud, accent) => {
@@ -1156,16 +1381,16 @@ export default function OrbitScene(props: OrbitSceneProps) {
       dispose: () => {
         disposed = true;
         if (frame) cancelAnimationFrame(frame);
+        clearFontTimer();
+        releaseProbe();
         if (syncTimer) clearTimeout(syncTimer);
         observer?.disconnect();
         window.removeEventListener("resize", resize);
         window.removeEventListener("pointermove", onPointerMoveWindow);
         document.removeEventListener("visibilitychange", onVisibility);
-        proxyRoot?.removeEventListener("focusin", onFocusIn);
-        proxyRoot?.removeEventListener("focusout", onFocusOut);
+        document.removeEventListener("focusin", onFocusIn);
+        document.removeEventListener("focusout", onFocusOut);
         document.removeEventListener("wheel", onWheel);
-        proxyRoot?.removeEventListener("focusin", onFocusIn);
-        proxyRoot?.removeEventListener("focusout", onFocusOut);
         canvas.removeEventListener("pointerdown", onPointerDown);
         canvas.removeEventListener("pointerup", onPointerUp);
         canvas.removeEventListener("pointermove", onPointerMoveCanvas);
@@ -1200,10 +1425,27 @@ export default function OrbitScene(props: OrbitSceneProps) {
       },
     };
 
+    fontTimer = setTimeout(() => failFont("font-timeout"), FONT_TIMEOUT_MS);
+    try {
+      probe.sync(markReady);
+    } catch {
+      failFont("font-sync-failed");
+    }
+    // A cheap 404/offline signal; the probe timeout stays authoritative for
+    // parse errors (the fetch may succeed while troika cannot parse).
+    fetch(FONT_URL)
+      .then((response) => {
+        if (!response.ok) failFont("font-fetch-failed");
+      })
+      .catch(() => {
+        /* offline: the worker request and its timeout decide */
+      });
+
     reconcile(modelRef.current);
     placeHud();
     renderFrame();
-    onReadyRef.current();
+    // onReady is deferred to the font probe: the page keeps the CSS sky (and
+    // the "loading" state) until real glyphs exist, and falls back on timeout.
     if (!reduced) loop();
 
     return () => {

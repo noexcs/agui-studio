@@ -184,10 +184,11 @@ export function OrbitPage() {
           modelLabel: brand.modelLabel,
           threadId: c.threadId,
         },
+        hiddenCount: hidden,
       }),
     // store entries are mutated in place; the version is the append signal
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [version, lang, brand.agentName, brand.modelLabel, c.threadId, c.stateVersion, c.suggestions]
+    [version, lang, brand.agentName, brand.modelLabel, c.threadId, c.stateVersion, c.suggestions, hidden]
   );
 
   const actions = useMemo(() => sceneActions(model), [model]);
@@ -273,9 +274,11 @@ export function OrbitPage() {
         c.resolveInterrupt(false, undefined, action.entryId);
       } else if (action.kind === "suggestion") {
         setDraft(action.text ?? "");
+      } else if (action.kind === "earlier") {
+        showEarlier();
       }
     },
-    [c]
+    [c, showEarlier]
   );
 
   const fallback = !webgl || sceneStatus === "failed";

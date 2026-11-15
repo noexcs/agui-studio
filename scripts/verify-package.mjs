@@ -73,6 +73,30 @@ if (existsSync(dist)) {
     const source = readFileSync(join(dist, file), "utf8");
     check(!/from\s+["'][^"']+\.css["']/.test(source), `dist/${file} imports CSS — CSS must stay a separate entry`);
   }
+  // Orbit ships its own CJK subset. No shipped code (or source map) may point
+  // at a font CDN at runtime: troika's unicode-font-resolver picked
+  // Mongolian/Nushu/Yi fonts for common Chinese punctuation and left the 3D
+  // text blank when the CDN was unreachable.
+  for (const file of files.filter((item) => item.endsWith(".js") || item.endsWith(".map"))) {
+    const source = readFileSync(join(dist, file), "utf8");
+    check(
+      !/cdn\.jsdelivr\.net|fonts\.gstatic\.com|unpkg\.com|use\.typekit\.net/i.test(source),
+      `dist/${file} references a remote font/CDN — fonts must be self-contained`
+    );
+  }
+
+  // The bundled font must actually be in the published artifact, large
+  // enough to be a real subset (not a stub/error payload saved as .woff).
+  const fontAssets = files.filter((file) => /\.woff2?$/.test(file));
+  check(fontAssets.length > 0, "no bundled WOFF/WOFF2 font in dist — orbit text would fall back to a CDN");
+  for (const asset of fontAssets) {
+    const size = statSync(join(dist, asset)).size;
+    check(size > 100_000, `dist/${asset} is only ${size} bytes — bundled font looks truncated`);
+  }
+  check(
+    fontAssets.some((file) => /NotoSansSC/i.test(file)),
+    "bundled Noto Sans SC subset missing from dist (orbit fonts/)"
+  );
 
   // Content assertions: a migrated skin's dist CSS must carry its compiled
   // Tailwind utilities — `@layer utilities` present plus a real body of
@@ -109,6 +133,10 @@ try {
   for (const file of ["dist/index.js", "dist/index.d.ts", "dist/index.css", ...skins.map((s) => `dist/skins/${s}.css`)]) {
     check(packedFiles.includes(file), `npm tarball omits ${file}`);
   }
+  check(
+    packedFiles.some((file) => /\.woff2?$/.test(file) && /NotoSansSC/i.test(file)),
+    "npm tarball omits the bundled Noto Sans SC subset — orbit would fall back to a CDN font"
+  );
 } catch (error) {
   errors.push(`npm pack --dry-run failed: ${error instanceof Error ? error.message : String(error)}`);
 }

@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setLang, t } from "agui-skins";
 import type { Entry, InterruptEntry, ToolEntry } from "agui-skins";
 import {
+  LIVE_TAIL_MAX,
   TUNNEL,
   approvalState,
   buildSceneModel,
   cleanForScene,
+  planLiveTail,
   sceneActions,
   splitForMesh,
   toolStatusLabel,
@@ -246,5 +248,57 @@ describe("orbit scene model — camera/suggestions/state", () => {
   it("exposes toolStatusLabel for the shared status-word discipline", () => {
     expect(toolStatusLabel("done", tr)).toBe("完成");
     expect(toolStatusLabel("mystery", tr)).toBe("执行中");
+  });
+});
+
+describe("orbit scene model — live tail", () => {
+  it("keeps newly appended characters out of the stable paragraph", () => {
+    const plan = planLiveTail("hello", "", "hello world", true);
+    expect(plan).toEqual({ stable: "hello", tail: " world", changed: true, tailReset: true });
+    const grown = planLiveTail("hello", " world", "hello world!", true);
+    expect(grown.stable).toBe("hello");
+    expect(grown.tail).toBe(" world!");
+    expect(grown.tailReset).toBe(false); // pure growth keeps the materialize clock
+  });
+
+  it("merges the tail once it passes the live budget", () => {
+    const committed = "stable:";
+    const next = committed + "x".repeat(LIVE_TAIL_MAX + 1);
+    const plan = planLiveTail(committed, "", next, true);
+    expect(plan.tail).toBe("");
+    expect(plan.stable).toBe(next);
+    expect(plan.changed).toBe(true);
+  });
+
+  it("merges the tail when the stream ends, even without new text", () => {
+    const plan = planLiveTail("stable", " tail", "stable tail", false);
+    expect(plan).toEqual({ stable: "stable tail", tail: "", changed: true, tailReset: true });
+  });
+
+  it("resets the split on a non-append rewrite instead of fabricating a tail", () => {
+    const plan = planLiveTail("old", " text", "rewritten", true);
+    expect(plan).toEqual({ stable: "rewritten", tail: "", changed: true, tailReset: true });
+  });
+});
+
+describe("orbit scene model — long-session history entry", () => {
+  it("adds a tunnel-entrance history station wired to the earlier action", () => {
+    const model = modelOf([toolEntry("done")], { hiddenCount: 42 });
+    const history = model.nodes.find((node) => node.kind === "history")!;
+    expect(history).toBeTruthy();
+    expect(history.id).toBe("n-history");
+    expect(history.z).toBeGreaterThan(model.nodes[1].z); // entrance, in front of messages
+    const action = sceneActions(model).find((item) => item.kind === "earlier")!;
+    expect(action).toBeTruthy();
+    expect(action.space).toBe("node");
+    expect(action.nodeId).toBe("n-history");
+    expect(action.label).toContain("42");
+    expect(action.label).toContain(t("history.more"));
+  });
+
+  it("omits the history station when nothing is windowed away", () => {
+    const model = modelOf([toolEntry("done")], { hiddenCount: 0 });
+    expect(model.nodes.some((node) => node.kind === "history")).toBe(false);
+    expect(sceneActions(model).some((action) => action.kind === "earlier")).toBe(false);
   });
 });

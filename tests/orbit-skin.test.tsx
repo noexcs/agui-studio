@@ -110,6 +110,28 @@ describe("orbit no-WebGL fallback", () => {
     expect(head.textContent).toContain(t("fold.hasFailures"));
     expect(container.textContent).toContain("backend down");
   });
+
+  it("keeps the earlier-messages entry visible and reveals windowed history", () => {
+    const store = makeStore();
+    act(() => {
+      for (let index = 0; index < 80; index += 1) {
+        store.entries.push({
+          kind: "user",
+          id: `early_${index}`,
+          at: index,
+          text: `early-${String(index).padStart(3, "0")}`,
+        } as never);
+      }
+      store.touch();
+    });
+    const { container } = renderOrbit(store as unknown as SkinConversation, "zh");
+    const earlier = container.querySelector(".or-earlier") as HTMLButtonElement;
+    expect(earlier).toBeTruthy();
+    expect(earlier.textContent).toContain(t("history.more"));
+    expect(container.textContent).not.toContain("early-000");
+    fireEvent.click(earlier);
+    expect(container.textContent).toContain("early-000");
+  });
 });
 
 describe("orbit approvals (v2)", () => {
@@ -361,6 +383,11 @@ describe("orbit v2 architecture (source-level)", () => {
     expect(index).toContain("componentDidCatch");
     expect(scene).toContain("webglcontextlost");
     expect(scene).toContain("webglcontextlost");
+    // source-level regression anchors for the review fixes
+    expect(scene).toContain("${action.id}:${action.label}"); // language switch rebuilds 3D labels
+    expect(scene).toContain('document.addEventListener("focusin"'); // delegation before proxies exist
+    expect(scene).toContain("view.panel.width !== width"); // plan panel resizes as steps stream
+    expect(scene).toContain("planLiveTail("); // stable prefix + live tail split
   });
 
   it("ships no Markdown parser, no protocol drawer and no DOM 3D transcript tricks", () => {
@@ -370,6 +397,18 @@ describe("orbit v2 architecture (source-level)", () => {
     expect(index).not.toContain("perspective:");
     expect(index).toContain("sr-only");
     expect(index).toContain("data-scene-action");
+  });
+
+  it("bundles a self-contained CJK subset and fails over on font timeout", () => {
+    const scene = readFileSync(pkgSrc("skins", "orbit", "OrbitScene.tsx"), "utf8");
+    expect(scene).toContain('from "./fonts/NotoSansSC-Orbit.woff"');
+    expect(scene).toContain("text.font = FONT_URL");
+    expect(scene).toContain("FONT_TIMEOUT_MS");
+    expect(scene).toContain("font-timeout");
+    expect(scene).not.toMatch(/cdn\.jsdelivr\.net|fonts\.gstatic\.com/);
+    const font = readFileSync(pkgSrc("skins", "orbit", "fonts", "NotoSansSC-Orbit.woff"));
+    expect(font.byteLength).toBeGreaterThan(100_000);
+    expect(font.subarray(0, 4).toString("latin1")).toBe("wOFF");
   });
 
   it("declares troika as a dependency and keeps it external in tsup", () => {

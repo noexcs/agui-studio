@@ -80,7 +80,7 @@ export interface SceneSegment {
   depthJitter: number;
 }
 
-export type SceneActionKind = "approve" | "deny" | "suggestion";
+export type SceneActionKind = "approve" | "deny" | "suggestion" | "earlier";
 
 /** A clickable control that exists twice: a mesh in the scene (raycast) and
     a real transparent DOM button projected over it (keyboard + focus ring). */
@@ -110,7 +110,7 @@ export type NodeMesh = "none" | "panel" | "icosa" | "errorpanel" | "ring";
 
 export interface SceneNode {
   id: string;
-  kind: Entry["kind"] | "empty" | "state";
+  kind: Entry["kind"] | "empty" | "state" | "history";
   /** tunnel depth (negative = deeper). Deterministic. */
   z: number;
   /** station origin: x world, y world (top edge), z tunnel depth */
@@ -124,6 +124,8 @@ export interface SceneNode {
   actions: SceneAction[];
   /** raw protocol state, kept for visual coverage tests */
   status?: string;
+  /** text entry still streaming — the renderer keeps a live tail mesh */
+  streaming?: boolean;
   /** materialize from nothing when the station first appears */
   materialize: boolean;
 }
@@ -156,6 +158,8 @@ export interface BuildOptions {
   suggestions?: string[];
   metadata?: Record<string, unknown>;
   brand?: { agentName?: string; modelLabel?: string; threadId?: string };
+  /** entries outside the tail window — adds the "earlier messages" station */
+  hiddenCount?: number;
 }
 
 /* ── geometry constants ─────────────────────────────────────────────── */
@@ -280,6 +284,56 @@ function chunkText(text: string, maxChars: number): string[] {
   }
   if (rest.trim()) chunks.push(rest.trim());
   return chunks;
+}
+
+/** Live-tail contract: characters appended after the last commit stay in a
+    separate mesh until the tail outgrows this budget (or the stream ends). */
+export const LIVE_TAIL_MAX = 120;
+
+export interface LiveTailPlan {
+  /** text that stays in the stable paragraph mesh */
+  stable: string;
+  /** newly appended characters, rendered as an independent mesh */
+  tail: string;
+  /** stable/tail differ from the previous state */
+  changed: boolean;
+  /** the tail restarted (freshly appended text) vs. simply grew */
+  tailReset: boolean;
+}
+
+/** Split a streaming segment into its committed prefix and its live tail.
+    `committed` + `tail` is the previous render state; `nextText` is the new
+    protocol text. Any rewrite that is not a pure append resets the split. */
+export function planLiveTail(
+  committed: string,
+  tail: string,
+  nextText: string,
+  streaming: boolean,
+  limit: number = LIVE_TAIL_MAX
+): LiveTailPlan {
+  const previous = committed + tail;
+  const unchanged: LiveTailPlan = { stable: committed, tail, changed: false, tailReset: false };
+  if (nextText === previous) {
+    if (!streaming && tail) {
+      // the stream ended without growing: merge the live tail back
+      return { stable: nextText, tail: "", changed: true, tailReset: true };
+    }
+    return unchanged;
+  }
+  if (!nextText.startsWith(committed)) {
+    // a non-append rewrite (snapshot correction): nothing can stay live
+    return { stable: nextText, tail: "", changed: true, tailReset: true };
+  }
+  const added = nextText.slice(committed.length);
+  if (!streaming || added.length > limit) {
+    return { stable: nextText, tail: "", changed: true, tailReset: true };
+  }
+  return {
+    stable: committed,
+    tail: added,
+    changed: nextText !== previous,
+    tailReset: tail.length === 0 || !added.startsWith(tail),
+  };
 }
 
 /** Deterministic per-id jitter in [-1, 1] (FNV-1a). */
@@ -468,6 +522,8 @@ function textStations(
   return parts.map((chunk, index) => {
     const id = `n-${entry.id}-p${index}`;
     const { node, segments } = chunkStation(id, entry.kind, z, lane, tone);
+    // user text is committed on arrival; assistant/reasoning bodies stream
+    node.streaming = entry.kind !== "user" && entry.streaming === true;
     if (isUser) {
       segments.add({
         text:
@@ -821,6 +877,67 @@ function finish(
   };
 }
 
+/** Tunnel-entrance station: the only 3D affordance that restores entries
+    outside the tail window. Mirrors the fallback `.or-earlier` button and
+    drives the same `showEarlier` callback through `SceneAction`. */
+function historyNode(hidden: number, z: number, tr: (key: string) => string): SceneNode {
+  const id = "n-history";
+  const segments = new SegmentList(id);
+  const label = `${tr("history.more")} · ${hidden}`;
+  segments.add({
+    text: tr("or.historyHint"),
+    role: "meta",
+    tone: "faint",
+    size: 0.26,
+    maxWidth: 6.2,
+    anchorX: "center",
+    align: "center",
+  });
+  segments.add({
+    text: label,
+    role: "label",
+    tone: "violet",
+    size: 0.44,
+    maxWidth: 6.2,
+    anchorX: "center",
+    align: "center",
+    gapBefore: 0.12,
+  });
+  const buttonY = -(segments.cursor + 0.62);
+  const action: SceneAction = {
+    id: "act-earlier",
+    kind: "earlier",
+    nodeId: id,
+    label,
+    ariaLabel: `${tr("history.more")} (${hidden})`,
+    space: "node",
+    x: 0,
+    y: buttonY,
+    z: 0.06,
+    width: 3.2,
+    height: 0.68,
+  };
+  const node = finish(
+    {
+      id,
+      kind: "history",
+      z,
+      x: 0,
+      y: 1.1,
+      width: 7,
+      height: 0,
+      tone: "violet",
+      mesh: "panel",
+      materialize: true,
+      segments: [],
+      actions: [action],
+    },
+    segments,
+    { meshWidth: 7, pad: 0.7 }
+  );
+  return node;
+}
+
 function stateNode(
   sharedState: Record<string, unknown>,
   stateVersion: number | undefined,
@@ -1018,7 +1135,13 @@ export function buildSceneModel(entries: Entry[], options: BuildOptions): SceneM
     nodes.push(emptyNode(tr, -18));
   }
 
-  const ordered = stateRibbon ? [stateRibbon, ...nodes] : nodes;
+  // The history station lives at the very entrance (in front of the shared
+  // state ribbon) so scrolling to the oldest reachable point reveals it.
+  const history =
+    typeof options.hiddenCount === "number" && options.hiddenCount > 0
+      ? historyNode(options.hiddenCount, TUNNEL.startZ + 22, tr)
+      : null;
+  const ordered = [...(history ? [history] : []), ...(stateRibbon ? [stateRibbon] : []), ...nodes];
   const oldestZ = ordered.length ? Math.max(...ordered.map((node) => node.z)) : TUNNEL.startZ;
   const newestZ = ordered.length ? Math.min(...ordered.map((node) => node.z)) : TUNNEL.startZ;
   const newestNode = ordered.reduce<SceneNode | null>(

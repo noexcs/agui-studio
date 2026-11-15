@@ -36,6 +36,10 @@ export default defineConfig({
     "skins/orbit": "src/skins/orbit/index.tsx",
   },
   format: ["esm"],
+  // Orbit ships its own subset CJK font. esbuild emits it under dist/assets/
+  // and the lazy scene chunk resolves it relative to import.meta.url, so
+  // consumers never download glyphs from a font CDN.
+  loader: { ".woff": "file", ".woff2": "file" },
   dts: true,
   splitting: true,
   sourcemap: true,

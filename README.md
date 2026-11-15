@@ -116,7 +116,7 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 
 `HttpAgentTransport` 已实现 POST + SSE 的 `BaseEvent` 流解析，形状见
 `src/core/demo.ts` 生成的演示事件。`ConversationStore` 对来源完全无知：
-把 `dispatch(event)` 接到真实流上，五套皮肤会同时变成生产界面。
+把 `dispatch(event)` 接到真实流上，十套皮肤会同时变成生产界面。
 
 ## 设计说明
 
@@ -130,6 +130,7 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 - **Workbench** — IDE/文件树风（暗石墨）：会话=编辑器（行号水槽，流式行点亮），每轮是 EXPLORER 里的一个文件节点；工具调用渲染成底部终端面板（`❯ tool done 348ms`，失败红行）；状态栏带 Y/N 审批键提示。
 - **Dash** — 运营仪表盘风（亮色）：顶部 run 指标条（状态/耗时/工具数/token 四 KPI tile，空 store 显示「—」），活动流=hairline 数据行，右轨 Telemetry/Shared State/Capabilities；数据感强、密度高。
 - **Bubble** — 移动聊天风（亮色）：iMessage 式左右气泡+尾巴，打字指示器三点动效（reduced-motion 兜底），审批/工具/错误全部是「卡片气泡」不破坏气泡语言，composer 贴底拇指友好。
+- **Orbit** — 完全 3D 的「会话隧道」：文字是 troika SDF 网格，沿 Z 轴排成站点；新站点从深空浮现，同段新增字符以独立 live-tail 网格先浮现、超过 120 字符或流结束再合并。唯一可见 DOM 是输入框（中文 IME 硬约束），审批是 3D 面板 + 二元 Approve/Deny（无 ProtocolDrawer，debug 遥测不进 3D）。字体随包：ASCII + GB2312 一级常用字 + demo 字形子集化成 WOFF，运行时不再请求字体 CDN；字体解析失败或 3s 超时整场景降级为可读 DOM 列表。reduced-motion 下文字瞬时、相机静止，但滚轮仍即时导航历史（snap 到站点），不是锁死。
 
 ## 已知取舍（这是设计稿，不是产品）
 
@@ -190,7 +191,7 @@ URL：`?backend=fixture&instant=1`（瞬时回放，适合截图）、`?backend=
 | 图标 | 手写 SVG path 表 | `lucide-react` |
 | 字体 | Google Fonts | 保留（设计的一部分） |
 
-仍然手写的部分及原因：四套皮肤的布局与视觉（这是本项目的交付内容）、AG-UI 事件归约与状态树、
+仍然手写的部分及原因：各套皮肤的布局与视觉（这是本项目的交付内容）、AG-UI 事件归约与状态树、
 简单的 JSON 高亮、Tab/筛选等轻交互（为避免引入完整组件库的样式体系冲突）。
 
 可以继续替换的（还没做）：`@radix-ui/*` 或 shadcn 的 Tabs/Dialog/Tooltip/Popover、
@@ -218,7 +219,7 @@ PI 模式默认走 **DeepSeek API**（`deepseek-flash`），配置在 `~/.pi/age
 ```
 协议/状态层   core/            自研（AG-UI 归约、JSON Patch、store）
 行为层        第三方 headless  react-markdown · remark-gfm · Radix Tabs · JsonView · ErrorBoundary · lucide
-样式层        skins/*.css      完全自由，四套皮肤各自成体系
+样式层        skins/*.css      完全自由，十套皮肤各自成体系
 ```
 
 样式层没有任何库的痕迹：Radix Tabs 只给 `data-state`，颜色/圆角/字体仍由皮肤 CSS 决定；
@@ -257,7 +258,7 @@ Radix Popover、`sonner` toast、`react-virtuoso` 虚拟列表（事件数上千
 
 这些都在工作室外壳层，皮肤完全不需要知道它们存在；视觉样式仍写在 `app.css` 的 `.cmdk-*` / `.run-dialog-*` / `.tip` 里。
 
-- 快捷键：⌘K / Ctrl+K 打开命令面板；`1–9` 切皮肤；`R` 重播；`L` 切语言；
+- 快捷键：⌘K / Ctrl+K 打开命令面板；`1–9` 切前九套皮肤、`0` 切第十套 orbit；`R` 重播；`L` 切语言；
 - 设计评审用 URL：`?palette=1` 直接打开面板，`?run-info=1` 直接打开运行详情。
 
 ### 分包
@@ -422,7 +423,7 @@ packages/agui-skins/
    ├─ utils.ts           # formatDuration · plainText · estimateTokens
    ├─ shared/            # Icon · Markdown · useStickToBottom
    ├─ i18n/              # 中英字典（provider 可覆盖单键）
-   └─ skins/             # aurora · paper · terminal · brutalist · classic
+   └─ skins/             # aurora · paper · terminal · brutalist · classic · particle · workbench · dash · bubble · orbit
 ```
 
 应用侧通过 workspace 依赖消费：`"agui-skins": "workspace:*"`，
@@ -462,13 +463,14 @@ const Page = skins.find((s) => s.id === "classic")!.ChatPage;
 
 ```bash
 pnpm test
-# Test Files  31 passed (31)
-# Tests       68 passed (68)
+# Test Files  45 passed (45)
+# Tests       641 passed (641)
 ```
 
 ### 发布状态
 
-- `exports` 已指向 `dist/`（tsup 构建：主入口 + i18n + contract + 5 皮肤子入口，js + d.ts + 稳定命名 CSS）；
+- `exports` 已指向 `dist/`（tsup 构建：主入口 + i18n + contract + 10 皮肤子入口，js + d.ts + 稳定命名 CSS + orbit 字体资产）；
+- orbit 的 CJK 字体随包分发：`dist/NotoSansSC-Orbit-*.woff`（ASCII + GB2312 一级常用字 + demo 字形，约 780KB）；`verify-package` 断言 dist 不含 `cdn.jsdelivr.net`（或其他字体 CDN）且 npm tarball 包含该字体，运行时不会再向 UFR/CDN 取字；
 - `npm pack` 已在独立 Vite + React 18 项目安装实测通过（含 `tsc --noEmit` 零错误与 i18n 单例验证）；
 - CSS 随包分发：消费方显式 `import "agui-skins/index.css"`（整包）或按皮肤 `agui-skins/skins/paper.css`；
 - 后续：包 README、changesets 版本管理、Storybook。
@@ -761,3 +763,13 @@ http://127.0.0.1:5178/?agui=http://127.0.0.1:5180/agui&autosend=1&lang=zh
 - **zod 边界校验**（P1-6）：事件 schema 校验走 `@ag-ui/core/schemas`，替代手写 mini JSON-Schema；对外部数据源的字段松弛集中在 `src/core/validate.ts`（本项目后端的 timestamp 字符串、run 事件缺 id 等事实差异）；
 - **use-stick-to-bottom**（784★）替换自研吸底 hook，签名不变、11 处消费点零改动；
 - 净 +363 行（适配层，回退路径见 SDD 台账）；测试增至 **572 个用例（41 文件）**。
+
+## 2026-11-16 第十套皮肤：Orbit（完全 3D 文字隧道）
+
+皮肤总数 **10**。orbit 把整段对话放进 WebGL 隧道：每条消息是沿 Z 轴排列的 troika SDF 文字站点，新站点从深空材质化（scale/z/opacity + 外发光），同段新增 token 先进入独立 live-tail 网格（更暗、更小、更近），超过 120 字符或流结束再合并回稳定段落。相机滚轮 = 隧道 dolly，自动跟随最新消息，停止滚动后磁性吸附到站点阅读距离。
+
+- **唯一可见 DOM 是 composer**（中文 IME 硬约束）；读屏镜像与透明按钮代理不可见。审批是 3D 面板 + 二元 Approve/Deny，没有 ProtocolDrawer；unknown `CUSTOM(debug)` 遥测不进入 3D 转录。
+- **长会话**：尾部窗口之外的历史在隧道入口有「加载更早的消息 · N」站点（`showEarlier`），fallback 列表顶部有同名按钮。
+- **字体自包含**：ASCII + GB2312 一级常用字 + demo 字形子集化为 Noto Sans SC WOFF（约 750KB，SIL OFL），随包分发，`Text.font` 全部指向它，不再请求字体 CDN；字体解析失败或 3s 超时整场景降级为可读 DOM 列表。`verify-package` 断言 dist 不含 `cdn.jsdelivr.net` 且 tarball 含字体。
+- **reduced-motion**：文字瞬时出现、相机静止、视差/浮动关闭；滚轮仍是即时历史导航（snap 到目标站点），不是锁死。
+- 测试总数 **641 个用例（45 文件）**，新增 live-tail / 历史入口 / 字体自包含断言。
