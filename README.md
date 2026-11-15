@@ -21,7 +21,7 @@ URL 参数方便分享/截图：
 
 | 参数 | 说明 |
 | --- | --- |
-| `?skin=aurora｜paper｜terminal｜brutalist｜classic｜particle` | 直接打开某种风格 |
+| `?skin=aurora｜paper｜terminal｜brutalist｜classic｜particle｜workbench｜dash｜bubble` | 直接打开某种风格 |
 | `?scene=done` | 直接渲染"已批准 + 生成完毕"的完整对话（跳过流式动画） |
 | `?scene=interrupted` | 停在人工审批这一刻（展示 interrupt UI） |
 
@@ -127,6 +127,9 @@ for await (const event of transport.run({ threadId, runId, messages, state, tool
 - **Terminal** — 荧光绿等宽 CLI、扫描线、ASCII 分隔；右侧是实时事件 trace（可切换是否显示 delta）。适合调试与工程用户。参考 scrolltide / sceneai 的"提示词即界面"气质。
 - **Brutalist** — 2px 硬边框、硬投影、高饱和黄；审批做成醒目的黄色单据，按钮是"盖章"式操作。适合需要强确认的高风险操作（付款、提交、发布）。参考 brutalist 落地页与 21st.dev 的原始组件。
 - **Particle** — 深空玻璃 + 事件优先：工具调用做成带 `TOOL` 标签的协议卡（状态/耗时/参数/结果），计划是时间线，审批是 gate；对话列紧凑、右侧是元数据/计划/状态。没有装饰性 hero——皮肤只负责协议事件长什么样。
+- **Workbench** — IDE/文件树风（暗石墨）：会话=编辑器（行号水槽，流式行点亮），每轮是 EXPLORER 里的一个文件节点；工具调用渲染成底部终端面板（`❯ tool done 348ms`，失败红行）；状态栏带 Y/N 审批键提示。
+- **Dash** — 运营仪表盘风（亮色）：顶部 run 指标条（状态/耗时/工具数/token 四 KPI tile，空 store 显示「—」），活动流=hairline 数据行，右轨 Telemetry/Shared State/Capabilities；数据感强、密度高。
+- **Bubble** — 移动聊天风（亮色）：iMessage 式左右气泡+尾巴，打字指示器三点动效（reduced-motion 兜底），审批/工具/错误全部是「卡片气泡」不破坏气泡语言，composer 贴底拇指友好。
 
 ## 已知取舍（这是设计稿，不是产品）
 
@@ -254,7 +257,7 @@ Radix Popover、`sonner` toast、`react-virtuoso` 虚拟列表（事件数上千
 
 这些都在工作室外壳层，皮肤完全不需要知道它们存在；视觉样式仍写在 `app.css` 的 `.cmdk-*` / `.run-dialog-*` / `.tip` 里。
 
-- 快捷键：⌘K / Ctrl+K 打开命令面板；`1–5` 切皮肤；`R` 重播；`L` 切语言；
+- 快捷键：⌘K / Ctrl+K 打开命令面板；`1–9` 切皮肤；`R` 重播；`L` 切语言；
 - 设计评审用 URL：`?palette=1` 直接打开面板，`?run-info=1` 直接打开运行详情。
 
 ### 分包
@@ -459,7 +462,7 @@ const Page = skins.find((s) => s.id === "classic")!.ChatPage;
 
 ```bash
 pnpm test
-# Test Files  2 passed (2)
+# Test Files  31 passed (31)
 # Tests       68 passed (68)
 ```
 
@@ -482,7 +485,7 @@ pnpm test
 - ⏳ 仍缺（P1/P2）：capabilities 发现、子 agent 事件、`REASONING_ENCRYPTED_VALUE`、`RAW`、二进制/WebSocket 传输、activityType 可插拔渲染。
 
 新增 `tests/protocol.test.ts`：覆盖快照重建、chunk 合并、工具失败、并行中断、schema 拒绝、过期中断；
-`pnpm test` 现在共 **256 个用例（16 个文件）**。
+`pnpm test` 现在共 **459 个用例（31 个文件）**。
 
 
 ## P1 已补（协议表达力）
@@ -510,7 +513,7 @@ pnpm test
 | L4 传输 | `tests/transport.test.ts`（12 例：CRLF、半帧/粘包、abort） | ✅ |
 | L5 实时冒烟 | 真实 pi + DeepSeek（凭据开关） | ❌ 待补 |
 
-现在 `pnpm test` 共 **256 个用例 / 16 个文件**，CI 每次推送跑测试+覆盖率门（lines ≥70%）。剩余最大的空白是 L5：
+现在 `pnpm test` 共 **459 个用例 / 31 个文件**，CI 每次推送跑测试+覆盖率门（lines ≥70%）。剩余最大的空白是 L5：
 真实 pi + DeepSeek 的实时冒烟仍只有人工验证（凭据开关，P0 未含）。
 
 
@@ -727,3 +730,17 @@ http://127.0.0.1:5178/?agui=http://127.0.0.1:5180/agui&autosend=1&lang=zh
 - metadata 最多保留 24 个键；没有 usage 时 Aurora/Classic 显示 `—`，不再伪造 4.2k；
 - 五套 composer 补 `aria-label`；Terminal 的 y/n 热键忽略 Ctrl/Cmd/Alt 和 contenteditable；
 - 新增 CUSTOM 折叠、composer a11y、热键测试；当前 29 文件 379 用例。
+
+## 2026-11-15 外壳亮色 + 三套新皮肤
+
+**外壳主色调改亮色**（用户指令）：白灰阶底（页面 `#f6f6f7` → 卡片纯白）+ 墨色主 CTA + violet 品牌色收严分工（亮底文本用 violet-600 `#7c3aed` 保对比度，`#a855f7` 只作 ring/色块）；GridMotion 改浅紫光带；QuickStart 代码卡保持暗色作为亮页锚点；dock/抽屉/命令面板全套 chrome 翻亮。整个主题仍收拢在 `shell.css :root` token 块——翻转只动颜色行，圆角/间距/动效零漂移。
+
+**新增三套皮肤**（遵循 `SkinDefinition` 契约，i18n zh/en 强校验，audit 21 条反面清单逐条避开）：
+
+- **workbench** — IDE/文件树风（暗石墨）：`?skin=workbench`。会话=编辑器（行号水槽、流式行点亮），轮次=EXPLORER 文件节点，工具调用=底部终端面板，状态栏 Y/N 审批键提示；
+- **dash** — 运营仪表盘风（亮色）：`?skin=dash`。run 指标条四 KPI tile（空 store 显示「—」）、hairline 活动流数据行、右轨 Telemetry/Shared State/Capabilities；
+- **bubble** — 移动聊天风（亮色）：`?skin=bubble`。左右气泡+尾巴、打字指示器、审批/工具/错误全部「卡片气泡」化。
+
+三套均带：全状态呈现（running/done/stopped/error/interrupted/expired）、按卡独立审批编辑（Fix B 姿势）、未知 CUSTOM 折叠呈现、`--sk-accent-fg` 前景守卫、`:focus-visible`/`:active`/reduced-motion 全套。皮肤总数 9；`src/shared/skin-swatches.ts` 同步 swatch 行；首页计数/快捷键/QuickStart 行 registry 驱动自动扩展。
+
+测试增至 **459 个用例（31 文件）**；双评审（代码契约 + 视觉门）+ 修复轮全过。
