@@ -12,6 +12,7 @@ import { promptFor, RUN_FIRST, THREAD_ID, type Decision } from "./demo";
 import { buildScenarioResume, buildScenarioRun, DEFAULT_SCENARIO, type DemoScenario } from "./demo-scenarios";
 import type { Lang } from "../i18n";
 import { streamPiRun, stopPiRun, type PiBackend } from "./pi";
+import { validateResumePayload } from "./validate";
 import {
   buildAgentInput,
   buildResumeInput,
@@ -464,24 +465,10 @@ export class ConversationStore {
     this.startEvents(buildScenarioResume(this.scenario, decisions, this.threadId, "run_7K2B", this.lang));
   }
 
-  /** Minimal JSON-Schema validation for interrupt resume payloads. */
+  /** zod-validated interrupt resume payloads (P1-6): the interrupt's
+   *  responseSchema is converted to an equivalent zod schema in validate.ts. */
   private validateInterruptPayload(entry: InterruptEntry, payload: Record<string, unknown>): boolean {
-    const schema = entry.responseSchema as
-      | { required?: string[]; properties?: Record<string, { type?: string }> }
-      | undefined;
-    if (!schema) return true;
-    for (const key of schema.required ?? []) {
-      if (!(key in payload)) return false;
-    }
-    for (const [key, property] of Object.entries(schema.properties ?? {})) {
-      const value = payload[key];
-      if (value === undefined) continue;
-      if (property.type === "boolean" && typeof value !== "boolean") return false;
-      if (property.type === "string" && typeof value !== "string") return false;
-      if (property.type === "number" && typeof value !== "number") return false;
-      if (property.type === "object" && (typeof value !== "object" || value === null)) return false;
-    }
-    return true;
+    return validateResumePayload(entry.responseSchema, payload);
   }
 
   stop() {

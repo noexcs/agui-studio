@@ -163,6 +163,44 @@ describe("HttpAgentTransport", () => {
     expect(events[1].delta).toBe("after");
   });
 
+  it("surfaces a schema-violating event as RUN_ERROR instead of emitting it (P1-6)", async () => {
+    stubFetch({
+      ok: true,
+      body: sseStream([
+        'data: {"type":"RUN_STARTED"}\n\n',
+        // recognized type, malformed payload: no delta — the old transport
+        // yielded it and the store half-applied it
+        'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"m1"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_CHUNK","messageId":"m1","delta":"never"}\n\n',
+      ]),
+    });
+
+    const events = await collect(new HttpAgentTransport({ url: "x" }).run({}));
+
+    expect(events.map((event) => event.type)).toEqual([EventType.RUN_STARTED, EventType.RUN_ERROR]);
+    expect(events[1].message).toContain("TEXT_MESSAGE_CONTENT");
+    expect(events[1].message).toContain("delta");
+  });
+
+  it("keeps extension event types from newer producers", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      stubFetch({
+        ok: true,
+        body: sseStream([
+          'data: {"type":"RUN_STARTED"}\n\n',
+          'data: {"type":"FUTURE_EVENT","payload":{"a":1}}\n\n',
+        ]),
+      });
+
+      const events = await collect(new HttpAgentTransport({ url: "x" }).run({}));
+
+      expect(events.map((event) => event.type)).toEqual([EventType.RUN_STARTED, "FUTURE_EVENT"]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("fails fast on a malformed JSON frame", async () => {
     stubFetch({
       ok: true,

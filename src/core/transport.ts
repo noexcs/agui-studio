@@ -1,9 +1,15 @@
 import type { BaseEvent } from "./events";
+import { runErrorEvent, validateWireEvent } from "./validate";
 
 /**
  * POST a RunAgentInput and stream BaseEvents back over SSE.
  * This is the seam for a real agent: swap it in for the scripted demo and
  * every skin renders live data without changes.
+ *
+ * Frames are validated against the official AG-UI schemas (BACKLOG P1-6): a
+ * recognized event type that violates the protocol schema surfaces as a
+ * RUN_ERROR event instead of being reduced half-applied. Type-less frames
+ * (keep-alives) are ignored, unrecognized event types are kept.
  */
 export class HttpAgentTransport {
   private url: string;
@@ -65,6 +71,13 @@ export class HttpAgentTransport {
         }
         // keep-alives and other type-less envelopes are ignorable, not errors
         if (!("type" in parsed)) continue;
+        const check = validateWireEvent(parsed as Record<string, unknown>);
+        if (!check.ok) {
+          // Strict boundary (P1-6): surface the violation as RUN_ERROR and stop
+          // reading, instead of handing a half-valid event to the store.
+          yield runErrorEvent(check.reason);
+          return;
+        }
         yield parsed as BaseEvent;
       }
     }
