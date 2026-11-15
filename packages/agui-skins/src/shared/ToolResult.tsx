@@ -147,7 +147,7 @@ function label(source: ToolSource): string {
 
 function SourcesAurora({ sources }: { sources: ToolSource[] }) {
   return (
-    <div className="tool-result mt-2 border-t border-dashed border-(--border) pt-2">
+    <div className="tool-result mt-2 border-t border-(--border) [border-top-style:dashed] pt-2">
       <div className="tool-result-head mb-[5px] flex items-center gap-[6px] text-[10px] text-(--text-3)">
         <Icon name="globe" />
         {sources.length} {t("chat.sources")}
@@ -198,11 +198,11 @@ function SourcesClassic({ sources }: { sources: ToolSource[] }) {
 
 function SourcesPaper({ sources }: { sources: ToolSource[] }) {
   return (
-    <ol className="pap-sources">
+    <ol className="pap-sources [margin:6px_0_0] p-0 list-none flex flex-col gap-[2px]">
       {sources.map((source, index) => (
-        <li key={`source-${index}`}>
+        <li key={`source-${index}`} className="text-[10px] text-(--ink-3) before:content-['→_'] before:text-(--ink-3)">
           {source.href ? (
-            <a href={source.href} target="_blank" rel="noreferrer">
+            <a href={source.href} target="_blank" rel="noreferrer" className="text-(--ink-2) border-b border-(--rule) hover:text-[var(--accent-text,var(--vermilion))]">
               {label(source)}
             </a>
           ) : (
@@ -264,7 +264,7 @@ function ToolResultAurora({ entry, model }: { entry: ToolEntry; model: ToolResul
      (svgs carry no .icon class) and are deliberately NOT reproduced.
      max-height: base 132px, aurora-scoped 148px (the original
      .skin-aurora .tool-args override, kept via the arbitrary variant). */
-  const RESULT = "tool-result mt-2 border-t border-dashed border-(--border) pt-2";
+  const RESULT = "tool-result mt-2 border-t border-(--border) [border-top-style:dashed] pt-2";
   const HEAD = "tool-result-head mb-[5px] flex items-center gap-[6px] text-[10px] text-(--text-3)";
   const ARGS =
     "tool-args max-h-[132px] [.skin-aurora_&]:max-h-[148px] overflow-auto whitespace-pre-wrap break-words rounded-[9px] border border-[rgba(255,255,255,0.05)] bg-[rgba(0,0,0,0.3)] px-[10px] py-2 [font-family:var(--mono)] text-[11px] leading-[1.62] text-[#a9b8cc]";
@@ -348,50 +348,58 @@ function ToolResultClassic({ entry, model }: { entry: ToolEntry; model: ToolResu
 }
 
 function ToolResultPaper({ entry, model }: { entry: ToolEntry; model: ToolResultModel }) {
+  /* former paper.css rules for these classes, converted (task-13 Phase 2a):
+     .pap-result / .pap-check / .pap-args / .pap-note-meta(--error) live here
+     and in paper's ToolNote; .pap-note-meta--error is a vermilion variant of
+     the meta line (mono bold ✗ mark). */
+  const P_RESULT = "pap-result flex items-center gap-[6px] mt-[6px] [font-family:var(--mono)] text-[9.5px] text-(--green)";
+  const P_META = "pap-note-meta ml-auto [font-family:var(--mono)] text-[8.5px] tracking-normal normal-case text-(--ink-3)";
+  const P_ARGS =
+    "pap-args m-0 [font-family:var(--mono)] text-[9.5px] leading-[1.6] text-(--ink-2) bg-[rgba(29,27,23,0.04)] border border-(--rule) px-[8px] py-[6px] max-h-[92px] overflow-auto whitespace-pre-wrap break-words";
   return (
     <>
       {model.error !== undefined && (
-        <div className="pap-note-meta pap-note-meta--error">
-          <span className="pap-fail">✗</span> {model.error}
+        <div className="pap-note-meta pap-note-meta--error ml-auto [font-family:var(--mono)] text-[8.5px] tracking-normal normal-case text-[var(--accent-text,var(--vermilion))]">
+          <span className="pap-fail [font-family:var(--mono)] font-bold mr-[2px]">✗</span> {model.error}
         </div>
       )}
       {model.sources && (
         <>
-          <div className="pap-result">
-            <span className="pap-check">✓</span>
+          <div className={P_RESULT}>
+            <span className="pap-check text-[10px]">✓</span>
             {model.sources.length} {t("chat.sources")}
-            <span className="pap-note-meta">{duration(entry)}</span>
+            <span className={P_META}>{duration(entry)}</span>
           </div>
           <SourcesPaper sources={model.sources} />
         </>
       )}
       {model.reservation !== undefined && (
-        <div className="pap-result">
-          <span className="pap-check">✓</span>
+        <div className={P_RESULT}>
+          <span className="pap-check text-[10px]">✓</span>
           {t("chat.held")} · {model.reservation}
-          <span className="pap-note-meta">{duration(entry)}</span>
+          <span className={P_META}>{duration(entry)}</span>
         </div>
       )}
       {model.text !== undefined && (
         <>
-          <div className="pap-result">
-            <span className="pap-check">✓</span>
+          <div className={P_RESULT}>
+            <span className="pap-check text-[10px]">✓</span>
             {t("chat.result")}
-            <span className="pap-note-meta">{duration(entry)}</span>
+            <span className={P_META}>{duration(entry)}</span>
           </div>
-          <pre className="pap-args" data-skin-text="">
+          <pre className={P_ARGS} data-skin-text="">
             {model.text}
           </pre>
         </>
       )}
       {model.json !== undefined && (
         <>
-          <div className="pap-result">
-            <span className="pap-check">✓</span>
+          <div className={P_RESULT}>
+            <span className="pap-check text-[10px]">✓</span>
             {t("chat.result")}
-            <span className="pap-note-meta">{duration(entry)}</span>
+            <span className={P_META}>{duration(entry)}</span>
           </div>
-          <pre className="pap-args" data-skin-text="">
+          <pre className={P_ARGS} data-skin-text="">
             {model.json}
           </pre>
         </>
