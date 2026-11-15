@@ -178,13 +178,18 @@ function SourcesAurora({ sources }: { sources: ToolSource[] }) {
 }
 
 function SourcesClassic({ sources }: { sources: ToolSource[] }) {
+  /* former classic.css rules for these classes, converted (task-13 Phase 2b):
+     the accent color on links stays in the residual .cl-sources a rule
+     (accent-guard test anchor). */
+  const LIST = "cl-sources m-0 px-[12px] py-[8px] list-none border-t border-(--border)";
+  const LI = "flex items-baseline gap-[8px] text-[11.5px] py-[2px] [&>span]:text-[10px] [&>span]:text-(--faint) [&>a:hover]:underline";
   return (
-    <ul className="cl-sources">
+    <ul className={LIST}>
       {sources.map((source, index) => (
-        <li key={`source-${index}`}>
+        <li key={`source-${index}`} className={LI}>
           <span className="mono">{String(index + 1).padStart(2, "0")}</span>
           {source.href ? (
-            <a href={source.href} target="_blank" rel="noreferrer">
+            <a className="no-underline" href={source.href} target="_blank" rel="noreferrer">
               {label(source)}
             </a>
           ) : (
@@ -324,26 +329,33 @@ function ToolResultAurora({ entry, model }: { entry: ToolEntry; model: ToolResul
 }
 
 function ToolResultClassic({ entry, model }: { entry: ToolEntry; model: ToolResultModel }) {
+  /* former classic.css rules for these classes, converted (task-13 Phase 2b) */
+  const ERROR =
+    "cl-tool-error mt-0 mb-[8px] mx-[12px] px-[9px] py-[6px] border border-[#fecaca] rounded-[6px] bg-[#fef2f2] text-(--danger) text-[11.5px] leading-[1.5]";
+  const NOTE =
+    "cl-tool-note mono m-0 px-[12px] py-[8px] border-t border-(--border) text-[11px] text-(--success)";
+  const RESULT =
+    "cl-tool-result m-0 px-[12px] py-[10px] border-t border-(--border) bg-[#f9fafb] [font-family:var(--mono)] text-[11px] leading-[1.55] text-(--text-2) whitespace-pre-wrap break-words";
   return (
     <>
       {model.error !== undefined && (
-        <p className="cl-tool-error" role="alert">
+        <p className={ERROR} role="alert">
           {model.error}
         </p>
       )}
       {model.sources && <SourcesClassic sources={model.sources} />}
       {model.reservation !== undefined && (
-        <p className="cl-tool-note mono">
+        <p className={NOTE}>
           {t("chat.held")} · {model.reservation}
         </p>
       )}
       {model.text !== undefined && (
-        <pre className="cl-tool-result" data-skin-text="">
+        <pre className={RESULT} data-skin-text="">
           {model.text}
         </pre>
       )}
       {model.json !== undefined && (
-        <pre className="cl-tool-result" data-skin-text="">
+        <pre className={RESULT} data-skin-text="">
           {model.json}
         </pre>
       )}

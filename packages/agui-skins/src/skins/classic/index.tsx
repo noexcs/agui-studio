@@ -22,6 +22,133 @@ import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./classic.css";
 
+/* ═══ Tailwind migration (task-13 Phase 2b) ═══
+   Element styling became utilities beside the semantic class names; values
+   reference the .skin-classic tokens via arbitrary var shorthand, so
+   --sk-accent tuning and the guarded accent variables keep flowing.
+   classic.css keeps only tokens/keyframes/the box-sizing reset/.mono/
+   .cl-md/scrollbar/focus ring/reduced-motion plus the accent-guard color
+   rules. Same-property state branches are written branch-exclusive
+   (§1.6-1): status / btn / approval / tool-status / fold-flag /
+   subagent-status / plan-state maps carry full values, base strings keep
+   none of those properties. Chevron rotation stays a ternary, never a
+   shared constant plus an appended rotate-0. */
+
+const ROW_BASE = "cl-row gap-[10px] animate-[cl-in_0.28s_ease]";
+const ROW_KIND: Record<string, string> = {
+  user: "flex justify-end",
+  assistant: "flex items-start group",
+  wide: "block pl-[36px]",
+};
+const AVATAR =
+  "cl-avatar cl-avatar--sm h-[26px] w-[26px] rounded-full grid place-items-center flex-none text-[10px] font-semibold bg-(--accent-soft) text-[var(--accent-ink,var(--accent))]";
+
+const STATUS_BASE =
+  "cl-status inline-flex items-center gap-[5px] h-[24px] px-[9px] rounded-full text-[11px] border whitespace-nowrap";
+const STATUS_KIND: Record<string, string> = {
+  running: "text-[var(--accent-ink,var(--accent))] bg-(--accent-soft) border-[#bfdbfe]",
+  interrupted: "text-(--warn-text) bg-(--warn-bg) border-(--warn-border)",
+  done: "text-(--success) bg-[#eff6ff] border-[#bfdbfe]",
+  error: "text-(--danger) bg-[#fef2f2] border-[#fecaca]",
+  stopped: "text-[#52525b] bg-[#f4f4f5] border-[#d4d4d8]",
+};
+const STATUS_IDLE = "text-(--text-2) bg-[#f3f4f6] border-(--border)";
+const STATUS_DOT: Record<string, string> = {
+  running: "bg-(--accent)",
+  interrupted: "bg-[#d97706]",
+  done: "bg-(--success)",
+  error: "bg-(--danger)",
+  stopped: "bg-[#71717a]",
+};
+const STATUS_DOT_IDLE = "bg-(--faint)";
+
+/* primary keeps only layout here — its text color lives in the test-anchored
+   .cl-btn--primary residual rule (accent guard) */
+const BTN_BASE =
+  "cl-btn inline-flex items-center gap-[6px] h-[30px] px-[11px] rounded-[7px] border text-[12px] font-medium cursor-pointer disabled:opacity-45 disabled:cursor-default";
+const BTN_KIND: Record<string, string> = {
+  default: "border-(--border-2) bg-(--surface) text-(--text) hover:bg-[#f9fafb] hover:border-[#9ca3af]",
+  primary: "cl-btn--primary border-(--accent) bg-(--accent) hover:bg-(--accent-2) hover:border-(--accent-2)",
+};
+
+const APPROVAL_BASE = "cl-approval rounded-[8px] px-[14px] py-[12px] border";
+const APPROVAL_KIND: Record<string, string> = {
+  pending: "border-(--warn-border) border-l-[3px] border-l-[#d97706] bg-(--warn-bg)",
+  resolved: "border-(--border) border-l-[3px] border-l-(--success) bg-[#f9fafb]",
+  expired: "border-dashed border-(--border) border-l-[3px] border-l-[#71717a] bg-[#f9fafb]",
+};
+const APPROVAL_HEAD = "cl-approval-head flex items-center gap-[7px] text-[12px] mb-[6px] [&_strong]:font-semibold";
+const APPROVAL_HEAD_KIND: Record<string, string> = {
+  pending: "text-(--warn-text)",
+  resolved: "text-(--success)",
+  expired: "text-[#52525b]",
+};
+const APPROVAL_TIME = "cl-approval-time ml-auto text-[10px] text-(--faint)";
+const APPROVAL_TITLE = "cl-approval-title mt-0 mb-[3px] text-[13.5px] font-semibold text-(--text)";
+const APPROVAL_DESC = "cl-approval-desc mt-0 mb-[10px] text-[12px] text-(--text-2)";
+const APPROVAL_TERMS =
+  "cl-approval-terms grid grid-cols-3 gap-px mx-0 mt-0 mb-[12px] bg-(--border) border border-(--border) rounded-[6px] overflow-hidden [&>div]:bg-(--surface) [&>div]:px-[10px] [&>div]:py-[7px] [&_dt]:text-[10px] [&_dt]:text-(--muted) [&_dt]:mb-px [&_dd]:m-0 [&_dd]:text-[12.5px] [&_dd]:font-medium [&_dd]:text-(--text)";
+const APPROVAL_ACTIONS = "cl-approval-actions flex items-center gap-[8px]";
+const LINK = "cl-link border-0 bg-transparent text-[11.5px] cursor-pointer underline underline-offset-2";
+
+const TOOL_STATUS: Record<string, string> = {
+  done: "text-(--success)",
+  executing: "text-[var(--accent-ink,var(--accent))]",
+  error: "text-(--danger)",
+};
+const TOOL_STATUS_IDLE = "text-(--muted)";
+
+const FOLD_HEAD =
+  "cl-fold-head flex items-center gap-[7px] w-full px-[10px] py-[7px] border border-dashed border-(--border-2) rounded-[7px] bg-[#fafbfc] text-(--muted) text-[11.5px] text-left cursor-pointer min-w-0 [font-family:inherit] hover:bg-[#f3f4f6] active:bg-[#eef0f3]";
+const FOLD_SUMMARY = "cl-fold-summary text-(--faint) overflow-hidden text-ellipsis whitespace-nowrap min-w-0";
+const FOLD_FLAG = "cl-fold-flag flex-none px-[7px] py-px rounded-full text-[10px]";
+const FOLD_FLAG_KIND: Record<string, string> = {
+  error: "text-(--danger) bg-[rgba(220,38,38,0.07)]",
+  interrupted: "text-(--warn-text) bg-(--warn-bg)",
+  live: "text-(--accent) bg-(--accent-soft)",
+};
+const FOLD_COUNT = "cl-fold-count ml-auto text-(--faint) text-[10px]";
+
+const REASON =
+  "cl-reason flex items-center gap-[7px] w-full px-[10px] py-[7px] border border-dashed border-(--border-2) rounded-[7px] bg-[#fafbfc] text-(--muted) text-[11.5px] text-left cursor-pointer hover:bg-[#f3f4f6]";
+const REASON_META = "cl-reason-meta ml-auto text-(--faint)";
+const REASON_BODY =
+  "cl-reason-body mt-[6px] px-[11px] py-[9px] border-l-2 border-(--border-2) text-(--text-2) text-[12px] leading-[1.6] whitespace-pre-wrap";
+const CHEV = "cl-chev [transition:transform_0.2s]";
+
+const TOOL_BOX = "cl-tool border border-(--border) rounded-[8px] bg-(--surface) overflow-hidden";
+const TOOL_HEAD =
+  "cl-tool-head flex items-center gap-[9px] w-full px-[11px] py-[8px] border-0 bg-[#fafbfc] text-left cursor-pointer hover:bg-[#f3f4f6]";
+const TOOL_NAME = "cl-tool-name text-[11.5px] text-(--text) font-medium";
+const TOOL_TIME = "cl-tool-time ml-auto text-(--faint) text-[10px]";
+const TOOL_ARGS =
+  "cl-tool-args m-0 px-[12px] py-[10px] border-t border-(--border) bg-[#f9fafb] [font-family:var(--mono)] text-[11px] leading-[1.55] text-(--text-2) max-h-[150px] overflow-auto whitespace-pre-wrap";
+
+const PLAN_LI_BASE = "flex items-center gap-[8px] text-[12px]";
+const PLAN_LI: Record<string, string> = {
+  active: "text-(--text)",
+  done: "text-(--text-2)",
+  pending: "text-(--muted)",
+};
+const CHECK_BASE = "cl-check w-[14px] h-[14px] border rounded-[4px] grid place-items-center flex-none text-[#fff]";
+const CHECK_KIND: Record<string, string> = {
+  done: "border-(--success) bg-(--success)",
+  other: "border-(--border-2)",
+};
+
+const MUTED = "cl-muted m-0 text-[11.5px] text-(--faint)";
+const CAPS =
+  "cl-caps flex flex-wrap gap-[5px] [&>span]:px-[7px] [&>span]:py-[2px] [&>span]:border [&>span]:border-(--border) [&>span]:rounded-full [&>span]:bg-[#f9fafb] [&>span]:text-[10.5px] [&>span]:text-(--text-2)";
+const SUBAGENT = "cl-subagent flex items-center gap-[8px] px-[10px] py-[7px] border border-(--border) rounded-[7px] bg-[#fafbfc] text-[12px]";
+const SUB_STATUS_BASE =
+  "cl-subagent-status text-[10px] px-[6px] py-px rounded-full border uppercase tracking-[0.04em]";
+const SUB_STATUS_KIND: Record<string, string> = {
+  running: "text-[var(--accent-ink,var(--accent))] border-[#bfdbfe] bg-(--accent-soft)",
+  done: "text-[var(--accent-ink,var(--accent))] border-(--border)",
+  error: "text-(--danger) border-[#fecaca] bg-[#fef2f2]",
+};
+
+
 /**
  * Classic — the conservative, enterprise-safe surface.
  * Light neutral canvas, system font, 1px borders, one blue accent.
@@ -115,33 +242,34 @@ export function ClassicPage() {
   }
 
   return (
-    <div className="skin-classic">
+    <div className="skin-classic grid grid-cols-[minmax(0,1fr)_300px] h-full bg-(--bg) text-(--text) [font-family:var(--sans)] text-[13.5px] leading-[1.55] [-webkit-font-smoothing:antialiased] max-[1280px]:grid-cols-[minmax(0,1fr)]">
 
       {/* ── conversation ──────────────────────────────────────────── */}
-      <main className="cl-main">
-        <header className="cl-head">
-          <div className="cl-head-id">
-            <span className="cl-agent-avatar">AI</span>
+      <main className="cl-main flex flex-col min-w-0 min-h-0">
+        <header className="cl-head flex items-center justify-between gap-[16px] h-[64px] px-[20px] bg-(--surface) border-b border-(--border)">
+          <div className="cl-head-id flex items-center gap-[10px] min-w-0">
+            <span className="cl-agent-avatar grid h-[34px] w-[34px] place-items-center rounded-[8px] bg-(--accent-soft) text-[var(--accent-ink,var(--accent))] text-[11px] font-semibold flex-none">AI</span>
             <div>
-              <div className="cl-head-title">{brand.agentName}</div>
-              <div className="cl-head-sub mono">
+              <div className="cl-head-title text-[13.5px] font-semibold">{brand.agentName}</div>
+              <div className="cl-head-sub text-[10.5px] text-(--faint) mono">
                 {brand.modelLabel} · {c.threadId} · {c.runId}
               </div>
             </div>
           </div>
-          <div className="cl-head-actions">
-            <span className={`cl-status cl-status--${c.status}`}>
-              <i />
+          <div className="cl-head-actions flex items-center gap-[8px]">
+            <span className={`${STATUS_BASE} cl-status--${c.status} ${STATUS_KIND[c.status] ?? STATUS_IDLE}`}>
+              <i className={`h-[5px] w-[5px] rounded-full ${STATUS_DOT[c.status] ?? STATUS_DOT_IDLE}`} />
               {statusText}
             </span>
           </div>
         </header>
 
-        <div className="cl-scroll" ref={scroller}>
-          <div className="cl-stack">
+        <div className="cl-scroll flex-1 min-h-0 overflow-y-auto px-[24px] pt-[20px] pb-[8px] max-[860px]:px-[14px] max-[860px]:pt-[16px] max-[860px]:pb-[6px]" ref={scroller}>
+          <div className="cl-stack max-w-[760px] mx-auto flex flex-col gap-[18px]">
             {c.entries.length === 0 && (
-              <div className="cl-empty">
-                <Icon name="activity" size={18} />
+              <div className="cl-empty text-center text-(--muted) py-[60px] text-[12.5px]">
+                <Icon name="activity" size={18} className="mx-auto mb-[10px] text-(--faint)" />
+
                 <p>{zh ? "输入一条消息开始对话。" : "Send a message to start the conversation."}</p>
               </div>
             )}
@@ -181,7 +309,7 @@ export function ClassicPage() {
             })()}
 
             {c.status === "done" && c.entries.length > 0 && (
-              <div className="cl-run-end">
+              <div className="cl-run-end pl-[36px] flex items-center justify-between gap-[12px] pt-[6px] border-t border-(--border) text-[10.5px] text-(--faint)">
                 <span>{zh ? "本轮结束" : "Run finished"}</span>
                 <span className="mono">
                   {formatDuration(c.duration())} · {c.tokens} tokens · {c.events.length} events
@@ -191,14 +319,14 @@ export function ClassicPage() {
           </div>
         </div>
 
-        <footer className="cl-composer">
+        <footer className="cl-composer px-[24px] pt-[10px] pb-[16px] bg-(--bg) max-[860px]:px-[12px] max-[860px]:pt-[8px] max-[860px]:pb-[12px]">
           {c.suggestions.length > 0 && (
-            <div className="cl-suggestions" role="list" aria-label={zh ? "建议" : "Suggestions"}>
+            <div className="cl-suggestions flex items-center flex-wrap gap-[6px] px-[2px] pb-[8px]" role="list" aria-label={zh ? "建议" : "Suggestions"}>
               {c.suggestions.map((text) => (
                 <button
                   key={text}
                   role="listitem"
-                  className="cl-suggestion"
+                  className="cl-suggestion inline-flex items-center gap-[6px] max-w-full h-[26px] px-[10px] border border-(--border) rounded-full bg-(--surface) text-(--text-2) text-[11.5px] cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap [transition:border-color_0.15s,background_0.15s,color_0.15s] hover:border-(--accent) hover:bg-[#f0f6ff] hover:text-[var(--accent-ink,var(--accent))]"
                   title={zh ? "填入输入框" : "Insert into the composer"}
                   onClick={() => setDraft(text)}
                 >
@@ -208,13 +336,15 @@ export function ClassicPage() {
               ))}
             </div>
           )}
-          <div className="cl-composer-box">
+          <div className="cl-composer-box max-w-[760px] mx-auto border border-(--border-2) rounded-[10px] bg-(--surface) shadow-[0_1px_2px_rgba(16,24,40,0.04)] [transition:border-color_0.15s,box-shadow_0.15s] focus-within:border-(--accent) focus-within:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]">
             <textarea
               rows={1}
               value={draft}
               aria-label={zh ? "消息输入框" : "Message composer"}
               placeholder={zh ? "输入消息，Enter 发送，Shift+Enter 换行" : "Message the assistant — Enter to send, Shift+Enter for a new line"}
               onChange={(e) => setDraft(e.target.value)}
+              className="block w-full min-h-[40px] max-h-[132px] px-[12px] pt-[11px] pb-[4px] border-0 outline-none resize-none bg-transparent [font-family:inherit] text-[13.5px] leading-[1.55] text-(--text) placeholder:text-(--faint)"
+
               onInput={(e) => {
                 e.currentTarget.style.height = "auto";
                 e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 132) + "px";
@@ -227,18 +357,18 @@ export function ClassicPage() {
                 if (e.key === "Escape") c.stop();
               }}
             />
-            <div className="cl-composer-bar">
-            <div className="cl-composer-tools">
-              <button className="cl-tool-chip"><Icon name="wrench" size={12} />{zh ? "工具" : "Tools"} · 4</button>
-              <button className="cl-tool-chip mono">{brand.modelLabel}</button>
+            <div className="cl-composer-bar flex items-center justify-between pl-[10px] pr-[8px] pt-[4px] pb-[8px]">
+            <div className="cl-composer-tools flex items-center gap-[4px]">
+              <button className="cl-tool-chip inline-flex items-center gap-[5px] h-[24px] px-[8px] border border-(--border) rounded-[6px] bg-[#fafbfc] text-(--muted) text-[11px] cursor-pointer hover:bg-[#f3f4f6] hover:text-(--text)"><Icon name="wrench" size={12} />{zh ? "工具" : "Tools"} · 4</button>
+              <button className="cl-tool-chip mono inline-flex items-center gap-[5px] h-[24px] px-[8px] border border-(--border) rounded-[6px] bg-[#fafbfc] text-(--muted) text-[11px] cursor-pointer hover:bg-[#f3f4f6] hover:text-(--text)">{brand.modelLabel}</button>
             </div>
               {running ? (
-                <button className="cl-btn" onClick={() => c.stop()}>
+                <button className={`${BTN_BASE} ${BTN_KIND.default}`} onClick={() => c.stop()}>
                   <Icon name="stop" size={12} />
                   {t("chat.stop")}
                 </button>
               ) : (
-                <button className="cl-btn cl-btn--primary" onClick={send} disabled={!draft.trim()}>
+                <button className={`${BTN_BASE} ${BTN_KIND.primary}`} onClick={send} disabled={!draft.trim()}>
                   {t("chat.send")}
                   <Icon name="send" size={13} />
                 </button>
@@ -249,14 +379,14 @@ export function ClassicPage() {
       </main>
 
       {/* ── context / details ─────────────────────────────────────── */}
-        <aside className="cl-details">
-          <div className="cl-details-head">
+        <aside className="cl-details flex flex-col min-h-0 overflow-y-auto bg-(--surface) border-l border-(--border) max-[1280px]:hidden">
+          <div className="cl-details-head flex items-center justify-between h-[56px] px-[14px] border-b border-(--border) text-[12.5px]">
             <strong>{zh ? "会话详情" : "Session details"}</strong>
           </div>
 
-        <section className="cl-panel">
+        <section className="cl-panel px-[14px] py-[12px] border-b border-(--border) [&>h3]:mx-0 [&>h3]:mt-0 [&>h3]:mb-[8px] [&>h3]:text-[10.5px] [&>h3]:font-semibold [&>h3]:tracking-[0.06em] [&>h3]:uppercase [&>h3]:text-(--faint)">
           <h3>{zh ? "运行" : "Run"}</h3>
-          <dl className="cl-kv">
+          <dl className="cl-kv m-0 flex flex-col gap-px [&>div]:flex [&>div]:items-baseline [&>div]:justify-between [&>div]:gap-[10px] [&>div]:py-[3px] [&_dt]:text-[11px] [&_dt]:text-(--muted) [&_dd]:m-0 [&_dd]:text-[11px] [&_dd]:text-(--text) [&_dd]:text-right [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap [&_dd]:max-w-[62%]">
             <div><dt>{zh ? "会话" : "Thread"}</dt><dd className="mono">{c.threadId}</dd></div>
             <div><dt>{zh ? "轮次" : "Run"}</dt><dd className="mono">{c.runId}</dd></div>
             <div><dt>{zh ? "状态" : "Status"}</dt><dd>{statusText}</dd></div>
@@ -265,10 +395,10 @@ export function ClassicPage() {
           </dl>
         </section>
 
-        <section className="cl-panel">
+        <section className="cl-panel px-[14px] py-[12px] border-b border-(--border) [&>h3]:mx-0 [&>h3]:mt-0 [&>h3]:mb-[8px] [&>h3]:text-[10.5px] [&>h3]:font-semibold [&>h3]:tracking-[0.06em] [&>h3]:uppercase [&>h3]:text-(--faint)">
           <h3>{zh ? "元数据" : "Metadata"}</h3>
           {Object.keys(c.metadata ?? {}).length ? (
-            <dl className="cl-kv">
+            <dl className="cl-kv m-0 flex flex-col gap-px [&>div]:flex [&>div]:items-baseline [&>div]:justify-between [&>div]:gap-[10px] [&>div]:py-[3px] [&_dt]:text-[11px] [&_dt]:text-(--muted) [&_dd]:m-0 [&_dd]:text-[11px] [&_dd]:text-(--text) [&_dd]:text-right [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap [&_dd]:max-w-[62%]">
               {Object.entries(c.metadata ?? {}).map(([key, value]) => (
                 <div key={key}>
                   <dt className="mono">{key}</dt>
@@ -279,13 +409,13 @@ export function ClassicPage() {
               ))}
             </dl>
           ) : (
-            <p className="cl-muted">{zh ? "暂无元数据" : "No metadata yet"}</p>
+            <p className={MUTED}>{zh ? "暂无元数据" : "No metadata yet"}</p>
           )}
         </section>
 
-        <section className="cl-panel">
+        <section className="cl-panel px-[14px] py-[12px] border-b border-(--border) [&>h3]:mx-0 [&>h3]:mt-0 [&>h3]:mb-[8px] [&>h3]:text-[10.5px] [&>h3]:font-semibold [&>h3]:tracking-[0.06em] [&>h3]:uppercase [&>h3]:text-(--faint)">
           <h3>{zh ? "能力" : "Capabilities"}</h3>
-          <div className="cl-caps">
+          <div className={CAPS}>
             {c.capabilities?.tools?.supported && <span>tools · {c.capabilities.tools.items?.length ?? 0}</span>}
             {c.capabilities?.reasoning?.supported && <span>reasoning</span>}
             {c.capabilities?.state?.supported && <span>state</span>}
@@ -294,21 +424,21 @@ export function ClassicPage() {
           </div>
         </section>
 
-        <section className="cl-panel">
+        <section className="cl-panel px-[14px] py-[12px] border-b border-(--border) [&>h3]:mx-0 [&>h3]:mt-0 [&>h3]:mb-[8px] [&>h3]:text-[10.5px] [&>h3]:font-semibold [&>h3]:tracking-[0.06em] [&>h3]:uppercase [&>h3]:text-(--faint)">
           <h3>{zh ? "计划" : "Plan"}</h3>
           {plans.length ? (
-            plans.map((plan) => {
+            plans.map((plan, index) => {
               const view = planView(plan);
               return (
-                <div key={plan.id} className="cl-plan-block">
-                  <div className="cl-plan-title mono">{displayText(plan.title)}</div>
+                <div key={plan.id} className={`cl-plan-block border border-(--border) rounded-[8px] bg-(--surface) overflow-hidden${index ? " mt-[10px]" : ""}`}>
+                  <div className="cl-plan-title px-[12px] py-[7px] bg-[#fafbfc] border-b border-(--border) text-[11px] text-(--muted) mono">{displayText(plan.title)}</div>
                   {view.rawOnly ? (
-                    <pre className="cl-plan-raw" data-skin-text="">{planRawText(view)}</pre>
+                    <pre className="cl-plan-raw m-0 px-[12px] py-[10px] bg-[#f9fafb] [font-family:var(--mono)] text-[11px] leading-[1.55] text-(--text-2) whitespace-pre-wrap break-words" data-skin-text="">{planRawText(view)}</pre>
                   ) : (
-                    <ul className="cl-plan">
+                    <ul className="cl-plan m-0 px-[12px] py-[8px] list-none flex flex-col gap-[4px]">
                       {view.steps.map((step) => (
-                        <li key={step.id} data-state={step.state}>
-                          <span className="cl-check">
+                        <li key={step.id} data-state={step.state} className={`${PLAN_LI_BASE} ${PLAN_LI[step.state] ?? PLAN_LI.pending}`}>
+                          <span className={`${CHECK_BASE} ${CHECK_KIND[step.state === "done" ? "done" : "other"]}`}>
                             {step.state === "done" ? <Icon name="check" size={10} /> : null}
                           </span>
                           {step.label}
@@ -320,14 +450,14 @@ export function ClassicPage() {
               );
             })
           ) : (
-            <p className="cl-muted">{zh ? "暂无计划" : "No plan yet"}</p>
+            <p className={MUTED}>{zh ? "暂无计划" : "No plan yet"}</p>
           )}
         </section>
 
-        <section className="cl-panel">
+        <section className="cl-panel px-[14px] py-[12px] border-b border-(--border) [&>h3]:mx-0 [&>h3]:mt-0 [&>h3]:mb-[8px] [&>h3]:text-[10.5px] [&>h3]:font-semibold [&>h3]:tracking-[0.06em] [&>h3]:uppercase [&>h3]:text-(--faint)">
           <h3>{zh ? "共享状态" : "Shared state"}</h3>
           {stateRows.length ? (
-            <dl className="cl-kv">
+            <dl className="cl-kv m-0 flex flex-col gap-px [&>div]:flex [&>div]:items-baseline [&>div]:justify-between [&>div]:gap-[10px] [&>div]:py-[3px] [&_dt]:text-[11px] [&_dt]:text-(--muted) [&_dd]:m-0 [&_dd]:text-[11px] [&_dd]:text-(--text) [&_dd]:text-right [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap [&_dd]:max-w-[62%]">
               {stateRows.map(([key, value]) => (
                 <div key={key}>
                   <dt className="mono">{key}</dt>
@@ -342,24 +472,24 @@ export function ClassicPage() {
               ))}
             </dl>
           ) : (
-            <p className="cl-muted">{zh ? "暂无快照" : "No snapshot yet"}</p>
+            <p className={MUTED}>{zh ? "暂无快照" : "No snapshot yet"}</p>
           )}
-          <div className="cl-version mono">STATE v{c.stateVersion}</div>
+          <div className="cl-version mt-[8px] text-[9.5px] text-(--faint) tracking-[0.04em] mono">STATE v{c.stateVersion}</div>
         </section>
 
-        <section className="cl-panel">
+        <section className="cl-panel px-[14px] py-[12px] border-b border-(--border) [&>h3]:mx-0 [&>h3]:mt-0 [&>h3]:mb-[8px] [&>h3]:text-[10.5px] [&>h3]:font-semibold [&>h3]:tracking-[0.06em] [&>h3]:uppercase [&>h3]:text-(--faint)">
           <h3>{zh ? "需要你处理" : "Needs you"}</h3>
           {interrupts.filter((i) => i.status === "pending").length ? (
             interrupts
               .filter((i) => i.status === "pending")
               .map((i) => (
-                <p key={i.id} className="cl-attention">
+                <p key={i.id} className="cl-attention flex items-start gap-[6px] mx-0 mt-0 mb-[6px] px-[9px] py-[7px] border border-(--warn-border) bg-(--warn-bg) rounded-[6px] text-[11.5px] text-(--warn-text) leading-[1.45]">
                   <Icon name="shield" size={12} />
                   {plainText(i.message, 60)}
                 </p>
               ))
           ) : (
-            <p className="cl-muted">{zh ? "没有待处理项" : "Nothing pending"}</p>
+            <p className={MUTED}>{zh ? "没有待处理项" : "Nothing pending"}</p>
           )}
         </section>
       </aside>
@@ -393,32 +523,32 @@ function entryRow(entry: Entry, ctx: ClCtx): React.ReactNode {
   const { zh } = ctx;
   if (entry.kind === "user") {
     return (
-      <div key={entry.id} className="cl-row cl-row--user">
-        <div className="cl-bubble">
-          <div className="cl-bubble-meta">{zh ? "你" : "You"} · {timeOf(entry.at)}</div>
-          <p>{entry.text}</p>
+      <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.user}`}>
+        <div className="cl-bubble max-w-[76%] bg-[#f3f4f6] border border-(--border) rounded-[10px_10px_3px_10px] px-[12px] py-[9px]">
+          <div className="cl-bubble-meta text-[10px] text-(--faint) mb-[3px]">{zh ? "你" : "You"} · {timeOf(entry.at)}</div>
+          <p className="m-0 text-[13.5px] text-(--text) whitespace-pre-wrap">{entry.text}</p>
         </div>
       </div>
     );
   }
   if (entry.kind === "assistant") {
     return (
-      <div key={entry.id} className="cl-row cl-row--assistant">
-        <span className="cl-avatar cl-avatar--sm">AI</span>
-        <div className="cl-msg">
-          <div className="cl-msg-meta">
+      <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.assistant}`}>
+        <span className={AVATAR}>AI</span>
+        <div className="cl-msg flex-1 min-w-0">
+          <div className="cl-msg-meta flex items-center gap-[8px] mb-[4px] text-[11px] text-(--faint) [&_strong]:text-[12px] [&_strong]:text-(--text) [&_strong]:font-semibold">
             <strong>{ctx.brand.agentName}</strong>
             <span>{timeOf(entry.at)}</span>
-            {entry.streaming && <span className="cl-streaming">{zh ? "生成中…" : "streaming…"}</span>}
+            {entry.streaming && <span className="cl-streaming text-[var(--accent-ink,var(--accent))]">{zh ? "生成中…" : "streaming…"}</span>}
           </div>
           {entry.text ? (
             <Markdown className={`cl-md ${entry.streaming ? "is-streaming" : ""}`} text={entry.text} />
           ) : (
-            <div className="cl-md"><span className="cl-caret" /></div>
+            <div className="cl-md"><span className="cl-caret inline-block w-[2px] h-[1em] bg-(--accent) animate-[cl-blink_1s_steps(2)_infinite] motion-reduce:animate-none" /></div>
           )}
           {!entry.streaming && (
-            <div className="cl-msg-actions">
-              <button onClick={() => navigator.clipboard?.writeText(entry.text)}>
+            <div className="cl-msg-actions flex gap-[4px] mt-[8px] opacity-0 [transition:opacity_0.2s] group-hover:opacity-100">
+              <button className="inline-flex items-center gap-[4px] h-[24px] px-[8px] border border-transparent rounded-[6px] bg-transparent text-(--muted) text-[11px] cursor-pointer hover:bg-[#f3f4f6] hover:border-(--border) hover:text-(--text)" onClick={() => navigator.clipboard?.writeText(entry.text)}>
                 <Icon name="copy" size={12} />
                 {t("chat.copy")}
               </button>
@@ -452,10 +582,11 @@ function entryRow(entry: Entry, ctx: ClCtx): React.ReactNode {
     return <PlanRow key={entry.id} entry={entry} />;
   }
   if (entry.kind === "interrupt") {
+    const approvalKind = entry.status === "pending" ? "pending" : entry.expired ? "expired" : "resolved";
     return (
-      <div key={entry.id} className="cl-row cl-row--wide">
-        <div className={`cl-approval ${entry.status === "pending" ? "" : entry.expired ? "cl-approval--expired" : "is-resolved"}`}>
-          <div className="cl-approval-head">
+      <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.wide}`}>
+        <div className={`${APPROVAL_BASE} ${APPROVAL_KIND[approvalKind]}`}>
+          <div className={`${APPROVAL_HEAD} ${APPROVAL_HEAD_KIND[approvalKind]}`}>
             <Icon name={entry.status === "pending" ? "shield" : entry.expired ? "clock" : "check"} size={14} />
             <strong>
               {entry.status === "pending"
@@ -474,12 +605,12 @@ function entryRow(entry: Entry, ctx: ClCtx): React.ReactNode {
                 ? "已拒绝"
                 : "Declined"}
             </strong>
-            <span className="cl-approval-time">{timeOf(entry.at)}</span>
+            <span className={APPROVAL_TIME}>{timeOf(entry.at)}</span>
           </div>
-          <p className="cl-approval-title">{entry.message}</p>
-          {entry.description && <p className="cl-approval-desc">{entry.description}</p>}
+          <p className={APPROVAL_TITLE}>{entry.message}</p>
+          {entry.description && <p className={APPROVAL_DESC}>{entry.description}</p>}
           {entry.details.length > 0 && (
-            <dl className="cl-approval-terms">
+            <dl className={APPROVAL_TERMS}>
               {entry.details.map((d) => (
                 <div key={d.label}>
                   <dt>{d.label}</dt>
@@ -490,34 +621,35 @@ function entryRow(entry: Entry, ctx: ClCtx): React.ReactNode {
           )}
           {entry.status === "pending" ? (
             <>
-              <div className="cl-approval-actions">
-                <button className="cl-btn cl-btn--primary" onClick={() => ctx.approve(entry.id)}>
+              <div className={APPROVAL_ACTIONS}>
+                <button className={`${BTN_BASE} ${BTN_KIND.primary}`} onClick={() => ctx.approve(entry.id)}>
                   <Icon name="check" size={13} />
                   {t("intr.approve")}
                 </button>
-                <button className="cl-btn" onClick={() => ctx.deny(entry.id)}>
+                <button className={`${BTN_BASE} ${BTN_KIND.default}`} onClick={() => ctx.deny(entry.id)}>
                   <Icon name="x" size={13} />
                   {t("intr.deny")}
                 </button>
-                <button className="cl-link" onClick={() => ctx.beginEdit(entry.id)}>{t("intr.edit")}</button>
+                <button className={LINK} onClick={() => ctx.beginEdit(entry.id)}>{t("intr.edit")}</button>
               </div>
               {ctx.editingId === entry.id && (
-                <div className="cl-edit">
+                <div className="cl-edit mt-[10px] pt-[10px] border-t border-(--warn-border) [&_label]:block [&_label]:text-[10.5px] [&_label]:text-(--muted) [&_label]:mb-[5px]">
                   <label>{zh ? "提交参数（可修改后批准）" : "Arguments submitted on resume"}</label>
                   <textarea
                     value={ctx.editJson[entry.id] ?? ""}
                     onChange={(e) => ctx.setEditJson((prev) => ({ ...prev, [entry.id]: e.target.value }))}
                     spellCheck={false}
+                    className="w-full min-h-[90px] resize-y border border-(--border-2) rounded-[6px] px-[10px] py-[8px] [font-family:var(--mono)] text-[11px] leading-[1.55] text-(--text) bg-[#fff] outline-none focus:border-(--accent) focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
                   />
-                  <div className="cl-approval-actions">
-                    <button className="cl-btn cl-btn--primary" onClick={() => ctx.approve(entry.id)}>{t("intr.approveEdited")}</button>
-                    <button className="cl-btn" onClick={() => ctx.setEditingId(null)}>{t("intr.cancel")}</button>
+                  <div className={APPROVAL_ACTIONS}>
+                    <button className={`${BTN_BASE} ${BTN_KIND.primary}`} onClick={() => ctx.approve(entry.id)}>{t("intr.approveEdited")}</button>
+                    <button className={`${BTN_BASE} ${BTN_KIND.default}`} onClick={() => ctx.setEditingId(null)}>{t("intr.cancel")}</button>
                   </div>
                 </div>
               )}
             </>
           ) : (
-            <p className="cl-approval-resolved">
+            <p className={`cl-approval-resolved flex items-center gap-[6px] m-0 text-[11.5px] ${entry.expired ? "text-(--muted)" : "text-(--success)"}`}>
               <Icon name={entry.expired ? "clock" : "check"} size={12} />
               {entry.status === "approved" ? t("intr.approvedBy") : entry.expired ? t("intr.expired") : t("intr.deniedBy")}
             </p>
@@ -528,26 +660,27 @@ function entryRow(entry: Entry, ctx: ClCtx): React.ReactNode {
   }
   if (entry.kind === "subagent") {
     return (
-      <div key={entry.id} className="cl-row cl-row--assistant">
-        <span className="cl-avatar cl-avatar--sm"><Icon name="layers" size={12} /></span>
-        <div className="cl-msg">
-          <div className="cl-subagent">
+      <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.assistant}`}>
+        <span className={AVATAR}><Icon name="layers" size={12} /></span>
+        <div className="cl-msg flex-1 min-w-0">
+          <div className={SUBAGENT}>
             <strong>{displayText(entry.name)}</strong>
-            <span className={`cl-subagent-status cl-subagent-status--${entry.status}`}>{entry.status}</span>
-            {entry.detail && <span className="cl-muted">{entry.detail}</span>}
+            <span className={`${SUB_STATUS_BASE} cl-subagent-status--${entry.status} ${SUB_STATUS_KIND[entry.status] ?? SUB_STATUS_KIND.done}`}>{entry.status}</span>
+            {entry.detail && <span className={MUTED}>{entry.detail}</span>}
           </div>
         </div>
       </div>
     );
   }
   if (entry.kind === "step") {
+    const stepStatus = entry.status === "running" ? "running" : entry.status === "failed" ? "error" : "done";
     return (
-      <div key={entry.id} className="cl-row cl-row--assistant">
-        <span className="cl-avatar cl-avatar--sm"><Icon name="activity" size={12} /></span>
-        <div className="cl-msg">
-          <div className="cl-subagent">
+      <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.assistant}`}>
+        <span className={AVATAR}><Icon name="activity" size={12} /></span>
+        <div className="cl-msg flex-1 min-w-0">
+          <div className={SUBAGENT}>
             <strong>{displayText(entry.name)}</strong>
-            <span className={`cl-subagent-status cl-subagent-status--${entry.status === "running" ? "running" : entry.status === "failed" ? "error" : "done"}`}>
+            <span className={`${SUB_STATUS_BASE} cl-subagent-status--${stepStatus} ${SUB_STATUS_KIND[stepStatus]}`}>
               {entry.status}
             </span>
           </div>
@@ -559,24 +692,24 @@ function entryRow(entry: Entry, ctx: ClCtx): React.ReactNode {
     const custom = ctx.plugins.custom?.(entry);
     if (custom !== undefined) {
       return (
-        <div key={entry.id} className="cl-row cl-row--wide">
+        <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.wide}`}>
           {custom}
         </div>
       );
     }
     return (
-      <div key={entry.id} className="cl-row cl-row--wide">
-        <div className="cl-custom">
-          <span className="cl-custom-name mono">{displayText(entry.name)}</span>
-          <pre className="cl-custom-args" data-skin-text="">{safeJson(entry.value, 2)}</pre>
+      <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.wide}`}>
+        <div className="cl-custom flex flex-col gap-[6px]">
+          <span className="cl-custom-name text-[10.5px] text-(--muted) uppercase tracking-[0.06em] mono">{displayText(entry.name)}</span>
+          <pre className="cl-custom-args m-0 px-[10px] py-[8px] border border-(--border) rounded-[6px] bg-[#fafbfc] [font-family:var(--mono)] text-[11.5px] leading-[1.5] text-(--text-2) overflow-x-auto" data-skin-text="">{safeJson(entry.value, 2)}</pre>
         </div>
       </div>
     );
   }
   if (entry.kind === "error") {
     return (
-      <div key={entry.id} className="cl-row cl-row--wide">
-        <div className="cl-error">{entry.message}</div>
+      <div key={entry.id} className={`${ROW_BASE} ${ROW_KIND.wide}`}>
+        <div className="cl-error border border-[#fecaca] bg-[#fef2f2] text-[#991b1b] rounded-[8px] px-[12px] py-[10px] text-[12px]">{entry.message}</div>
       </div>
     );
   }
@@ -614,12 +747,12 @@ function FoldGroupRow({
   );
   return (
     <>
-      <div key={groupId} className="cl-row cl-row--assistant">
-        <span className="cl-avatar cl-avatar--sm"><Icon name="layers" size={12} /></span>
-        <div className="cl-msg">
+      <div key={groupId} className={`${ROW_BASE} ${ROW_KIND.assistant}`}>
+        <span className={AVATAR}><Icon name="layers" size={12} /></span>
+        <div className="cl-msg flex-1 min-w-0">
           <button
             type="button"
-            className="cl-fold-head"
+            className={FOLD_HEAD}
             data-fold-head=""
             aria-expanded={open}
             onClick={onToggle}
@@ -631,20 +764,20 @@ function FoldGroupRow({
               }
             }}
           >
-            <Icon name="chevron" size={11} className="cl-chev" />
+            <Icon name="chevron" size={11} className={`${CHEV}${open ? " rotate-90" : ""}`} />
             <span>{t("fold.group")}</span>
-            <span className="cl-fold-summary">{summary}</span>
+            <span className={FOLD_SUMMARY}>{summary}</span>
             {failure && (
-              <span className={`cl-fold-flag cl-fold-flag--${failure}`}>
+              <span className={`${FOLD_FLAG} cl-fold-flag--${failure} ${FOLD_FLAG_KIND[failure]}`}>
                 {failure === "error" ? t("fold.hasFailures") : t("chat.interrupted")}
               </span>
             )}
-            {!failure && foldGroupOpen(entries) && <span className="cl-fold-flag cl-fold-flag--live">{t("chat.executing")}</span>}
-            <span className="cl-fold-count mono">{`${entries.length} ${t("fold.steps")}`}</span>
+            {!failure && foldGroupOpen(entries) && <span className={`${FOLD_FLAG} cl-fold-flag--live ${FOLD_FLAG_KIND.live}`}>{t("chat.executing")}</span>}
+            <span className={FOLD_COUNT}>{`${entries.length} ${t("fold.steps")}`}</span>
           </button>
         </div>
       </div>
-      {open && <div className="cl-fold-body" data-fold-id={groupId}>{entries.map((entry) => entryRow(entry, ctx))}</div>}
+      {open && <div className="cl-fold-body [&>*:first-child]:mt-[2px]" data-fold-id={groupId}>{entries.map((entry) => entryRow(entry, ctx))}</div>}
     </>
   );
 }
@@ -654,16 +787,16 @@ function FoldGroupRow({
 function ReasoningRow({ entry, open, onToggle }: { entry: ReasoningEntry; open: boolean; onToggle: () => void }) {
   const zh = isZh();
   return (
-    <div className="cl-row cl-row--assistant">
-      <span className="cl-avatar cl-avatar--sm">AI</span>
-      <div className="cl-msg">
-        <button className={`cl-reason ${open ? "is-open" : ""}`} onClick={onToggle}>
+    <div className={`${ROW_BASE} ${ROW_KIND.assistant}`}>
+      <span className={AVATAR}>AI</span>
+      <div className="cl-msg flex-1 min-w-0">
+        <button className={REASON} onClick={onToggle}>
           <Icon name="brain" size={12} />
           <span>{entry.streaming ? (zh ? "思考中…" : "Thinking…") : zh ? "思考过程" : "Reasoning"}</span>
-          <span className="cl-reason-meta mono">{entry.streaming ? "" : formatDuration(entry.durationMs ?? 0)}</span>
-          <Icon name="chevron" size={11} className="cl-chev" />
+          <span className={`${REASON_META} mono`}>{entry.streaming ? "" : formatDuration(entry.durationMs ?? 0)}</span>
+          <Icon name="chevron" size={11} className={`${CHEV}${open ? " rotate-90" : ""}`} />
         </button>
-        {open && <div className="cl-reason-body" data-skin-text="">{entry.text}</div>}
+        {open && <div className={REASON_BODY} data-skin-text="">{entry.text}</div>}
       </div>
     </div>
   );
@@ -672,15 +805,15 @@ function ReasoningRow({ entry, open, onToggle }: { entry: ReasoningEntry; open: 
 function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; onToggle: () => void }) {
   const zh = isZh();
   return (
-    <div className="cl-row cl-row--assistant">
-      <span className="cl-avatar cl-avatar--sm">
+    <div className={`${ROW_BASE} ${ROW_KIND.assistant}`}>
+      <span className={AVATAR}>
         <Icon name="wrench" size={12} />
       </span>
-      <div className="cl-msg">
-        <div className={`cl-tool ${open ? "is-open" : ""}`}>
-          <button className="cl-tool-head" onClick={onToggle}>
-            <span className="cl-tool-name mono">{displayText(entry.name)}</span>
-            <span className={`cl-tool-status cl-tool-status--${entry.status}`}>
+      <div className="cl-msg flex-1 min-w-0">
+        <div className={TOOL_BOX}>
+          <button className={TOOL_HEAD} onClick={onToggle}>
+            <span className={`${TOOL_NAME} mono`}>{displayText(entry.name)}</span>
+            <span className={`cl-tool-status cl-tool-status--${entry.status} text-[10px] ${TOOL_STATUS[entry.status] ?? TOOL_STATUS_IDLE}`}>
               {entry.status === "args"
                 ? zh
                   ? "接收参数"
@@ -701,10 +834,10 @@ function ToolRow({ entry, open, onToggle }: { entry: ToolEntry; open: boolean; o
                 ? "失败"
                 : "Failed"}
             </span>
-            <span className="cl-tool-time mono">{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
-            <Icon name="chevron" size={11} className="cl-chev" />
+            <span className={`${TOOL_TIME} mono`}>{entry.durationMs ? formatDuration(entry.durationMs) : ""}</span>
+            <Icon name="chevron" size={11} className={`${CHEV}${open ? " rotate-90" : ""}`} />
           </button>
-          {open && <pre className="cl-tool-args" data-skin-text="">{displayText(entry.argsRaw) || "…"}</pre>}
+          {open && <pre className={TOOL_ARGS} data-skin-text="">{displayText(entry.argsRaw) || "…"}</pre>}
           <ToolResult entry={entry} variant="classic" />
         </div>
       </div>
@@ -716,29 +849,29 @@ function PlanRow({ entry }: { entry: PlanEntry }) {
   const zh = isZh();
   const view = planView(entry);
   return (
-    <div className="cl-row cl-row--assistant">
-      <span className="cl-avatar cl-avatar--sm">
+    <div className={`${ROW_BASE} ${ROW_KIND.assistant}`}>
+      <span className={AVATAR}>
         <Icon name="layers" size={12} />
       </span>
-      <div className="cl-msg">
-        <div className="cl-plan-card">
-          <div className="cl-plan-head">
+      <div className="cl-msg flex-1 min-w-0">
+        <div className="cl-plan-card border border-(--border) rounded-[8px] bg-(--surface) overflow-hidden">
+          <div className="cl-plan-head flex items-center justify-between px-[12px] py-[8px] bg-[#fafbfc] border-b border-(--border) text-[12px]">
             <strong>{displayText(entry.title)}</strong>
             <span className="mono">
               {view.steps.filter((s) => s.state === "done").length}/{view.steps.length}
             </span>
           </div>
           {view.rawOnly ? (
-            <pre className="cl-plan-raw" data-skin-text="">{planRawText(view)}</pre>
+            <pre className="cl-plan-raw m-0 px-[12px] py-[10px] bg-[#f9fafb] [font-family:var(--mono)] text-[11px] leading-[1.55] text-(--text-2) whitespace-pre-wrap break-words" data-skin-text="">{planRawText(view)}</pre>
           ) : (
-            <ul className="cl-plan">
+            <ul className="cl-plan m-0 px-[12px] py-[8px] list-none flex flex-col gap-[4px]">
               {view.steps.map((step) => (
-                <li key={step.id} data-state={step.state}>
-                  <span className="cl-check">
+                <li key={step.id} data-state={step.state} className={`${PLAN_LI_BASE} ${PLAN_LI[step.state] ?? PLAN_LI.pending}`}>
+                  <span className={`${CHECK_BASE} ${CHECK_KIND[step.state === "done" ? "done" : "other"]}`}>
                     {step.state === "done" ? <Icon name="check" size={10} /> : null}
                   </span>
                   {step.label}
-                  {step.state === "active" && <em className="cl-plan-active">{zh ? "进行中" : "in progress"}</em>}
+                  {step.state === "active" && <em className="cl-plan-active ml-auto text-[10px] text-[var(--accent-ink,var(--accent))]">{zh ? "进行中" : "in progress"}</em>}
                 </li>
               ))}
             </ul>
