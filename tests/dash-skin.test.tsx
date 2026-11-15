@@ -6,7 +6,7 @@ import { skins, SkinHostProvider, t } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
 import { ConversationStore } from "../src/core/store";
 import { EventType } from "../src/core/events";
-import { makeFixture, makeStore } from "./fixture";
+import { makeFixture, makeFoldStore, makeStore } from "./fixture";
 
 /* Dash — light ops-dashboard surface.
    KPI strip reads the store without ever producing NaN; tools are data rows;
@@ -32,11 +32,12 @@ describe("dash contract", () => {
     const text = container.textContent ?? "";
     expect(text).toContain("fixture user prompt");
     expect(text).toContain("fixture answer");
-    expect(text.toLowerCase()).toContain("web.search");
     expect(text).toContain("fixture approval needed");
     expect(text.toLowerCase()).toContain("fixture step one");
     expect(text.toLowerCase()).toContain("fixture subagent");
     expect(text).toContain("handoff");
+    fireEvent.click(container.querySelector(".ds-fold-head") as HTMLButtonElement); // unfold the tool+thinking run
+    expect((container.textContent ?? "").toLowerCase()).toContain("web.search"); // tool name lives in its (unfurled) row
     expect(container.querySelector(".ds-reason")).toBeTruthy();
     // branding lands in the header
     expect(container.querySelector(".ds-header")?.textContent).toContain("Fixture Agent");
@@ -246,6 +247,7 @@ describe("dash edges and chrome", () => {
 
   it("tool data rows expand to args and results", () => {
     const { container } = renderDash(makeFixture());
+    fireEvent.click(container.querySelector(".ds-fold-head") as HTMLButtonElement); // unfold the tool row first
     const row = container.querySelector(".ds-tool-row") as HTMLButtonElement;
     expect(row.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(row);
@@ -272,5 +274,71 @@ describe("dash edges and chrome", () => {
     expect(css).toMatch(/:focus-visible/);
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
     expect(css).toContain("var(--sk-accent");
+  });
+});
+
+describe("dash fold groups (consecutive reasoning + tools)", () => {
+  it("collapses a settled run into one numeric fold row by default", () => {
+    const { container } = renderDash(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".ds-fold-head") as HTMLButtonElement;
+    expect(head).toBeTruthy();
+    expect(head.tagName).toBe("BUTTON");
+    expect(head.getAttribute("aria-expanded")).toBe("false"); // all terminal → folded
+    expect(head.textContent).toContain(`4 ${t("fold.steps")}`); // numeric summary: N steps
+    expect(container.querySelector(".ds-reason")).toBeNull(); // original rows live in the body
+    expect(container.querySelector(".ds-tool")).toBeNull();
+  });
+
+  it("clicking the head toggles aria-expanded and mounts/unmounts the original rows", () => {
+    const { container } = renderDash(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".ds-fold-head") as HTMLButtonElement;
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector(".ds-reason")).toBeTruthy(); // reused thinking row
+    expect(container.querySelector(".ds-tool")).toBeTruthy(); // reused tool data row
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector(".ds-reason")).toBeNull();
+  });
+
+  it("fold head is keyboard-operable (focus + explicit Enter/Space keydown)", () => {
+    const { container } = renderDash(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".ds-fold-head") as HTMLButtonElement;
+    head.focus();
+    expect(document.activeElement).toBe(head);
+    fireEvent.keyDown(head, { key: "Enter" });
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(head, { key: " " });
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("an in-flight run derives an open group with the live marker", () => {
+    const { container } = renderDash(makeFoldStore({ leaveRunning: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".ds-fold-head") as HTMLButtonElement;
+    expect(head.getAttribute("aria-expanded")).toBe("true"); // tool executing → open
+    expect(container.querySelector(".ds-fold-head .ds-stage--running")).toBeTruthy();
+  });
+
+  it("a failed tool inside the group surfaces a failure chip on the row", () => {
+    const { container } = renderDash(makeFoldStore({ failLastTool: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".ds-fold-head") as HTMLButtonElement;
+    const chip = head.querySelector(".ds-stage--error");
+    expect(chip).toBeTruthy();
+    expect(chip?.textContent).toContain(t("fold.hasFailures"));
+  });
+
+  it("singletons stay ungrouped and error rows remain independent", () => {
+    const store = makeStore();
+    try {
+      store.dispatch({ type: EventType.RUN_STARTED, threadId: "t1", runId: "r1" } as never);
+      store.dispatch({ type: EventType.REASONING_START, messageId: "r1" } as never);
+      store.dispatch({ type: EventType.REASONING_MESSAGE_END, messageId: "r1" } as never);
+      store.dispatch({ type: EventType.RUN_ERROR, message: "fixture run error message" } as never);
+      const { container } = renderDash(store as unknown as SkinConversation);
+      expect(container.querySelector(".ds-fold-head")).toBeNull(); // one reasoning row → no group
+      expect(container.querySelector(".ds-error")).toBeTruthy();
+    } finally {
+      store.stop();
+    }
   });
 });
