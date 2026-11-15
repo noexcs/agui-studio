@@ -22,9 +22,9 @@ export const SKIN_SWATCHES: Record<string, string[]> = {
   workbench: ["#1b1d21", "#222429", "#7aa2f7", "#bb9af7", "#7dcfff"],
   // dash: page / white panel / blue-green data accent (blue + red are the
   // running / failed states in the KPI strip)
-  dash: ["#f7f8fa", "#ffffff", "#0d9488", "#2563eb", "#dc2626"],
+  dash: ["#f7f8fa", "#ffffff", "#0f766e", "#1d4ed8", "#b91c1c"],
   // bubble: chat page / incoming bubble / outgoing bubble blue
-  bubble: ["#eef0f4", "#ffffff", "#3478f6", "#1d9a6c", "#b45309"],
+  bubble: ["#eef0f4", "#ffffff", "#2e63d3", "#16794f", "#b45309"],
 };
 
 /** Swatch list for a skin id; falls back to the skin accent (unknown/test ids). */

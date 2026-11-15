@@ -474,6 +474,6 @@ export default {
   id: "bubble",
   name: "Bubble",
   tagline: "Mobile chat · tails & typing dots",
-  swatch: ["#eef0f4", "#ffffff", "#3478f6"] as [string, string, string],
+  swatch: ["#eef0f4", "#ffffff", "#2e63d3"] as [string, string, string],
   ChatPage: BubblePage,
 };

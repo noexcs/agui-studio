@@ -542,6 +542,6 @@ export default {
   id: "dash",
   name: "Dash",
   tagline: "Ops dashboard · KPI run strip",
-  swatch: ["#f7f8fa", "#ffffff", "#0d9488"] as [string, string, string],
+  swatch: ["#f7f8fa", "#ffffff", "#0f766e"] as [string, string, string],
   ChatPage: DashPage,
 };
