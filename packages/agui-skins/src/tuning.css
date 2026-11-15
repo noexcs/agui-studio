@@ -1,21 +1,14 @@
 /* Per-skin tuning: accent / text animation / density.
-   Applied by <SkinHostProvider tuning={...} skin={...}> through data attributes. */
+   Applied by <SkinHostProvider tuning={...} skin={...}> through data attributes.
 
-.sk-tune {
-  position: absolute;
-  inset: 0;
-}
-
-.sk-tune > * {
-  height: 100%;
-  width: 100%;
-}
-
-/* ── universal text output (token-level, works while streaming) ──── */
-.sk-text-token {
-  display: inline-block;
-  white-space: pre-wrap;
-}
+   Tailwind migration (task-13): the element-styling parts of this file moved
+   to Tailwind utilities at their JSX sites (.sk-tune layout → host.tsx,
+   .sk-text-token display → textEffect.ts, .sk-history-more → history.tsx).
+   What REMAINS here is the tuning runtime: ancestor-attribute → descendant
+   rules (.sk-tune[data-sk-*] …) that utilities cannot express per element
+   without unreadable arbitrary variants, plus the accent-guard variable maps
+   (scoped variable definitions are the multi-brand source of truth). The
+   tuning-contract / accent-guard tests anchor these selectors — keep them. */
 
 .sk-tune[data-sk-text-anim="fade"] .sk-text-token {
   animation: sk-token-fade calc(0.3s * var(--sk-motion, 1)) ease both;
@@ -140,18 +133,6 @@
   zoom: var(--sk-text-scale, 1);
 }
 
-/* long-session windowing control (skin-agnostic; inherits text color) */
-.sk-history-more {
-  display: block;
-  margin: 10px auto 14px;
-  padding: 5px 14px;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  opacity: 0.62;
-  font: inherit;
-  font-size: 11.5px;
-  cursor: pointer;
-}
-.sk-history-more:hover { opacity: 1; }
+/* long-session windowing control (skin-agnostic; inherits text color):
+   styling moved to utilities on the HistoryMore button in history.tsx.
+   The class survives purely as the tests' positioning anchor. */

@@ -34,11 +34,17 @@ export function useVisibleEntries(entries: Entry[], initial = 60, step = 60) {
   return { visible, hidden, showEarlier };
 }
 
-/** Neutral, skin-agnostic "show earlier" button (inherits the skin's text color). */
+/** Neutral, skin-agnostic "show earlier" button (inherits the skin's text color).
+    Tailwind migration (task-13): .sk-history-more rules moved to utilities;
+    the class stays as a test/positioning anchor. */
 export function HistoryMore({ hidden, onClick }: { hidden: number; onClick: () => void }) {
   if (hidden <= 0) return null;
   return (
-    <button type="button" className="sk-history-more" onClick={onClick}>
+    <button
+      type="button"
+      className="sk-history-more mx-auto mt-2.5 mb-3.5 block cursor-pointer rounded-full border border-current bg-transparent px-3.5 py-[5px] font-[inherit] text-[11.5px] text-inherit opacity-62 hover:opacity-100"
+      onClick={onClick}
+    >
       {t("history.more")} · {hidden}
     </button>
   );
