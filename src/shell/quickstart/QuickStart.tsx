@@ -229,14 +229,26 @@ async function runTurn(text: string, signal?: AbortSignal) {
 
 /* ── small pieces ──────────────────────────────────────────────────── */
 
+/* Tailwind compounds for the quickstart section (shell.css migration).
+   Values reference the shell :root tokens via arbitrary var shorthand. */
+const T = "duration-(--t-fast) ease-(--ease)";
+
+const QS_CODE = "qs-code m-0 flex-1 overflow-x-hidden p-4 font-(--font-mono) text-[13px] leading-[1.6] text-[#a7a3b2] whitespace-pre-wrap [word-break:break-word] [overflow-wrap:anywhere]";
+const QS_CARD_NOTE = "qs-card-note m-0 px-4 pb-4 text-xs leading-[1.6] text-[#8a8798]";
+const QS_CARD_FOOT = "qs-card-foot flex items-center gap-2 bg-(--bg-surface) px-4 py-3";
+const QS_STEP_NO = "qs-step-no font-(--font-mono) text-[10px] tracking-[0.12em] text-(--fg-muted) [font-variant-numeric:tabular-nums]";
+const QS_LANG = "qs-lang ml-auto rounded-full border border-(--hairline-subtle) px-2 py-1 font-(--font-mono) text-[9.5px] tracking-[0.06em] text-(--fg-muted) lowercase";
+const QS_COPY_BTN = `qs-copy-btn inline-flex h-7 cursor-pointer items-center gap-1 rounded-[10px] border bg-transparent px-3 font-(--font-mono) text-[10px] tracking-[0.08em] uppercase transition-[color,border-color,background,transform] active:scale-[0.98] ${T}`;
+const QS_MENU_ITEM = `qs-menu-item flex w-full cursor-pointer items-center gap-2 rounded-[10px] border-0 bg-none px-3 py-2 text-left text-xs text-(--fg-secondary) no-underline outline-none [font-family:inherit] transition-[background,color] focus-visible:shadow-[inset_0_0_0_1px_var(--accent)] hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg) data-[highlighted]:bg-[rgba(0,0,0,0.05)] data-[highlighted]:text-(--fg) ${T}`;
+
 function HighlightedCode({ code, grammar }: { code: string; grammar: string }) {
   const html = useMemo(() => highlightCode(code, grammar), [code, grammar]);
   return (
-    <pre className="qs-code">
+    <pre className={QS_CODE}>
       {html ? (
-        <code className={`hljs language-${grammar}`} dangerouslySetInnerHTML={{ __html: html }} />
+        <code className={`hljs language-${grammar} font-[inherit]`} dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
-        <code>{code}</code>
+        <code className="font-[inherit]">{code}</code>
       )}
     </pre>
   );
@@ -262,7 +274,7 @@ function CopyButton({ text, zh }: { text: string; zh: boolean }) {
   return (
     <>
       <button
-        className={`qs-copy-btn ${copied ? "is-copied" : ""}`}
+        className={`${QS_COPY_BTN} ${copied ? "is-copied text-(--accent-hover) border-(--accent-line) bg-(--accent-dim)" : "border-(--hairline) text-(--fg-secondary) hover:text-(--fg) hover:border-(--hairline-strong) hover:bg-[rgba(0,0,0,0.04)]"}`}
         onClick={async () => flash(await copyText(text))}
         title={zh ? "复制" : "Copy"}
       >
@@ -286,34 +298,41 @@ function CopyForAI({ zh, lang, skinId }: { zh: boolean; lang: Lang; skinId: stri
   };
 
   return (
-    <div className="qs-copyai">
+    <div className="qs-copyai relative">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button className={`qs-copyai-btn ${copied ? "is-copied" : ""}`} aria-haspopup="menu">
+          <button
+            className={`qs-copyai-btn inline-flex h-9 cursor-pointer items-center gap-2 rounded-[var(--r-sm)] border px-4 text-[12.5px] font-medium [font-family:inherit] transition-[background,border-color,color,transform] active:scale-[0.98] ${T} ${copied ? "is-copied text-(--accent-hover) border-(--accent-line) bg-(--accent-dim)" : "border-(--hairline) bg-[rgba(0,0,0,0.02)] text-(--fg-secondary) hover:bg-[rgba(0,0,0,0.05)] hover:border-(--hairline-strong) hover:text-(--fg)"}`}
+            aria-haspopup="menu"
+          >
             <Icon name={copied ? "check" : "copy"} size={13} />
             {copied ? (zh ? "已复制" : "Copied") : "Copy for AI"}
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
-          <DropdownMenu.Content className="qs-menu" sideOffset={8} align="end">
-            <DropdownMenu.Item className="qs-menu-item" onSelect={() => copy(prompt)}>
+          <DropdownMenu.Content
+            className="qs-menu z-[90] min-w-[208px] max-w-[min(360px,calc(100vw-32px))] rounded-[var(--r-md)] border border-(--hairline) bg-[rgba(255,255,255,0.96)] p-2 shadow-[0_30px_60px_-30px_rgba(24,24,27,0.28)] backdrop-blur-[14px] animate-[qs-menu-in_120ms_var(--ease)]"
+            sideOffset={8}
+            align="end"
+          >
+            <DropdownMenu.Item className={QS_MENU_ITEM} onSelect={() => copy(prompt)}>
               <Icon name="sparkle" size={13} />
               {zh ? "复制接入提示词" : "Copy prompt"}
             </DropdownMenu.Item>
-            <DropdownMenu.Item className="qs-menu-item" onSelect={() => copy(INSTALL_COMMAND)}>
+            <DropdownMenu.Item className={QS_MENU_ITEM} onSelect={() => copy(INSTALL_COMMAND)}>
               <Icon name="terminal" size={13} />
               {zh ? "复制安装命令" : "Copy install command"}
             </DropdownMenu.Item>
-            <DropdownMenu.Separator className="qs-menu-sep" />
+            <DropdownMenu.Separator className="qs-menu-sep mx-2 my-1 h-px bg-(--hairline-subtle)" />
             {AI_TARGETS.map((target) => (
-              <DropdownMenu.Item key={target.id} className="qs-menu-item" asChild>
+              <DropdownMenu.Item key={target.id} className={QS_MENU_ITEM} asChild>
                 <a href={prefillUrl(target.base, prompt)} target="_blank" rel="noreferrer">
                   <Icon name="arrow-up-right" size={13} />
                   {zh ? `在 ${target.label} 打开` : `Open in ${target.label}`}
                 </a>
               </DropdownMenu.Item>
             ))}
-            <p className="qs-menu-note">
+            <p className="qs-menu-note mx-3 mb-0.5 mt-1.5 border-t border-(--hairline-subtle) pt-1.5 text-[10.5px] leading-[1.5] text-(--fg-muted)">
               {zh ? "预填链接为 best-effort,可能随服务商变化" : "Prefilled links are best-effort and may change."}
             </p>
           </DropdownMenu.Content>
@@ -337,93 +356,113 @@ export function QuickStart({ lang, activeSkin }: { lang: Lang; activeSkin: strin
   const openHref = (id: string) => `?skin=${encodeURIComponent(id)}&lang=${lang}&section=skins`;
 
   return (
-    <section className="quickstart-section" id="quickstart">
-      <div className="section-head">
+    <section
+      className="quickstart-section relative mt-[clamp(64px,8vw,96px)] scroll-mt-[72px] border-t border-(--hairline-subtle) bg-(--bg-base) px-[clamp(24px,6vw,92px)] pt-[clamp(64px,9vw,128px)] pb-16"
+      id="quickstart"
+    >
+      <div className="section-head mb-4 flex items-end justify-between gap-8 max-[1180px]:flex-col max-[1180px]:items-start max-[1180px]:gap-4">
         <div>
-          <p className="section-kicker">{zh ? "快速上手" : "Get started"}</p>
-          <h2>{zh ? "用在自己的网页里" : "Use them in your own app"}</h2>
+          <p className="section-kicker mt-0 mb-3 font-(--font-mono) text-[11px] tracking-[0.14em] text-(--fg-muted) uppercase">{zh ? "快速上手" : "Get started"}</p>
+          <h2 className={`m-0 text-[clamp(28px,3.2vw,40px)] leading-[1.12] font-medium ${zh ? "tracking-[-0.02em]" : "tracking-[-0.03em]"}`}>
+            {zh ? "用在自己的网页里" : "Use them in your own app"}
+          </h2>
         </div>
         <CopyForAI zh={zh} lang={lang} skinId={skin.id} />
       </div>
-      <p className="qs-intro">
+      <p className="qs-intro mt-0 mb-8 max-w-[600px] text-[14px] leading-[1.65] text-(--fg-secondary)">
         {zh
           ? "三步把任意皮肤嵌进你的 React 应用:装包 → 包一层 SkinHostProvider → 接上你的 agent。示例代码跟随上面选中的皮肤,也可以把完整接入指南直接交给 AI。"
           : "Three steps to embed any skin in your React app: install, wrap in a SkinHostProvider, connect your agent. Examples follow the skin selected above — or hand the full guide to an AI."}
       </p>
 
-      <ol className="qs-steps">
-        <li className="qs-card">
-          <div className="qs-code-zone">
+      <ol className="qs-steps mt-0 mb-8 grid list-none grid-cols-3 items-start gap-3 p-0">
+        <li className="qs-card flex min-w-0 flex-col overflow-hidden rounded-[var(--r-md)] border border-(--hairline) bg-(--bg-surface) transition-[border-color] hover:border-(--hairline-strong)">
+          <div className="qs-code-zone border-b border-[rgba(255,255,255,0.08)] bg-[#0f0d14]">
             <HighlightedCode code={installCommand} grammar="bash" />
-            <p className="qs-card-note">
+            <p className={QS_CARD_NOTE}>
               {zh
                 ? `尚未发布到 npm:先在仓库内打包再安装;发布后可直接 ${NPM_INSTALL}。peer 依赖:react ≥18、react-dom ≥18、react-markdown ≥9、remark-gfm ≥4、lucide-react ≥0.4`
                 : `Not on npm yet: pack locally and install the tarball; once published use ${NPM_INSTALL}. Peers: react >=18, react-dom >=18, react-markdown >=9, remark-gfm >=4, lucide-react >=0.4`}
             </p>
           </div>
-          <div className="qs-card-foot">
-            <span className="qs-step-no">01</span>
-            <strong>{zh ? "安装" : "Install"}</strong>
-            <span className="qs-lang">bash</span>
+          <div className={QS_CARD_FOOT}>
+            <span className={QS_STEP_NO}>01</span>
+            <strong className="text-[13px] font-medium text-(--fg)">{zh ? "安装" : "Install"}</strong>
+            <span className={QS_LANG}>bash</span>
             <CopyButton text={installCommand} zh={zh} />
           </div>
         </li>
 
-        <li className="qs-card">
-          <div className="qs-code-zone">
+        <li className="qs-card flex min-w-0 flex-col overflow-hidden rounded-[var(--r-md)] border border-(--hairline) bg-(--bg-surface) transition-[border-color] hover:border-(--hairline-strong)">
+          <div className="qs-code-zone border-b border-[rgba(255,255,255,0.08)] bg-[#0f0d14]">
             <HighlightedCode code={setupCode} grammar="tsx" />
-            <p className="qs-card-note">
+            <p className={QS_CARD_NOTE}>
               {zh
                 ? `conversation 先给静态实现跑起来,再换成你的 store;皮肤换 <${Comp}.ChatPage /> 为任意皮肤入口。`
                 : `Start with a static conversation, then swap in your store; swap <${Comp}.ChatPage /> for any skin entry.`}
             </p>
           </div>
-          <div className="qs-card-foot">
-            <span className="qs-step-no">02</span>
-            <strong>{zh ? "最小可跑示例" : "Minimal setup"}</strong>
-            <span className="qs-lang">tsx</span>
+          <div className={QS_CARD_FOOT}>
+            <span className={QS_STEP_NO}>02</span>
+            <strong className="text-[13px] font-medium text-(--fg)">{zh ? "最小可跑示例" : "Minimal setup"}</strong>
+            <span className={QS_LANG}>tsx</span>
             <CopyButton text={setupCode} zh={zh} />
           </div>
         </li>
 
-        <li className="qs-card">
-          <div className="qs-code-zone">
+        <li className="qs-card flex min-w-0 flex-col overflow-hidden rounded-[var(--r-md)] border border-(--hairline) bg-(--bg-surface) transition-[border-color] hover:border-(--hairline-strong)">
+          <div className="qs-code-zone border-b border-[rgba(255,255,255,0.08)] bg-[#0f0d14]">
             <HighlightedCode code={LIVE_AGENT_CODE} grammar="tsx" />
-            <p className="qs-card-note">
+            <p className={QS_CARD_NOTE}>
               {zh
                 ? "服务端按 SSE 返回 AG-UI 事件;transport 参考实现不在包内,从本仓库 src/core/transport.ts 复制。"
                 : "The server streams AG-UI events over SSE; the transport reference is not in the package — copy it from this repo's src/core/transport.ts."}
             </p>
           </div>
-          <div className="qs-card-foot">
-            <span className="qs-step-no">03</span>
-            <strong>{zh ? "接真实 agent" : "Connect a real agent"}</strong>
-            <span className="qs-lang">tsx</span>
+          <div className={QS_CARD_FOOT}>
+            <span className={QS_STEP_NO}>03</span>
+            <strong className="text-[13px] font-medium text-(--fg)">{zh ? "接真实 agent" : "Connect a real agent"}</strong>
+            <span className={QS_LANG}>tsx</span>
             <CopyButton text={LIVE_AGENT_CODE} zh={zh} />
           </div>
         </li>
       </ol>
 
-      <ul className="qs-skins" aria-label={zh ? "皮肤一览" : "Skins"}>
+      {/* container-type utility (@container) drives the @min-[428px] density
+          shifts below — same 210px+8px 2-track boundary as before */}
+      <ul
+        className="qs-skins m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-2 p-0 @container"
+        aria-label={zh ? "皮肤一览" : "Skins"}
+      >
         {skins.map((s) => {
           const isCurrent = s.id === skin.id;
           return (
-            <li className="qs-skin-item" key={s.id}>
+            <li className="qs-skin-item block min-w-0" key={s.id}>
               <a
-                className={`qs-skin-row ${isCurrent ? "is-current" : ""}`}
+                className={`qs-skin-row group flex min-w-0 items-center gap-2 rounded-[var(--r-sm)] border bg-transparent px-4 py-3 text-inherit no-underline transition-[background,border-color] ${T} ${
+                  isCurrent
+                    ? "is-current border-(--accent-line) bg-(--accent-dim) hover:border-(--accent-line)"
+                    : "border-(--hairline-subtle) hover:bg-[rgba(0,0,0,0.03)] hover:border-(--hairline)"
+                }`}
                 href={openHref(s.id)}
                 title={`${s.name} — ${s.tagline}`}
                 aria-current={isCurrent ? "true" : undefined}
               >
-                <span className="qs-swatch-row" aria-hidden="true">
+                <span className="qs-swatch-row inline-flex shrink-0 items-center gap-1" aria-hidden="true">
                   {skinSwatches(s.id, s.swatch[2]).map((color, i) => (
-                    <i key={i} style={{ background: color }} />
+                    <i key={i} className="h-2 w-2 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(17,17,20,0.14)]" style={{ background: color }} />
                   ))}
                 </span>
-                <strong className="qs-skin-name">{s.name}</strong>
-                {isCurrent && <span className="qs-skin-current">{zh ? "当前" : "current"}</span>}
-                <span className="qs-skin-tagline">{s.tagline}</span>
-                <span className="qs-skin-open">
+                <strong className="qs-skin-name min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-medium text-(--fg) [flex:0_1_auto]">{s.name}</strong>
+                {isCurrent && (
+                  <span className="qs-skin-current shrink-0 rounded-full border border-[rgba(124,58,237,0.35)] bg-(--accent-dim) px-2 py-1 font-(--font-mono) text-[8.5px] tracking-[0.1em] text-(--accent-hover) uppercase @min-[428px]:ml-auto">
+                    {zh ? "当前" : "current"}
+                  </span>
+                )}
+                <span className="qs-skin-tagline min-w-0 flex-1 truncate text-[11px] text-(--fg-muted) @min-[428px]:hidden">{s.tagline}</span>
+                <span
+                  className={`qs-skin-open inline-flex shrink-0 items-center gap-1 font-(--font-mono) text-[9px] tracking-[0.1em] text-(--fg-muted) uppercase transition-colors group-hover:text-(--fg) @min-[428px]:ml-auto ${T} ${isCurrent ? "@min-[428px]:hidden" : ""}`}
+                >
                   {zh ? "打开" : "Open"}
                   <Icon name="arrow-up-right" size={11} />
                 </span>

@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import "./grid-motion.css";
 
 /**
  * Ported from React Bits' Grid Motion (DavidHDev/react-bits, MIT).
  * A tilted wall of drifting tiles, pointer-parallax + spotlight.
  * Trimmed to what the studio needs: image tiles only.
+ *
+ * Tailwind migration (task-13): grid-motion.css was fully converted to
+ * utilities. The --gm-* custom properties are still set inline below and
+ * consumed via arbitrary values; --spot is written per-tile by the rAF
+ * loop and read by the opacity/scale/spotlight-overlay utilities.
  */
 
 const INERTIA = [0.42, 0.32, 0.26, 0.22];
@@ -254,13 +258,13 @@ export function GridMotion({
   return (
     <div
       ref={rootRef}
-      className={`grid-motion ${className}`}
+      className={`grid-motion relative h-full w-full overflow-hidden bg-[radial-gradient(90%_70%_at_18%_8%,rgba(124,58,237,0.06),transparent_60%),radial-gradient(80%_60%_at_85%_92%,rgba(168,85,247,0.05),transparent_62%),#f3f0fa] ${className}`}
       style={{ "--gm-dim": settings.dim, maskImage: mask, WebkitMaskImage: mask } as React.CSSProperties}
     >
       {layout && (
         <div
           ref={planeRef}
-          className="grid-motion__plane"
+          className="grid-motion__plane absolute left-1/2 top-1/2 block opacity-0 will-change-transform [transform-origin:center]"
           aria-hidden="true"
           style={{
             width: layout.planeWidth,
@@ -273,10 +277,23 @@ export function GridMotion({
           } as React.CSSProperties}
         >
           {rowTiles.map((sequence, r) => (
-            <div key={r} className="grid-motion__row" style={{ top: layout.top + r * (layout.tileHeight + settings.gap) }}>
+            <div
+              key={r}
+              className="grid-motion__row absolute left-0 flex gap-[var(--gm-gap,16px)] will-change-transform"
+              style={{ top: layout.top + r * (layout.tileHeight + settings.gap) }}
+            >
               {sequence.map((src, k) => (
-                <div className="grid-motion__tile" key={k}>
-                  <img src={src} alt="" draggable={false} decoding="async" />
+                <div
+                  className="grid-motion__tile relative h-[var(--gm-tile-h,90px)] w-[var(--gm-tile-w,120px)] shrink-0 overflow-hidden rounded-[var(--gm-radius,14px)] border border-[rgba(17,17,20,0.08)] bg-white shadow-[0_20px_40px_-30px_rgba(24,24,27,0.25)] after:pointer-events-none after:absolute after:inset-0 after:content-[''] after:bg-[radial-gradient(circle_at_50%_45%,rgba(168,85,247,0.35),rgba(124,58,237,0.12)_55%,transparent_72%)] after:opacity-[calc(var(--spot,0)*0.85)] after:mix-blend-multiply"
+                  key={k}
+                >
+                  <img
+                    src={src}
+                    alt=""
+                    draggable={false}
+                    decoding="async"
+                    className="block h-full w-full object-cover opacity-[calc(var(--gm-dim,0.35)_+_(1_-_var(--gm-dim,0.35))_*_var(--spot,0))] scale-[calc(1_+_0.04_*_var(--spot,0))] transition-[opacity,transform] duration-[250ms] ease-linear"
+                  />
                 </div>
               ))}
             </div>
