@@ -261,7 +261,7 @@ export function PaperPage() {
           </div>
           <div className="pap-mast-right flex items-center gap-[14px]">
             <span className="pap-meta [font-family:var(--mono)] text-[9.5px] tracking-[0.06em] text-(--ink-3) uppercase">{fmt(c.events[0]?.event.timestamp as string)} · {c.threadId.slice(-6).toUpperCase()}</span>
-            <span className={`${STATUS_BASE} ${PAP_STATUS[c.status] ?? PAP_STATUS_IDLE}`}>
+            <span className={`${STATUS_BASE} pap-status--${c.status} ${PAP_STATUS[c.status] ?? PAP_STATUS_IDLE}`}>
               {c.status === "running" ? t("paper.recording") : c.status === "interrupted" ? t("paper.awaiting") : c.status === "done" ? t("paper.filed") : t(("status." + c.status) as never)}
             </span>
           </div>

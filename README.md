@@ -475,8 +475,8 @@ pnpm test
 
 > **⚠ Tailwind 迁移期的包交付边界（task-13 Phase 2 进行中）**
 > 元素样式正从皮肤 CSS 迁往 TSX 上的 Tailwind utilities，包 CSS 的形态随迁移进度变化：
-> - **已迁移皮肤**（清单以 `packages/agui-skins/tailwind/skin-*.css` 为准，随迁移逐套增加）：`dist/skins/<id>.css` = 皮肤残余 CSS（tokens / keyframes / 伪元素）+ Tailwind 编译出的 utilities（tsup 之后的 `build-tailwind.mjs` 步骤产出；`scripts/verify-package.mjs` 对每套已迁移皮肤断言 utilities 真实进包，防"打包成功但 CSS 空"）。
-> - **未迁移皮肤**：包内 CSS 仍为迁移前原样——**不含 utilities**，但样式完整保留在皮肤 CSS 内，行为与迁移前一致。已知差异仅一处：tuning 的元素级规则（`.sk-tune` 布局、文本动效挂载类）在 Phase 1 已转为 utilities，故只出现在已迁移皮肤的 CSS 与整包 `index.css` 中；按皮肤引未迁移皮肤 CSS 时 tuning 元素级样式回到 Phase 1 之前的行为。
+> - **已迁移皮肤**（清单以 `packages/agui-skins/tailwind/skin-*.css` 为准，随迁移逐套增加；当前：workbench + aurora / paper / terminal / brutalist）：`dist/skins/<id>.css` = 皮肤残余 CSS（tokens / keyframes / 伪元素）+ Tailwind 编译出的 utilities（tsup 之后的 `build-tailwind.mjs` 步骤产出；`scripts/verify-package.mjs` 对每套已迁移皮肤断言 utilities 真实进包，防"打包成功但 CSS 空"，并对"TSX 源码已经写了 utilities 却没有 per-skin 入口"做防御断言）。
+> - **未迁移皮肤**（当前：classic / particle / dash / bubble，Phase 2b 逐套迁移）：包内 CSS 仍为迁移前原样——**不含 utilities**，但样式完整保留在皮肤 CSS 内，行为与迁移前一致。已知差异仅一处：tuning 的元素级规则（`.sk-tune` 布局、文本动效挂载类）在 Phase 1 已转为 utilities，故只出现在已迁移皮肤的 CSS 与整包 `index.css` 中；按皮肤引未迁移皮肤 CSS 时 tuning 元素级样式回到 Phase 1 之前的行为。
 > - `dist/index.css` = 全部皮肤残余 + 整包 utilities 扫描，消费 `index.css` 的行为始终完整。
 
 ## 协议覆盖现状（P0 已补）

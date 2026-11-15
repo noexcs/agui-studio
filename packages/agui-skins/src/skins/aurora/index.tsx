@@ -157,7 +157,7 @@ const FOLD_FLAG: Record<string, string> = {
 };
 
 const SEND =
-  "grid h-[34px] w-[34px] place-items-center rounded-[10px] bg-[image:var(--accent-grad)] text-[#04140f] shadow-[0_10px_24px_-12px_rgba(94,240,194,0.9),0_0_0_1px_rgba(255,255,255,0.16)_inset] [transition:all_0.25s_var(--ease-spring)] hover:-translate-y-px hover:scale-[1.03] hover:shadow-[0_14px_30px_-12px_rgba(94,240,194,1)] active:scale-[0.95] disabled:bg-none disabled:bg-[rgba(255,255,255,0.07)] disabled:text-(--text-3) disabled:shadow-none disabled:cursor-default disabled:transform-none";
+  "grid h-[34px] w-[34px] place-items-center rounded-[10px] bg-[image:var(--accent-grad)] text-[#04140f] shadow-[0_10px_24px_-12px_rgba(94,240,194,0.9),0_0_0_1px_rgba(255,255,255,0.16)_inset] [transition:all_0.25s_var(--ease-spring)] hover:-translate-y-px hover:scale-[1.03] hover:shadow-[0_14px_30px_-12px_rgba(94,240,194,1)] active:scale-[0.95] disabled:bg-none disabled:bg-[rgba(255,255,255,0.07)] disabled:text-(--text-3) disabled:shadow-none disabled:cursor-default disabled:transform-none disabled:translate-none disabled:scale-100";
 
 /* ── small helpers ─────────────────────────────────────────────────── */
 
@@ -382,7 +382,7 @@ export function AuroraPage() {
                   value={draft}
                   aria-label={t("chat.placeholder")}
                   placeholder={t("chat.placeholder")}
-                  className="[display:block] min-h-[26px] max-h-[168px] w-full resize-none border-0 bg-transparent px-4 pt-[14px] pb-[6px] text-[13.8px] leading-[1.6] text-(--text) outline-none placeholder:text-(--text-3)"
+                  className="[display:block] min-h-[26px] max-h-[168px] w-full resize-none border-0 bg-transparent px-4 pt-[14px] pb-[6px] text-[13.8px] leading-[1.6] text-(--text) placeholder:text-(--text-3)"
                   onChange={(e) => setDraft(e.target.value)}
                   onInput={(e) => {
                     const el = e.currentTarget;
@@ -913,7 +913,7 @@ function InterruptBlock(props: {
             </div>
             {editing && (
               <div className="interrupt-edit mt-[10px] animate-[fade_0.25s]">
-                <textarea value={editJson} onChange={(e) => setEditJson(e.target.value)} spellCheck={false} className="w-full min-h-[70px] resize-y rounded-[9px] border border-[rgba(255,196,107,0.25)] bg-[rgba(0,0,0,0.35)] px-[10px] py-2 outline-none [font-family:var(--mono)] text-[11px] leading-[1.6] text-[#ffe6c2] focus:border-[rgba(255,196,107,0.5)]" />
+                <textarea value={editJson} onChange={(e) => setEditJson(e.target.value)} spellCheck={false} className="w-full min-h-[70px] resize-y rounded-[9px] border border-[rgba(255,196,107,0.25)] bg-[rgba(0,0,0,0.35)] px-[10px] py-2 [font-family:var(--mono)] text-[11px] leading-[1.6] text-[#ffe6c2] focus:border-[rgba(255,196,107,0.5)]" />
                 <div className="interrupt-actions mt-[12px] flex items-center gap-2">
                   <button className={`btn btn--approve ${BTN_BASE} ${BTN_KIND.approve}`} onClick={approve}>{t("intr.approveEdited")}</button>
                   <button className={`btn btn--ghost ${BTN_BASE} ${BTN_KIND.ghost}`} onClick={() => setEditing(false)}>{t("intr.cancel")}</button>

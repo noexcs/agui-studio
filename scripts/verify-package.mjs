@@ -11,7 +11,11 @@
  *     claim and the build have diverged again),
  *   - a Tailwind-migrated skin's dist CSS lacks its utilities block
  *     (task-13 Phase 2: element styling lives in utilities on the TSX; a
- *     broken Tailwind compile would ship "valid but empty" CSS — silent).
+ *     broken Tailwind compile would ship "valid but empty" CSS — silent),
+ *   - a skin's TSX already writes Tailwind utilities but the per-skin
+ *     compilation entry is missing (migrated source would ship without its
+ *     utilities in dist — the exact gap Phase 2a left for aurora/paper/
+ *     terminal/brutalist).
  *
  * Run: node scripts/verify-package.mjs  (after `pnpm --filter agui-skins build`)
  */
@@ -37,6 +41,30 @@ const errors = [];
 const check = (ok, message) => {
   if (!ok) errors.push(message);
 };
+
+// Defensive: migrated-source detection (task-13 Phase 2b). A skin whose TSX
+// carries Tailwind utilities must have a tailwind/skin-<id>.css entry, else
+// build-tailwind.mjs never compiles those utilities into its dist CSS and the
+// npm package ships a silently unstyled skin. Marker = the repo-wide arbitrary
+// var shorthand (`bg-(--skin-var)`, required so skin-scoped tokens stay the
+// source of truth) or an arbitrary property utility (`[font-family:var(...)]`).
+// Unmigrated skins contain neither.
+const UTILITY_SOURCE = /(?:\b[a-z][a-z0-9-]*-\(--|\[(?:font-family|font-size|line-height|border-[a-z-]+|background|background-image|color|display|grid-template-columns|max-height|min-height|padding|margin|transition|animation|transform|box-shadow|letter-spacing|text-transform):)/;
+const skinSrcDir = join(pkgDir, "src", "skins");
+if (existsSync(skinSrcDir)) {
+  for (const entry of readdirSync(skinSrcDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const dir = join(skinSrcDir, entry.name);
+    const tsxFiles = readdirSync(dir, { recursive: true }).map(String).filter((file) => file.endsWith(".tsx"));
+    const source = tsxFiles.map((file) => readFileSync(join(dir, file), "utf8")).join("\n");
+    if (UTILITY_SOURCE.test(source)) {
+      check(
+        migratedSkins.includes(entry.name),
+        `src/skins/${entry.name} already writes Tailwind utilities but tailwind/skin-${entry.name}.css is missing — add the per-skin compilation entry, else dist/skins/${entry.name}.css ships without utilities`
+      );
+    }
+  }
+}
 
 check(existsSync(dist), "packages/agui-skins/dist is missing — run `pnpm --filter agui-skins build`");
 
