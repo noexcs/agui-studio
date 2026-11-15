@@ -54,6 +54,7 @@ export default function App() {
       motion: params.get("motion"),
       radius: params.get("radius"),
       scale: params.get("scale"),
+      theme: params.get("theme"),
     });
     if (Object.keys(seededTuning).length) seeded[skinId] = seededTuning;
     return seeded;
@@ -322,6 +323,7 @@ export default function App() {
     <CustomizePanel
       variant="inline"
       open={true}
+      skinId={skinId}
       skinName={getSkin(skinId).name}
       tuning={tuning}
       onChange={updateTuning}
@@ -451,6 +453,7 @@ export default function App() {
         <CustomizePanel
           variant="drawer"
           open={customizeOpen}
+          skinId={skinId}
           skinName={getSkin(skinId).name}
           tuning={tuning}
           onChange={updateTuning}

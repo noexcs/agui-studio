@@ -189,6 +189,8 @@ export type SkinDensity = "comfortable" | "compact";
 export type SkinMotion = "slow" | "normal" | "fast";
 export type SkinRadius = "sharp" | "soft" | "round";
 export type SkinTextScale = "compact" | "normal" | "large";
+/** Light/dark variant of a skin that ships one (defaults to "dark"). */
+export type SkinTheme = "dark" | "light";
 
 /** Per-skin visual overrides applied by the host (customize panel). */
 export interface SkinTuning {
@@ -201,6 +203,8 @@ export interface SkinTuning {
   radius?: SkinRadius;
   /** reading scale for text blocks (markdown + data-skin-text) */
   textScale?: SkinTextScale;
+  /** light/dark variant for skins that ship one ("dark" is the default) */
+  theme?: SkinTheme;
 }
 
 export interface SkinBranding {
@@ -216,4 +220,6 @@ export interface SkinDefinition {
   tagline: string;
   swatch: [string, string, string];
   ChatPage: ComponentType;
+  /** tuning controls the skin actually supports (drives CustomizePanel gating) */
+  tuningSupport?: { theme?: boolean };
 }

@@ -36,3 +36,35 @@ describe("inline customize panel", () => {
     expect(onChange).toHaveBeenCalledWith({});
   });
 });
+
+describe("theme control gating", () => {
+  const renderPanel = (tuning: Parameters<typeof CustomizePanel>[0]["tuning"], skinId?: string) => {
+    const onChange = vi.fn();
+    const utils = render(<CustomizePanel open variant="inline" skinId={skinId} skinName="Skin" tuning={tuning} onChange={onChange} />);
+    return { onChange, ...utils };
+  };
+
+  it("shows the theme segment only for skins declaring tuningSupport.theme", () => {
+    const wb = renderPanel({}, "workbench");
+    expect(wb.container.querySelector('[data-testid="theme-tile"]')).toBeTruthy();
+    expect(wb.container.textContent).toContain("Theme");
+    wb.unmount();
+    const aurora = renderPanel({}, "aurora");
+    expect(aurora.container.querySelector('[data-testid="theme-tile"]')).toBeNull();
+    aurora.unmount();
+    const unknown = renderPanel({});
+    expect(unknown.container.querySelector('[data-testid="theme-tile"]')).toBeNull();
+  });
+
+  it("switching the theme calls onChange with the picked value", () => {
+    const { onChange, getByText } = renderPanel({}, "workbench");
+    fireEvent.click(getByText("Light"));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ theme: "light" }));
+  });
+
+  it("presets never rewrite an explicit theme choice", () => {
+    const { onChange, getByText } = renderPanel({ theme: "light", density: "compact" }, "workbench");
+    fireEvent.click(getByText("Warm"));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ accent: "#d97706", theme: "light" }));
+  });
+});

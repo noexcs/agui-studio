@@ -50,3 +50,36 @@ describe("buildAppQuery", () => {
     ).toBe("skin=aurora&lang=en&backend=pi&scene=done&full=1");
   });
 });
+
+describe("theme tuning", () => {
+  it("keeps whitelisted themes and drops unknown values", () => {
+    expect(sanitizeTuning({ theme: "light" })).toEqual({ theme: "light" });
+    expect(sanitizeTuning({ theme: "dark" })).toEqual({ theme: "dark" });
+    expect(sanitizeTuning({ theme: "solarized" })).toEqual({});
+    expect(sanitizeTuning({ theme: null })).toEqual({});
+  });
+
+  it("serializes an explicit light pick and omits the dark default", () => {
+    const base = { skin: "workbench", lang: "zh" as const, backend: "mock" as const, scene: "live", full: false };
+    expect(buildAppQuery({ ...base, tuning: { theme: "light" } })).toBe("skin=workbench&lang=zh&theme=light");
+    expect(buildAppQuery({ ...base, tuning: { theme: "dark" } })).toBe("skin=workbench&lang=zh");
+    expect(buildAppQuery({ ...base, tuning: {} })).toBe("skin=workbench&lang=zh");
+  });
+
+  it("round-trips a shareable light-theme link", () => {
+    const base = { skin: "workbench", lang: "en" as const, backend: "mock" as const, scene: "done", full: true };
+    const tuning = { theme: "light", accent: "#db2777", textAnim: "rise" } as const;
+    const query = buildAppQuery({ ...base, tuning });
+    const params = new URLSearchParams(query);
+    const restored = sanitizeTuning({
+      accent: params.get("accent"),
+      anim: params.get("anim"),
+      density: params.get("density"),
+      motion: params.get("motion"),
+      radius: params.get("radius"),
+      scale: params.get("scale"),
+      theme: params.get("theme"),
+    });
+    expect(restored).toEqual({ accent: "#db2777", textAnim: "rise", theme: "light" });
+  });
+});

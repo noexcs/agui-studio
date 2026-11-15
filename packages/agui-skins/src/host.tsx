@@ -107,6 +107,7 @@ export function SkinHostProvider(props: {
         data-sk-motion={tuning.motion}
         data-sk-radius={tuning.radius}
         data-sk-text-scale={tuning.textScale}
+        data-sk-theme={tuning.theme}
         style={hasStyle ? (tuneStyle as CSSProperties) : undefined}
       >
         {props.children}
