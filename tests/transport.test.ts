@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HttpAgentTransport } from "../src/core/transport";
+import { HttpAgentTransport, crlfToLf } from "../src/core/transport";
 import { EventType, type BaseEvent } from "../src/core/events";
 
 /* Byte-accurate SSE fixtures: every string becomes one read() chunk, so
@@ -40,6 +40,8 @@ describe("HttpAgentTransport", () => {
         'data: {"type":"RUN_STARTED","threadId":"t1"}\n\n',
         'data: {"type":"TEXT_MESSAGE_START","messageId":"m1"}\n\n',
         'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"m1","delta":"hi"}\n\n',
+        // official verify requires messages to close before RUN_FINISHED
+        'data: {"type":"TEXT_MESSAGE_END","messageId":"m1"}\n\n',
         'data: {"type":"RUN_FINISHED"}\n\n',
       ]),
     });
@@ -51,6 +53,7 @@ describe("HttpAgentTransport", () => {
       EventType.RUN_STARTED,
       EventType.TEXT_MESSAGE_START,
       EventType.TEXT_MESSAGE_CONTENT,
+      EventType.TEXT_MESSAGE_END,
       EventType.RUN_FINISHED,
     ]);
     expect(events[2].delta).toBe("hi");
@@ -100,18 +103,25 @@ describe("HttpAgentTransport", () => {
   it("joins multi-line data fields into one payload", async () => {
     stubFetch({
       ok: true,
-      body: sseStream(['data: {"type":"TEXT_MESSAGE_CHUNK","messageId":"m1",\ndata: "delta":"multi"}\n\n']),
+      body: sseStream([
+        'data: {"type":"RUN_STARTED"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_CHUNK","messageId":"m1",\ndata: "delta":"multi"}\n\n',
+      ]),
     });
 
     const events = await collect(new HttpAgentTransport({ url: "x" }).run({}));
 
-    expect(events).toEqual([{ type: EventType.TEXT_MESSAGE_CHUNK, messageId: "m1", delta: "multi" }]);
+    expect(events).toEqual([
+      { type: EventType.RUN_STARTED },
+      { type: EventType.TEXT_MESSAGE_CHUNK, messageId: "m1", delta: "multi" },
+    ]);
   });
 
   it("reassembles a half-frame split across chunks", async () => {
     stubFetch({
       ok: true,
       body: sseStream([
+        'data: {"type":"RUN_STARTED"}\n\n',
         'data: {"type":"TE',
         'XT_MESSAGE_CHUNK","messageId":"m1","delta":"half"}\n\n',
         'data: {"type":"RUN_FINISHED"}\n\n',
@@ -120,15 +130,19 @@ describe("HttpAgentTransport", () => {
 
     const events = await collect(new HttpAgentTransport({ url: "x" }).run({}));
 
-    expect(events.map((event) => event.type)).toEqual([EventType.TEXT_MESSAGE_CHUNK, EventType.RUN_FINISHED]);
-    expect(events[0].delta).toBe("half");
+    expect(events.map((event) => event.type)).toEqual([
+      EventType.RUN_STARTED,
+      EventType.TEXT_MESSAGE_CHUNK,
+      EventType.RUN_FINISHED,
+    ]);
+    expect(events[1].delta).toBe("half");
   });
 
   it("yields every complete frame coalesced into one chunk", async () => {
     stubFetch({
       ok: true,
       body: sseStream([
-        'data: {"type":"RUN_STARTED"}\n\ndata: {"type":"TEXT_MESSAGE_START","messageId":"m1"}\n\ndata: {"type":"RUN_FINISHED"}\n\n',
+        'data: {"type":"RUN_STARTED"}\n\ndata: {"type":"TEXT_MESSAGE_START","messageId":"m1"}\n\ndata: {"type":"TEXT_MESSAGE_END","messageId":"m1"}\n\ndata: {"type":"RUN_FINISHED"}\n\n',
       ]),
     });
 
@@ -137,6 +151,7 @@ describe("HttpAgentTransport", () => {
     expect(events.map((event) => event.type)).toEqual([
       EventType.RUN_STARTED,
       EventType.TEXT_MESSAGE_START,
+      EventType.TEXT_MESSAGE_END,
       EventType.RUN_FINISHED,
     ]);
   });
@@ -261,15 +276,103 @@ describe("HttpAgentTransport", () => {
     expect(fetchMock.mock.calls[0][1]?.signal).toBe(controller.signal);
   });
 
-  it("throws with the response status when the server errors", async () => {
-    stubFetch({ ok: false, status: 500 });
+  it("throws with the response status (and error body) when the server errors", async () => {
+    // the official runHttpRequest reads the small error body into the message
+    stubFetch({
+      ok: false,
+      status: 500,
+      headers: new Headers({ "content-type": "text/plain" }),
+      text: async () => "backend exploded",
+    });
 
-    await expect(collect(new HttpAgentTransport({ url: "x" }).run({}))).rejects.toThrow("AG-UI transport error 500");
+    await expect(collect(new HttpAgentTransport({ url: "x" }).run({}))).rejects.toThrow("HTTP 500: backend exploded");
   });
 
   it("throws when the response has no body", async () => {
-    stubFetch({ ok: true, body: null });
+    stubFetch({ ok: true, body: null, headers: new Headers() });
 
-    await expect(collect(new HttpAgentTransport({ url: "x" }).run({}))).rejects.toThrow("empty stream");
+    await expect(collect(new HttpAgentTransport({ url: "x" }).run({}))).rejects.toThrow("Failed to getReader()");
+  });
+});
+
+/* The official verify/ state machine, adapted to the strict ruling: a stream
+   the verifier rejects surfaces as a RUN_ERROR event carrying the reason. */
+describe("HttpAgentTransport · official verify semantics", () => {
+  it("rejects CONTENT for a message that was never STARTed", async () => {
+    stubFetch({
+      ok: true,
+      body: sseStream([
+        'data: {"type":"RUN_STARTED"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"m1","delta":"orphan"}\n\n',
+      ]),
+    });
+
+    const events = await collect(new HttpAgentTransport({ url: "x" }).run({}));
+
+    expect(events.map((event) => event.type)).toEqual([EventType.RUN_STARTED, EventType.RUN_ERROR]);
+    expect(events[1].message).toContain("TEXT_MESSAGE_CONTENT");
+  });
+
+  it("rejects RUN_FINISHED while a text message is still open", async () => {
+    stubFetch({
+      ok: true,
+      body: sseStream([
+        'data: {"type":"RUN_STARTED"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_START","messageId":"m1"}\n\n',
+        'data: {"type":"RUN_FINISHED"}\n\n',
+      ]),
+    });
+
+    const events = await collect(new HttpAgentTransport({ url: "x" }).run({}));
+
+    expect(events.map((event) => event.type)).toEqual([EventType.RUN_STARTED, EventType.TEXT_MESSAGE_START, EventType.RUN_ERROR]);
+    expect(events[2].message).toContain("m1");
+  });
+
+  it("stops reading after a server-sent RUN_ERROR", async () => {
+    stubFetch({
+      ok: true,
+      body: sseStream([
+        'data: {"type":"RUN_STARTED"}\n\n',
+        'data: {"type":"RUN_ERROR","message":"agent exploded"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_CHUNK","messageId":"m1","delta":"never"}\n\n',
+      ]),
+    });
+
+    const events = await collect(new HttpAgentTransport({ url: "x" }).run({}));
+
+    expect(events.map((event) => event.type)).toEqual([EventType.RUN_STARTED, EventType.RUN_ERROR]);
+    expect(events[1].message).toBe("agent exploded");
+  });
+});
+
+describe("crlfToLf (CRLF normalize fed to the official \\n\\n framing)", () => {
+  const bytes = (s: string) => new TextEncoder().encode(s);
+
+  it("rewrites \\r\\n pairs to \\n", () => {
+    const { data, cr } = crlfToLf(bytes("a\r\nb\r\n"), false);
+    expect(new TextDecoder().decode(data)).toBe("a\nb\n");
+    expect(cr).toBe(false);
+  });
+
+  it("carries a trailing \\r across the chunk boundary", () => {
+    const first = crlfToLf(bytes("data: x\r"), false);
+    expect(new TextDecoder().decode(first.data)).toBe("data: x");
+    expect(first.cr).toBe(true);
+    const second = crlfToLf(bytes("\n\r\ndata: y\n\n"), first.cr);
+    expect(new TextDecoder().decode(second.data)).toBe("\n\ndata: y\n\n");
+    expect(second.cr).toBe(false);
+  });
+
+  it("preserves lone \\r bytes (only pairs are delimiters)", () => {
+    const { data, cr } = crlfToLf(bytes("a\rb"), false);
+    expect(new TextDecoder().decode(data)).toBe("a\rb");
+    expect(cr).toBe(false);
+    const trailing = crlfToLf(bytes("a\r"), false);
+    expect(new TextDecoder().decode(trailing.data)).toBe("a");
+    expect(trailing.cr).toBe(true);
+    // the held \r is preserved verbatim (concatenated with the earlier "a")
+    const resolved = crlfToLf(bytes("b"), trailing.cr);
+    expect(new TextDecoder().decode(resolved.data)).toBe("\rb");
   });
 });

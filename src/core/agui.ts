@@ -9,6 +9,8 @@
 import type { BaseEvent } from "./events";
 import type { Entry } from "./store";
 import { HttpAgentTransport } from "./transport";
+import { buildResumeArray } from "@ag-ui/client";
+import type { Interrupt } from "@ag-ui/core";
 
 export interface AgentEndpoint {
   url: string;
@@ -152,6 +154,26 @@ export function buildResumeInput(options: {
   messages?: AgUiMessage[];
   decisions: { interruptId: string; approved: boolean; editedArgs?: Record<string, unknown> }[];
 }): RunAgentInput {
+  /* Official canonical mapping (@ag-ui/client buildResumeArray): statuses use
+     the protocol vocabulary (approved → resolved) and payload placement. The
+     decisions handed in are already scoped to the run's open interrupts by
+     the store, so the function's strict coverage check (missing/unknown ids
+     throw) cannot fire here; the store enforces it before calling. */
+  const interrupts: Interrupt[] = options.decisions.map((decision) => ({
+    id: decision.interruptId,
+    reason: "resume",
+  }));
+  const responses: Record<string, { status: "resolved"; payload?: unknown } | { status: "cancelled" }> = {};
+  for (const decision of options.decisions) {
+    responses[decision.interruptId] = decision.approved
+      ? {
+          status: "resolved",
+          payload: decision.editedArgs
+            ? { approved: true, editedArgs: decision.editedArgs }
+            : { approved: true },
+        }
+      : { status: "cancelled" };
+  }
   return {
     threadId: options.threadId,
     runId: options.runId,
@@ -160,17 +182,7 @@ export function buildResumeInput(options: {
     context: [],
     state: options.state,
     forwardedProps: {},
-    resume: options.decisions.map((decision) => ({
-      interruptId: decision.interruptId,
-      status: decision.approved ? "resolved" : "cancelled",
-      ...(decision.approved
-        ? {
-            payload: decision.editedArgs
-              ? { approved: true, editedArgs: decision.editedArgs }
-              : { approved: true },
-          }
-        : {}),
-    })),
+    resume: buildResumeArray(interrupts, responses),
   };
 }
 
