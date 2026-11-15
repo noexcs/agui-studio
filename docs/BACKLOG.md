@@ -43,7 +43,7 @@
 | P1-3 | CUSTOM 渲染插槽 | 只认 `suggestions` / `usage` | `SkinDefinition` 增加可选 `renderCustom`（或 skin 内注册表）；未知 CUSTOM 不静默丢 | M |
 | P1-4 | capabilities 来自 agent | 目前 store 里是静态声明 | bridge/agent 下发 capabilities 时覆盖 `store.capabilities`；皮肤同步更新 | M |
 | P1-5 | 多实例/多语言同页 | i18n 字典是模块单例，provider 目前「钉住」当前语言 | 改为 React Context 字典（不破坏现有 73 测试）；两个不同 `lang` 的 Host 同页并存 | M |
-| P1-6 | 边界 schema 校验 | 畸形事件靠手写映射容错 | 引入 zod（或 ajv），在 transport/adapter 边界校验；非法事件转为 `RUN_ERROR` 而不是半应用 | M |
+| P1-6 | ✅ 边界 schema 校验（1659205，zod + @ag-ui/core/schemas，非法事件 → RUN_ERROR；net +363 行含三件套适配层，回退路径见 SDD 台账） | 畸形事件靠手写映射容错 | 引入 zod（或 ajv），在 transport/adapter 边界校验；非法事件转为 `RUN_ERROR` 而不是半应用 | M |
 | P1-7 | fuzz / 不变量 | 顺序错乱、重复事件只覆盖了少量 | 随机事件序列不崩；不变量断言（无孤儿 tool、无 NaN、状态机合法迁移） | S |
 
 ## 3. P2 — 产品与体验

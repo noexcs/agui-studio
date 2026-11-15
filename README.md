@@ -748,3 +748,10 @@ http://127.0.0.1:5178/?agui=http://127.0.0.1:5180/agui&autosend=1&lang=zh
 ## 2026-11-15 连续思考+工具调用折叠组
 
 全部 9 套皮肤支持：相邻连续的思考（reasoning）与工具调用（tool）条目自动聚合为可折叠组（≥2 条成组，error 行永不入组、独立可见）。默认开合确定性派生——组内全部完成则折叠、任一进行中则展开，用户点击后以用户选择为准；组内有失败/暂停工具时折叠头透出状态标记，读屏可访问名=按钮完整内容（无 aria-label 遮蔽）。分组逻辑在包内 `shared/conversationGroups.ts` 纯函数一处，呈现由各皮肤用自己的视觉语言渲染。测试增至 **550 个用例（39 文件）**。
+
+## 2026-11-15 协议层采用官方 SDK + zod 边界校验
+
+- **传输内核换官方 `@ag-ui/client`**：SSE 解析、事件状态机校验（verify：open/close 归属、RUN_ERROR 禁言、多 run 重置）、interrupt 规范函数（`isInterruptExpired`/`buildResumeArray`）全部交给官方实现；本地保留 CRLF 字节级 normalize（兼容 `\r\n` 服务端）与 keep-alive 容忍适配层。行为变严格：坏事件/非法序列 → `RUN_ERROR`（带原因），不再静默忽略；
+- **zod 边界校验**（P1-6）：事件 schema 校验走 `@ag-ui/core/schemas`，替代手写 mini JSON-Schema；对外部数据源的字段松弛集中在 `src/core/validate.ts`（本项目后端的 timestamp 字符串、run 事件缺 id 等事实差异）；
+- **use-stick-to-bottom**（784★）替换自研吸底 hook，签名不变、11 处消费点零改动；
+- 净 +363 行（适配层，回退路径见 SDD 台账）；测试增至 **572 个用例（41 文件）**。
