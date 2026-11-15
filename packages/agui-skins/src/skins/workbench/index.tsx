@@ -19,6 +19,13 @@ import { planRawText, planView } from "../../shared/plan";
 import { displayText, entriesOf, isEmptyState, safeJson } from "../../shared/safe";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { firstPendingInterrupt, pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupDuration,
+  foldGroupFailures,
+  foldGroupOpen,
+  foldGroupStats,
+} from "../../shared/conversationGroups";
 import { toolStage } from "../../shared/toolStatus";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import { Icon } from "../../shared/Icon";
@@ -47,6 +54,9 @@ export function WorkbenchPage() {
   const [openTools, setOpenTools] = useState<Record<string, boolean>>({});
   const [openRounds, setOpenRounds] = useState<Record<string, boolean>>({});
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
+  // Fold groups: per-group user override on top of the derived default
+  // (open while the run is working, folded once everything settles).
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   // Fix B shape: editor drafts are keyed by interrupt id — two pending cards
   // never share an editor or submit each other's args.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -64,6 +74,15 @@ export function WorkbenchPage() {
 
   // Stable gutter numbers: one pseudo line per transcript entry.
   const lineOf = useMemo(() => new Map(c.entries.map((entry, index) => [entry.id, index + 1])), [c.entries.length]);
+  // Consecutive reasoning/tool rows collapse into one fold-group row.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
+  const groupOfEntry = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of foldItems) {
+      if (item.type === "group") for (const entry of item.entries) map.set(entry.id, item.id);
+    }
+    return map;
+  }, [foldItems]);
   // Rounds = "files" in the explorer: a round opens at each user entry.
   const rounds = useMemo(() => {
     const list: { id: string; label: string; entries: Entry[] }[] = [];
@@ -99,9 +118,14 @@ export function WorkbenchPage() {
       setPanelOpen(true);
       setOpenTools((prev) => ({ ...prev, [entryId]: true }));
     }
-    document
-      .getElementById(`wb-e-${entryId}`)
-      ?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    // A tree leaf may point into a folded group: open it first, then scroll
+    // once the row exists in the DOM.
+    const groupId = groupOfEntry.get(entryId);
+    if (groupId) setFoldOverride((prev) => ({ ...prev, [groupId]: true }));
+    const scroll = () =>
+      document.getElementById(`wb-e-${entryId}`)?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    if (groupId) setTimeout(scroll, 0);
+    else scroll();
   }
 
   function send() {
@@ -351,16 +375,34 @@ export function WorkbenchPage() {
               </div>
             ) : (
               <div className="wb-rows">
-                {visible.map((entry) => (
-                <div key={entry.id} id={`wb-e-${entry.id}`} className="wb-row" data-kind={entry.kind}>
-                  <div className="wb-gutter mono" aria-hidden="true">
-                    <span className="wb-line" data-active={entry.kind === "assistant" && (entry as AssistantEntry).streaming ? "true" : undefined}>
-                      {lineOf.get(entry.id) ?? 0}
-                    </span>
-                  </div>
-                  <div className="wb-cell">{renderEntry(entry, { zh, plugins, openTools, setOpenTools, openReasoning, setOpenReasoning, editingId, editJson, setEditJson, setEditingId, beginEdit, approve, reveal })}</div>
-                </div>
-              ))}
+                {(() => {
+                  const rowCtx = { zh, plugins, openTools, setOpenTools, openReasoning, setOpenReasoning, editingId, editJson, setEditJson, setEditingId, beginEdit, approve, reveal };
+                  const rowFor = (entry: Entry) => (
+                    <div key={entry.id} id={`wb-e-${entry.id}`} className="wb-row" data-kind={entry.kind}>
+                      <div className="wb-gutter mono" aria-hidden="true">
+                        <span className="wb-line" data-active={entry.kind === "assistant" && (entry as AssistantEntry).streaming ? "true" : undefined}>
+                          {lineOf.get(entry.id) ?? 0}
+                        </span>
+                      </div>
+                      <div className="wb-cell">{renderEntry(entry, rowCtx)}</div>
+                    </div>
+                  );
+                  return foldItems.map((item) => {
+                    if (item.type === "entry") return rowFor(item.entry);
+                    const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
+                    return (
+                      <FoldGroupRow
+                        key={item.id}
+                        groupId={item.id}
+                        entries={item.entries}
+                        open={open}
+                        onToggle={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
+                        line={lineOf.get(item.entries[0].id) ?? 0}
+                        rowFor={rowFor}
+                      />
+                    );
+                  });
+                })()}
               </div>
             )}
           </main>
@@ -492,6 +534,84 @@ function statusDotOf(entry: Entry): string {
     default:
       return "idle";
   }
+}
+
+/* ── fold group (consecutive reasoning + tool rows) ────────────────── */
+
+/**
+ * One IDE fold region: a mono summary row stands in for the block and the
+ * original rows render inside unchanged when unfolded. The header always
+ * surfaces failures/interrupts so a collapsed group cannot hide a broken run.
+ */
+function FoldGroupRow({
+  groupId,
+  entries,
+  open,
+  onToggle,
+  line,
+  rowFor,
+}: {
+  groupId: string;
+  entries: Entry[];
+  open: boolean;
+  onToggle: () => void;
+  line: number;
+  rowFor: (entry: Entry) => React.ReactNode;
+}) {
+  const stats = foldGroupStats(entries);
+  const failures = foldGroupFailures(entries);
+  const duration = foldGroupDuration(entries);
+  const preview = stats.toolNames.slice(0, 3).join(", ");
+  const extra = stats.toolNames.length - 3;
+  return (
+    <>
+      <div className="wb-row wb-row--fold" data-kind="fold">
+        <div className="wb-gutter mono" aria-hidden="true">
+          <span className="wb-line">{line}</span>
+        </div>
+        <div className="wb-cell">
+          <button
+            type="button"
+            className="wb-fold-head mono"
+            aria-expanded={open}
+            aria-label={t("fold.group")}
+            onClick={onToggle}
+            onKeyDown={(event) => {
+              // explicit for the keydown contract test (jsdom runs no activation)
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onToggle();
+              }
+            }}
+          >
+            <Icon name="chevron" size={10} className="wb-chev" />
+            <span className="wb-fold-title">{t("fold.group")}</span>
+            <span className="wb-fold-summary">
+              {stats.reasoningCount > 0 && `${t("fold.thinking")} ×${stats.reasoningCount}`}
+              {stats.reasoningCount > 0 && stats.toolCount > 0 && " · "}
+              {preview}
+              {extra > 0 && ` +${extra} ${t("fold.more")}`}
+              {stats.reasoningCount === 0 && stats.toolCount === 0 && `0 ${t("fold.steps")}`}
+            </span>
+            <span className="wb-fold-meta">
+              {duration !== undefined && <span className="wb-fold-time">{formatDuration(duration)}</span>}
+              {failures.length > 0 && (
+                <span className="wb-fold-flag" data-failure={failures[0]}>
+                  {failures.includes("error") ? t("fold.hasFailures") : t("chat.interrupted")}
+                </span>
+              )}
+              {foldGroupOpen(entries) && <span className="wb-fold-flag wb-fold-flag--live">{t("chat.executing")}</span>}
+            </span>
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div className="wb-fold-body" data-fold-id={groupId}>
+          {entries.map((entry) => rowFor(entry))}
+        </div>
+      )}
+    </>
+  );
 }
 
 /* ── transcript rows ───────────────────────────────────────────────── */

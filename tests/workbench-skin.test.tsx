@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,7 +6,7 @@ import { skins, SkinHostProvider, t } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
 import { ConversationStore } from "../src/core/store";
 import { EventType } from "../src/core/events";
-import { makeFixture, makeStore } from "./fixture";
+import { makeFixture, makeFoldStore, makeStore } from "./fixture";
 
 /* Workbench — IDE/file-tree conversation surface.
    Contract: everything renders from the fixture; the IDE chrome (activity bar,
@@ -38,6 +38,8 @@ describe("workbench contract", () => {
     expect(text.toLowerCase()).toContain("fixture step one");
     expect(text.toLowerCase()).toContain("fixture subagent");
     expect(text).toContain("handoff"); // inline CUSTOM stays visible
+    // the fixture's adjacent tool+thinking rows fold; unfold before row checks
+    fireEvent.click(container.querySelector(".wb-fold-head") as HTMLButtonElement);
     expect(container.querySelector(".wb-reason")).toBeTruthy(); // reasoning row
     expect(container.querySelectorAll(".wb-row").length).toBeGreaterThan(6);
   });
@@ -112,6 +114,7 @@ describe("workbench IDE chrome", () => {
 
   it("tool calls live in the terminal panel; transcript jump lines open it", () => {
     const { container } = renderWorkbench(makeFixture());
+    fireEvent.click(container.querySelector(".wb-fold-head") as HTMLButtonElement); // unfold the tool row first
     const panel = container.querySelector(".wb-panel");
     expect(panel).toBeTruthy();
     expect(panel?.textContent.toLowerCase()).toContain("web.search");
@@ -370,5 +373,93 @@ describe("workbench light theme (tuning.theme)", () => {
     expect(root).toBeTruthy();
     // the light skin still renders from the same class — variant is CSS-only
     expect(root.className).not.toContain("light");
+  });
+});
+
+describe("workbench fold groups (consecutive reasoning + tools)", () => {
+  it("collapses a settled run into one folded row by default; original rows unmounted", () => {
+    const { container } = renderWorkbench(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".wb-fold-head") as HTMLButtonElement;
+    expect(head).toBeTruthy();
+    expect(head.tagName).toBe("BUTTON");
+    expect(head.getAttribute("aria-expanded")).toBe("false"); // all members terminal → folded
+    expect(container.querySelector(".wb-reason")).toBeNull(); // original rows live in the body
+    expect(container.querySelector(".wb-tool-jump")).toBeNull();
+    expect(head.textContent).toContain("booking.hold"); // tool names surface in the summary
+    expect(head.textContent).toContain("web.search");
+  });
+
+  it("clicking the head toggles aria-expanded and mounts/unmounts the original rows", () => {
+    const { container } = renderWorkbench(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".wb-fold-head") as HTMLButtonElement;
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector(".wb-reason")).toBeTruthy(); // reused reasoning rendering
+    expect(container.querySelector(".wb-tool-jump")).toBeTruthy(); // reused tool jump line
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector(".wb-reason")).toBeNull();
+  });
+
+  it("fold head is keyboard-operable (focus + explicit Enter/Space keydown)", () => {
+    const { container } = renderWorkbench(makeFoldStore() as unknown as SkinConversation);
+    const head = container.querySelector(".wb-fold-head") as HTMLButtonElement;
+    head.focus();
+    expect(document.activeElement).toBe(head);
+    fireEvent.keyDown(head, { key: "Enter" });
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(head, { key: " " });
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("an in-flight run derives an open group and shows the live marker", () => {
+    const { container } = renderWorkbench(makeFoldStore({ leaveRunning: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".wb-fold-head") as HTMLButtonElement;
+    expect(head.getAttribute("aria-expanded")).toBe("true"); // tool still executing → open
+    expect(container.querySelector(".wb-tool-jump")).toBeTruthy();
+    const live = container.querySelector(".wb-fold-flag--live");
+    expect(live?.textContent).toContain(t("chat.executing"));
+  });
+
+  it("a failed tool inside the group surfaces a failure marker on the header", () => {
+    const { container } = renderWorkbench(makeFoldStore({ failLastTool: true }) as unknown as SkinConversation);
+    const head = container.querySelector(".wb-fold-head") as HTMLButtonElement;
+    const flag = head.querySelector(".wb-fold-flag[data-failure='error']");
+    expect(flag).toBeTruthy();
+    expect(flag?.textContent).toContain(t("fold.hasFailures"));
+  });
+
+  it("singletons stay ungrouped and error rows remain independent", () => {
+    const store = makeStore();
+    try {
+      store.dispatch({ type: EventType.RUN_STARTED, threadId: "t1", runId: "r1" } as never);
+      store.dispatch({ type: EventType.REASONING_START, messageId: "r1" } as never);
+      store.dispatch({ type: EventType.REASONING_MESSAGE_END, messageId: "r1" } as never);
+      store.dispatch({ type: EventType.RUN_ERROR, message: "fixture run error message" } as never);
+      const { container } = renderWorkbench(store as unknown as SkinConversation);
+      expect(container.querySelector(".wb-fold-head")).toBeNull(); // one reasoning row → no group
+      expect(container.querySelector(".wb-error")).toBeTruthy(); // error row stays visible
+    } finally {
+      store.stop();
+    }
+  });
+
+  it("the explorer tree reveals a row inside a folded group by opening it", async () => {
+    const scroll = vi.fn();
+    (Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = scroll;
+    const { container } = renderWorkbench(makeFoldStore() as unknown as SkinConversation);
+    const rounds = Array.from(container.querySelectorAll(".wb-tree-row--round")) as HTMLButtonElement[];
+    fireEvent.click(rounds[0]); // expand the round's leaf rows
+    const leaves = Array.from(container.querySelectorAll(".wb-tree-row--leaf")) as HTMLButtonElement[];
+    const toolLeaf = leaves.find((leaf) => (leaf.textContent ?? "").toLowerCase().includes("web.search"))!;
+    fireEvent.click(toolLeaf); // reveal() must unfold the containing group…
+    const head = container.querySelector(".wb-fold-head") as HTMLButtonElement;
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    // …and scroll once the row is mounted (deferred a tick inside reveal)
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(scroll).toHaveBeenCalled();
+    delete (Element.prototype as unknown as { scrollIntoView?: () => void }).scrollIntoView;
   });
 });
