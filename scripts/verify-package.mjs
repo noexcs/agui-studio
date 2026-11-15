@@ -23,7 +23,18 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const pkgDir = join(root, "packages", "agui-skins");
 const dist = join(pkgDir, "dist");
-const skins = ["aurora", "paper", "terminal", "brutalist", "classic", "particle"];
+const skins = [
+  "aurora",
+  "paper",
+  "terminal",
+  "brutalist",
+  "classic",
+  "particle",
+  "workbench",
+  "dash",
+  "bubble",
+  "orbit",
+];
 // Tailwind-migrated skins = the per-skin compilation entries present in
 // packages/agui-skins/tailwind/ (single source of truth, grows per Phase 2
 // skin commit). Each must ship a utilities block inside its dist CSS.
