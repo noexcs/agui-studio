@@ -1,0 +1,116 @@
+/* Orbit skin — a deep-space room where the transcript has real depth.
+   The element styling lives in Tailwind utilities on index.tsx; values
+   resolve through these skin-scoped variables at the consuming element
+   (same pattern as workbench, task-13). What remains here is the token
+   block (single source of truth, test-anchored), the CSS starfield that
+   backs up WebGL and reduced motion (pseudo-elements), keyframes consumed
+   by animate-[…] utilities, scrollbar chrome, the focus ring for
+   transformed elements and the universal reduced-motion clamp. */
+
+.skin-orbit {
+  --or-void: #05060a;
+  --or-deep: #070a13;
+  --or-panel: rgba(10, 15, 30, 0.9);
+  --or-panel-solid: #0a0f1e;
+  --or-panel-soft: rgba(13, 19, 38, 0.72);
+  --or-glass: rgba(15, 22, 44, 0.55);
+  --or-line: rgba(151, 164, 214, 0.16);
+  --or-line-soft: rgba(151, 164, 214, 0.09);
+  --or-line-strong: rgba(160, 174, 235, 0.3);
+  --or-text: #e7ebf7;
+  --or-dim: #aab3cc;
+  --or-faint: #8590ad;
+  --or-user-text: #c3cbe2;
+  /* accent text on the dark void rides the brightened guard when the user's
+     accent is too dark (host sets --sk-accent-on-dark only when needed) */
+  --or-accent: var(--sk-accent-on-dark, var(--sk-accent, #9d8cff));
+  --or-accent-fg: var(--sk-accent-fg, #05060a);
+  --or-violet: #9d8cff;
+  --or-cyan: #7fdcff;
+  --or-mint: #67f5d0;
+  --or-amber: #ffc76b;
+  --or-red: #ff8291;
+  --or-green: #8bf0b8;
+  --or-wash: rgba(151, 164, 214, 0.06);
+  --or-hover: rgba(151, 164, 214, 0.12);
+  --or-scroll: rgba(157, 140, 255, 0.28);
+  --or-mono: var(--sk-mono, ui-monospace, "SFMono-Regular", Menlo, monospace);
+  --or-sans: var(--sk-font, "Geist", "Inter", system-ui, sans-serif);
+}
+
+/* CSS starfield: the fallback whenever the Three chunk is loading, WebGL is
+   unavailable, or the user asked for reduced motion. Two tiled dot layers
+   (one pseudo-element) keep it cheap and deterministic. */
+.or-sky-fallback {
+  background-image:
+    radial-gradient(1.7px 1.7px at 22px 34px, rgba(231, 235, 247, 0.95) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 138px 92px, rgba(157, 140, 255, 0.9) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 254px 178px, rgba(127, 220, 255, 0.85) 50%, transparent 51%),
+    radial-gradient(1.8px 1.8px at 64px 236px, rgba(231, 235, 247, 0.8) 50%, transparent 51%),
+    radial-gradient(1.3px 1.3px at 306px 62px, rgba(103, 245, 208, 0.8) 50%, transparent 51%),
+    radial-gradient(1.6px 1.6px at 190px 274px, rgba(231, 235, 247, 0.7) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 88px 148px, rgba(231, 235, 247, 0.55) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 332px 224px, rgba(157, 140, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(1.1px 1.1px at 244px 22px, rgba(231, 235, 247, 0.5) 50%, transparent 51%);
+  background-size: 360px 320px;
+}
+.or-sky-fallback::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.8;
+  background-image:
+    radial-gradient(1.3px 1.3px at 48px 58px, rgba(231, 235, 247, 0.9) 50%, transparent 51%),
+    radial-gradient(1.1px 1.1px at 172px 142px, rgba(157, 140, 255, 0.75) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 96px 196px, rgba(127, 220, 255, 0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 228px 36px, rgba(231, 235, 247, 0.7) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 308px 168px, rgba(231, 235, 247, 0.55) 50%, transparent 51%),
+    radial-gradient(1px 1px at 132px 262px, rgba(103, 245, 208, 0.55) 50%, transparent 51%),
+    radial-gradient(1.1px 1.1px at 20px 120px, rgba(231, 235, 247, 0.5) 50%, transparent 51%),
+    radial-gradient(1.3px 1.3px at 268px 244px, rgba(157, 140, 255, 0.5) 50%, transparent 51%);
+  background-size: 330px 290px;
+}
+
+.or-log::-webkit-scrollbar,
+.or-aside::-webkit-scrollbar { width: 8px; }
+.or-log::-webkit-scrollbar-thumb,
+.or-aside::-webkit-scrollbar-thumb {
+  background: var(--or-scroll);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* shared ToolResult internals (rendered by the package component, so they
+   have no JSX site in this skin — same category as workbench's block) */
+.or-tool .tool-result { margin-top: 8px; color: var(--or-dim); font-size: 11px; }
+.or-tool .tool-result-head { display: flex; align-items: center; gap: 6px; color: var(--or-faint); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
+.or-tool .tool-result-list { display: grid; gap: 5px; margin-top: 6px; }
+.or-tool .tool-source { display: flex; gap: 8px; min-width: 0; color: var(--or-text); text-decoration: none; }
+.or-tool .tool-source:hover { color: var(--or-cyan); }
+.or-tool .tool-source-num { flex: none; color: var(--or-violet); }
+.or-tool .tool-source-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.or-tool .tool-result pre { margin-top: 8px; }
+
+/* transformed rows keep a real outline (not a box-shadow ring), offset so
+   the 3D lift never clips the focus indicator */
+.skin-orbit :focus-visible {
+  outline: 2px solid var(--or-cyan);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@keyframes or-blink { 50% { opacity: 0; } }
+@keyframes or-pulse { 50% { opacity: 0.35; } }
+@keyframes or-rise { from { opacity: 0; filter: blur(4px); } to { opacity: 1; filter: blur(0); } }
+@keyframes or-scan { from { transform: translateY(-120%); } to { transform: translateY(420%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-orbit *,
+  .skin-orbit *::before,
+  .skin-orbit *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

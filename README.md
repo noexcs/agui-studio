@@ -21,7 +21,7 @@ URL 参数方便分享/截图：
 
 | 参数 | 说明 |
 | --- | --- |
-| `?skin=aurora｜paper｜terminal｜brutalist｜classic｜particle｜workbench｜dash｜bubble` | 直接打开某种风格 |
+| `?skin=aurora｜paper｜terminal｜brutalist｜classic｜particle｜workbench｜dash｜bubble｜orbit` | 直接打开某种风格 |
 | `?scene=done` | 直接渲染"已批准 + 生成完毕"的完整对话（跳过流式动画） |
 | `?scene=interrupted` | 停在人工审批这一刻（展示 interrupt UI） |
 

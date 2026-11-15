@@ -33,6 +33,7 @@ export default defineConfig({
     "skins/workbench": "src/skins/workbench/index.tsx",
     "skins/dash": "src/skins/dash/index.tsx",
     "skins/bubble": "src/skins/bubble/index.tsx",
+    "skins/orbit": "src/skins/orbit/index.tsx",
   },
   format: ["esm"],
   dts: true,
