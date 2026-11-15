@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useConversation, useSkinPlugins } from "../../host";
 import type { Entry, InterruptEntry, PlanEntry, ReasoningEntry, ToolEntry } from "../../contract";
 import { formatDuration } from "../../utils";
@@ -12,6 +12,12 @@ import { Icon } from "../../shared/Icon";
 import { Markdown, timeOf } from "../../shared/Markdown";
 import { ProtocolDrawer } from "../../shared/ProtocolDrawer";
 import { pendingInterrupts } from "../../shared/interrupts";
+import {
+  conversationGroups,
+  foldGroupFailures,
+  foldGroupOpen,
+  foldGroupStats,
+} from "../../shared/conversationGroups";
 import { HistoryMore, useVisibleEntries } from "../../shared/history";
 import { useStickToBottom } from "../../shared/useStickToBottom";
 import "./classic.css";
@@ -30,11 +36,15 @@ export function ClassicPage() {
   const [draft, setDraft] = useState("");
   const [openReasoning, setOpenReasoning] = useState<Record<string, boolean>>({});
   const [openTools, setOpenTools] = useState<Record<string, boolean>>({});
+  // Fold groups: per-group user override on top of the derived default.
+  const [foldOverride, setFoldOverride] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editJson, setEditJson] = useState<Record<string, string>>({});
 
   const running = c.status === "running";
   const pending = pendingInterrupts(c.entries)[0];
+  // Consecutive reasoning/tool rows collapse into one neutral fold row.
+  const foldItems = useMemo(() => conversationGroups(visible), [visible]);
   // Multiple ACTIVITY_SNAPSHOTs are allowed: list every plan, not just the first.
   const plans = c.entries.filter((e): e is PlanEntry => e.kind === "plan");
   const interrupts = c.entries.filter((e): e is InterruptEntry => e.kind === "interrupt");
@@ -137,201 +147,38 @@ export function ClassicPage() {
             )}
 
             {hidden > 0 && <HistoryMore hidden={hidden} onClick={showEarlier} />}
-              {visible.map((entry) => {
-              if (entry.kind === "user") {
+            {(() => {
+              const ctx: ClCtx = {
+                zh,
+                brand,
+                plugins,
+                openReasoning,
+                setOpenReasoning,
+                openTools,
+                setOpenTools,
+                editingId,
+                editJson,
+                setEditJson,
+                setEditingId,
+                beginEdit,
+                approve,
+                deny: (id: string) => c.resolveInterrupt(false, undefined, id),
+              };
+              return foldItems.map((item) => {
+                if (item.type === "entry") return entryRow(item.entry, ctx);
+                const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
                 return (
-                  <div key={entry.id} className="cl-row cl-row--user">
-                    <div className="cl-bubble">
-                      <div className="cl-bubble-meta">{zh ? "你" : "You"} · {timeOf(entry.at)}</div>
-                      <p>{entry.text}</p>
-                    </div>
-                  </div>
-                );
-              }
-              if (entry.kind === "assistant") {
-                return (
-                  <div key={entry.id} className="cl-row cl-row--assistant">
-                    <span className="cl-avatar cl-avatar--sm">AI</span>
-                    <div className="cl-msg">
-                      <div className="cl-msg-meta">
-                        <strong>{brand.agentName}</strong>
-                        <span>{timeOf(entry.at)}</span>
-                        {entry.streaming && <span className="cl-streaming">{zh ? "生成中…" : "streaming…"}</span>}
-                      </div>
-                      {entry.text ? (
-                        <Markdown className={`cl-md ${entry.streaming ? "is-streaming" : ""}`} text={entry.text} />
-                      ) : (
-                        <div className="cl-md"><span className="cl-caret" /></div>
-                      )}
-                      {!entry.streaming && (
-                        <div className="cl-msg-actions">
-                          <button onClick={() => navigator.clipboard?.writeText(entry.text)}>
-                            <Icon name="copy" size={12} />
-                            {t("chat.copy")}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-              if (entry.kind === "reasoning") {
-                return (
-                  <ReasoningRow
-                    key={entry.id}
-                    entry={entry}
-                    open={!!openReasoning[entry.id]}
-                    onToggle={() => setOpenReasoning((p) => ({ ...p, [entry.id]: !p[entry.id] }))}
+                  <FoldGroupRow
+                    key={item.id}
+                    groupId={item.id}
+                    entries={item.entries}
+                    open={open}
+                    onToggle={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
+                    ctx={ctx}
                   />
                 );
-              }
-              if (entry.kind === "tool") {
-                return (
-                  <ToolRow
-                    key={entry.id}
-                    entry={entry}
-                    open={!!openTools[entry.id]}
-                    onToggle={() => setOpenTools((p) => ({ ...p, [entry.id]: !p[entry.id] }))}
-                  />
-                );
-              }
-              if (entry.kind === "plan") {
-                return <PlanRow key={entry.id} entry={entry} />;
-              }
-              if (entry.kind === "interrupt") {
-                return (
-                  <div key={entry.id} className="cl-row cl-row--wide">
-                    <div className={`cl-approval ${entry.status === "pending" ? "" : entry.expired ? "cl-approval--expired" : "is-resolved"}`}>
-                      <div className="cl-approval-head">
-                        <Icon name={entry.status === "pending" ? "shield" : entry.expired ? "clock" : "check"} size={14} />
-                        <strong>
-                          {entry.status === "pending"
-                            ? zh
-                              ? "需要你的确认"
-                              : "Approval required"
-                            : entry.status === "approved"
-                            ? zh
-                              ? "已批准"
-                              : "Approved"
-                            : entry.expired
-                            ? zh
-                              ? "已过期"
-                              : "Expired"
-                            : zh
-                            ? "已拒绝"
-                            : "Declined"}
-                        </strong>
-                        <span className="cl-approval-time">{timeOf(entry.at)}</span>
-                      </div>
-                      <p className="cl-approval-title">{entry.message}</p>
-                      {entry.description && <p className="cl-approval-desc">{entry.description}</p>}
-                      {entry.details.length > 0 && (
-                        <dl className="cl-approval-terms">
-                          {entry.details.map((d) => (
-                            <div key={d.label}>
-                              <dt>{d.label}</dt>
-                              <dd>{d.value}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      )}
-                      {entry.status === "pending" ? (
-                        <>
-                          <div className="cl-approval-actions">
-                            <button className="cl-btn cl-btn--primary" onClick={() => approve(entry.id)}>
-                              <Icon name="check" size={13} />
-                              {t("intr.approve")}
-                            </button>
-                            <button className="cl-btn" onClick={() => c.resolveInterrupt(false, undefined, entry.id)}>
-                              <Icon name="x" size={13} />
-                              {t("intr.deny")}
-                            </button>
-                            <button className="cl-link" onClick={() => beginEdit(entry.id)}>{t("intr.edit")}</button>
-                          </div>
-                          {editingId === entry.id && (
-                            <div className="cl-edit">
-                              <label>{zh ? "提交参数（可修改后批准）" : "Arguments submitted on resume"}</label>
-                              <textarea
-                                value={editJson[entry.id] ?? ""}
-                                onChange={(e) => setEditJson((prev) => ({ ...prev, [entry.id]: e.target.value }))}
-                                spellCheck={false}
-                              />
-                              <div className="cl-approval-actions">
-                                <button className="cl-btn cl-btn--primary" onClick={() => approve(entry.id)}>{t("intr.approveEdited")}</button>
-                                <button className="cl-btn" onClick={() => setEditingId(null)}>{t("intr.cancel")}</button>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <p className="cl-approval-resolved">
-                          <Icon name={entry.expired ? "clock" : "check"} size={12} />
-                          {entry.status === "approved" ? t("intr.approvedBy") : entry.expired ? t("intr.expired") : t("intr.deniedBy")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-              if (entry.kind === "subagent") {
-                return (
-                  <div key={entry.id} className="cl-row cl-row--assistant">
-                    <span className="cl-avatar cl-avatar--sm"><Icon name="layers" size={12} /></span>
-                    <div className="cl-msg">
-                      <div className="cl-subagent">
-                        <strong>{displayText(entry.name)}</strong>
-                        <span className={`cl-subagent-status cl-subagent-status--${entry.status}`}>{entry.status}</span>
-                        {entry.detail && <span className="cl-muted">{entry.detail}</span>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (entry.kind === "step") {
-                return (
-                  <div key={entry.id} className="cl-row cl-row--assistant">
-                    <span className="cl-avatar cl-avatar--sm"><Icon name="activity" size={12} /></span>
-                    <div className="cl-msg">
-                      <div className="cl-subagent">
-                        <strong>{displayText(entry.name)}</strong>
-                        <span className={`cl-subagent-status cl-subagent-status--${entry.status === "running" ? "running" : entry.status === "failed" ? "error" : "done"}`}>
-                          {entry.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (entry.kind === "custom") {
-                const custom = plugins.custom?.(entry);
-                if (custom !== undefined) {
-                  return (
-                    <div key={entry.id} className="cl-row cl-row--wide">
-                      {custom}
-                    </div>
-                  );
-                }
-                return (
-                  <div key={entry.id} className="cl-row cl-row--wide">
-                    <div className="cl-custom">
-                      <span className="cl-custom-name mono">{displayText(entry.name)}</span>
-                      <pre className="cl-custom-args" data-skin-text="">{safeJson(entry.value, 2)}</pre>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (entry.kind === "error") {
-                return (
-                  <div key={entry.id} className="cl-row cl-row--wide">
-                    <div className="cl-error">{entry.message}</div>
-                  </div>
-                );
-              }
-              return null;
-            })}
+              });
+            })()}
 
             {c.status === "done" && c.entries.length > 0 && (
               <div className="cl-run-end">
@@ -518,6 +365,288 @@ export function ClassicPage() {
       </aside>
       <ProtocolDrawer />
     </div>
+  );
+}
+
+/* ── rows ─────────────────────────────────────────────────────────── */
+
+interface ClCtx {
+  zh: boolean;
+  brand: ReturnType<typeof useSkinBranding>;
+  plugins: ReturnType<typeof useSkinPlugins>;
+  openReasoning: Record<string, boolean>;
+  setOpenReasoning: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  openTools: Record<string, boolean>;
+  setOpenTools: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  editingId: string | null;
+  editJson: Record<string, string>;
+  setEditJson: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setEditingId: React.Dispatch<React.SetStateAction<string | null>>;
+  beginEdit: (id?: string) => void;
+  approve: (id?: string) => void;
+  deny: (id: string) => void;
+}
+
+/** The transcript row for one entry, exactly as rendered before fold groups
+    existed — fold group bodies reuse this verbatim. */
+function entryRow(entry: Entry, ctx: ClCtx): React.ReactNode {
+  const { zh } = ctx;
+  if (entry.kind === "user") {
+    return (
+      <div key={entry.id} className="cl-row cl-row--user">
+        <div className="cl-bubble">
+          <div className="cl-bubble-meta">{zh ? "你" : "You"} · {timeOf(entry.at)}</div>
+          <p>{entry.text}</p>
+        </div>
+      </div>
+    );
+  }
+  if (entry.kind === "assistant") {
+    return (
+      <div key={entry.id} className="cl-row cl-row--assistant">
+        <span className="cl-avatar cl-avatar--sm">AI</span>
+        <div className="cl-msg">
+          <div className="cl-msg-meta">
+            <strong>{ctx.brand.agentName}</strong>
+            <span>{timeOf(entry.at)}</span>
+            {entry.streaming && <span className="cl-streaming">{zh ? "生成中…" : "streaming…"}</span>}
+          </div>
+          {entry.text ? (
+            <Markdown className={`cl-md ${entry.streaming ? "is-streaming" : ""}`} text={entry.text} />
+          ) : (
+            <div className="cl-md"><span className="cl-caret" /></div>
+          )}
+          {!entry.streaming && (
+            <div className="cl-msg-actions">
+              <button onClick={() => navigator.clipboard?.writeText(entry.text)}>
+                <Icon name="copy" size={12} />
+                {t("chat.copy")}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  if (entry.kind === "reasoning") {
+    return (
+      <ReasoningRow
+        key={entry.id}
+        entry={entry}
+        open={!!ctx.openReasoning[entry.id]}
+        onToggle={() => ctx.setOpenReasoning((p) => ({ ...p, [entry.id]: !p[entry.id] }))}
+      />
+    );
+  }
+  if (entry.kind === "tool") {
+    return (
+      <ToolRow
+        key={entry.id}
+        entry={entry}
+        open={!!ctx.openTools[entry.id]}
+        onToggle={() => ctx.setOpenTools((p) => ({ ...p, [entry.id]: !p[entry.id] }))}
+      />
+    );
+  }
+  if (entry.kind === "plan") {
+    return <PlanRow key={entry.id} entry={entry} />;
+  }
+  if (entry.kind === "interrupt") {
+    return (
+      <div key={entry.id} className="cl-row cl-row--wide">
+        <div className={`cl-approval ${entry.status === "pending" ? "" : entry.expired ? "cl-approval--expired" : "is-resolved"}`}>
+          <div className="cl-approval-head">
+            <Icon name={entry.status === "pending" ? "shield" : entry.expired ? "clock" : "check"} size={14} />
+            <strong>
+              {entry.status === "pending"
+                ? zh
+                  ? "需要你的确认"
+                  : "Approval required"
+                : entry.status === "approved"
+                ? zh
+                  ? "已批准"
+                  : "Approved"
+                : entry.expired
+                ? zh
+                  ? "已过期"
+                  : "Expired"
+                : zh
+                ? "已拒绝"
+                : "Declined"}
+            </strong>
+            <span className="cl-approval-time">{timeOf(entry.at)}</span>
+          </div>
+          <p className="cl-approval-title">{entry.message}</p>
+          {entry.description && <p className="cl-approval-desc">{entry.description}</p>}
+          {entry.details.length > 0 && (
+            <dl className="cl-approval-terms">
+              {entry.details.map((d) => (
+                <div key={d.label}>
+                  <dt>{d.label}</dt>
+                  <dd>{d.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {entry.status === "pending" ? (
+            <>
+              <div className="cl-approval-actions">
+                <button className="cl-btn cl-btn--primary" onClick={() => ctx.approve(entry.id)}>
+                  <Icon name="check" size={13} />
+                  {t("intr.approve")}
+                </button>
+                <button className="cl-btn" onClick={() => ctx.deny(entry.id)}>
+                  <Icon name="x" size={13} />
+                  {t("intr.deny")}
+                </button>
+                <button className="cl-link" onClick={() => ctx.beginEdit(entry.id)}>{t("intr.edit")}</button>
+              </div>
+              {ctx.editingId === entry.id && (
+                <div className="cl-edit">
+                  <label>{zh ? "提交参数（可修改后批准）" : "Arguments submitted on resume"}</label>
+                  <textarea
+                    value={ctx.editJson[entry.id] ?? ""}
+                    onChange={(e) => ctx.setEditJson((prev) => ({ ...prev, [entry.id]: e.target.value }))}
+                    spellCheck={false}
+                  />
+                  <div className="cl-approval-actions">
+                    <button className="cl-btn cl-btn--primary" onClick={() => ctx.approve(entry.id)}>{t("intr.approveEdited")}</button>
+                    <button className="cl-btn" onClick={() => ctx.setEditingId(null)}>{t("intr.cancel")}</button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="cl-approval-resolved">
+              <Icon name={entry.expired ? "clock" : "check"} size={12} />
+              {entry.status === "approved" ? t("intr.approvedBy") : entry.expired ? t("intr.expired") : t("intr.deniedBy")}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  if (entry.kind === "subagent") {
+    return (
+      <div key={entry.id} className="cl-row cl-row--assistant">
+        <span className="cl-avatar cl-avatar--sm"><Icon name="layers" size={12} /></span>
+        <div className="cl-msg">
+          <div className="cl-subagent">
+            <strong>{displayText(entry.name)}</strong>
+            <span className={`cl-subagent-status cl-subagent-status--${entry.status}`}>{entry.status}</span>
+            {entry.detail && <span className="cl-muted">{entry.detail}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (entry.kind === "step") {
+    return (
+      <div key={entry.id} className="cl-row cl-row--assistant">
+        <span className="cl-avatar cl-avatar--sm"><Icon name="activity" size={12} /></span>
+        <div className="cl-msg">
+          <div className="cl-subagent">
+            <strong>{displayText(entry.name)}</strong>
+            <span className={`cl-subagent-status cl-subagent-status--${entry.status === "running" ? "running" : entry.status === "failed" ? "error" : "done"}`}>
+              {entry.status}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (entry.kind === "custom") {
+    const custom = ctx.plugins.custom?.(entry);
+    if (custom !== undefined) {
+      return (
+        <div key={entry.id} className="cl-row cl-row--wide">
+          {custom}
+        </div>
+      );
+    }
+    return (
+      <div key={entry.id} className="cl-row cl-row--wide">
+        <div className="cl-custom">
+          <span className="cl-custom-name mono">{displayText(entry.name)}</span>
+          <pre className="cl-custom-args" data-skin-text="">{safeJson(entry.value, 2)}</pre>
+        </div>
+      </div>
+    );
+  }
+  if (entry.kind === "error") {
+    return (
+      <div key={entry.id} className="cl-row cl-row--wide">
+        <div className="cl-error">{entry.message}</div>
+      </div>
+    );
+  }
+  return null;
+}
+
+/**
+ * One neutral fold row standing in for a run of consecutive thinking/tool
+ * rows. Enterprise-plain: chevron + count + failures in words; the original
+ * rows render inside when unfolded (right-rail detail panel is unaffected).
+ */
+function FoldGroupRow({
+  groupId,
+  entries,
+  open,
+  onToggle,
+  ctx,
+}: {
+  groupId: string;
+  entries: Entry[];
+  open: boolean;
+  onToggle: () => void;
+  ctx: ClCtx;
+}) {
+  const stats = foldGroupStats(entries);
+  const failures = foldGroupFailures(entries);
+  const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
+  const summary = (
+    <>
+      {stats.reasoningCount > 0 && `${t("fold.thinking")} ×${stats.reasoningCount}`}
+      {stats.reasoningCount > 0 && stats.toolCount > 0 && " · "}
+      {stats.toolCount > 0 && `${stats.toolCount} ${t("chat.tools")}`}
+      {stats.reasoningCount === 0 && stats.toolCount === 0 && `0 ${t("fold.steps")}`}
+    </>
+  );
+  return (
+    <>
+      <div key={groupId} className="cl-row cl-row--assistant">
+        <span className="cl-avatar cl-avatar--sm"><Icon name="layers" size={12} /></span>
+        <div className="cl-msg">
+          <button
+            type="button"
+            className="cl-fold-head"
+            data-fold-head=""
+            aria-expanded={open}
+            aria-label={t("fold.group")}
+            onClick={onToggle}
+            onKeyDown={(event) => {
+              // explicit for the keydown contract test (jsdom runs no activation)
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onToggle();
+              }
+            }}
+          >
+            <Icon name="chevron" size={11} className="cl-chev" />
+            <span>{t("fold.group")}</span>
+            <span className="cl-fold-summary">{summary}</span>
+            {failure && (
+              <span className={`cl-fold-flag cl-fold-flag--${failure}`}>
+                {failure === "error" ? t("fold.hasFailures") : t("chat.interrupted")}
+              </span>
+            )}
+            {!failure && foldGroupOpen(entries) && <span className="cl-fold-flag cl-fold-flag--live">{t("chat.executing")}</span>}
+            <span className="cl-fold-count mono">{`${entries.length} ${t("fold.steps")}`}</span>
+          </button>
+        </div>
+      </div>
+      {open && <div className="cl-fold-body" data-fold-id={groupId}>{entries.map((entry) => entryRow(entry, ctx))}</div>}
+    </>
   );
 }
 
