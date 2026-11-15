@@ -39,7 +39,7 @@ export function LazyMount({
   }, [active, rootMargin]);
 
   return (
-    <div className="lazy-mount" ref={ref} style={active ? undefined : { minHeight }}>
+    <div className="lazy-mount block" ref={ref} style={active ? undefined : { minHeight }}>
       {active ? children : null}
     </div>
   );

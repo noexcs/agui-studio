@@ -1,4 +1,6 @@
 import ReactDOM from "react-dom/client";
+// Tailwind utilities layer — preflight disabled, see src/styles/tailwind.css.
+import "./styles/tailwind.css";
 // Instrument Serif italic — one accent word in the hero headline (gradientdeck move).
 import "@fontsource/instrument-serif/400-italic.css";
 import App from "./app/App";

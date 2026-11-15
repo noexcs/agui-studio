@@ -23,7 +23,9 @@ export function createTextTokenRehype(by: "word" | "char") {
         : {
             type: "element",
             tagName: "span",
-            properties: { className: ["sk-text-token"] },
+            // Tailwind migration (task-13): .sk-text-token display rules moved
+            // to utilities; the class remains the tuning.css animation anchor.
+            properties: { className: ["sk-text-token", "inline-block", "whitespace-pre-wrap"] },
             children: [{ type: "text", value: part }],
           }
     );

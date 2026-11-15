@@ -348,42 +348,49 @@ export default function App() {
   return (
     <>
       {full ? (
-        <div className={`studio-full lang-${lang}`}>
-          <div className="stage-full">{skinStage}</div>
-          <div className="dock" role="toolbar" aria-label="Studio">
+        <div className={`studio-full lang-${lang} relative h-[100svh] overflow-hidden bg-(--bg-inset) font-(family-name:--font-sans) text-(--fg) antialiased`}>
+          {/* the bottom strip is reserved for the dock (bottom 16px + ~40px tall):
+              skins are height:100% so they shrink cleanly */}
+          <div className="stage-full absolute inset-0 [&>*]:absolute [&>*]:inset-x-0 [&>*]:top-0 [&>*]:bottom-16 [&>*]:h-auto [&>*]:min-h-0">{skinStage}</div>
+          <div className="dock fixed bottom-4 left-4 z-[60] flex items-center gap-1 rounded-full border border-(--hairline) bg-[rgba(255,255,255,0.78)] p-1 backdrop-blur-[18px] backdrop-saturate-[140%] max-[860px]:inset-x-2.5 max-[860px]:bottom-2.5 max-[860px]:justify-center" role="toolbar" aria-label="Studio">
             <button
-              className="dock-btn dock-btn--label"
+              className="dock-btn dock-btn--label inline-flex h-[30px] min-w-[30px] cursor-pointer items-center justify-center gap-1.5 rounded-full border border-transparent bg-none px-2.5 font-(family-name:--font-mono) text-[10.5px] text-(--fg-secondary) transition-[background,color] duration-(--t-fast) ease-(--ease) hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg)"
+             
               onClick={() => setFull(false)}
               title={zh ? "退出全屏（Esc）" : "Exit full screen (Esc)"}
             >
               <Icon name="arrow-left" size={14} />
-              <span>{zh ? "退出" : "exit"}</span>
+              <span className="text-[10px] tracking-[0.06em] uppercase">{zh ? "退出" : "exit"}</span>
             </button>
-            <span className="dock-sep" />
+            <span className="dock-sep mx-1 h-4 w-px bg-(--hairline)" />
             {skins.map((s) => (
+              // hover:border sits in the inactive branch only: base CSS had .is-active
+              // after :hover, so an active dot keeps its accent border while hovered
               <button
                 key={s.id}
-                className={`dock-dot ${s.id === skinId ? "is-active" : ""}`}
+                className={`dock-dot grid h-6 w-6 cursor-pointer place-items-center rounded-full border transition-[border-color,background,transform] duration-(--t-fast) ease-(--ease) hover:-translate-y-px ${s.id === skinId ? "is-active border-(--accent) bg-(--accent-dim)" : "border-(--hairline) bg-[rgba(0,0,0,0.04)] hover:border-(--hairline-strong)"}`}
+               
                 onClick={() => openSkin(s.id)}
                 title={`${s.name} — ${s.tagline}`}
                 aria-label={s.name}
               >
-                <i style={{ background: s.swatch[2] }} />
+                <i className="h-2 w-2 rounded-full" style={{ background: s.swatch[2] }} />
               </button>
             ))}
-            <span className="dock-sep" />
-            <button className="dock-btn" onClick={() => setPaletteOpen(true)} title={zh ? "命令面板 ⌘K" : "Command palette ⌘K"}>
+            <span className="dock-sep mx-1 h-4 w-px bg-(--hairline)" />
+            <button className="dock-btn inline-flex h-[30px] min-w-[30px] cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-none px-2 font-(family-name:--font-mono) text-[10.5px] text-(--fg-secondary) transition-[background,color] duration-(--t-fast) ease-(--ease) hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg)" onClick={() => setPaletteOpen(true)} title={zh ? "命令面板 ⌘K" : "Command palette ⌘K"}>
               <Icon name="command" size={14} />
             </button>
             <button
-              className="dock-btn"
+              className={`dock-btn inline-flex h-[30px] min-w-[30px] cursor-pointer items-center justify-center gap-2 rounded-full border px-2 font-(family-name:--font-mono) text-[10.5px] transition-[background,color] ${customizeOpen ? "border-(--accent-line) bg-(--accent-dim) text-(--accent-hover)" : "border-transparent bg-none text-(--fg-secondary) hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg)"}`}
+             
               onClick={() => setCustomizeOpen((v) => !v)}
               title={zh ? "自定义外观" : "Customize"}
               data-active={customizeOpen || undefined}
             >
               <Icon name="sliders" size={14} />
             </button>
-            <button className="dock-btn dock-mono" onClick={() => chooseLang(zh ? "en" : "zh")} title={zh ? "切换语言" : "Language"}>
+            <button className="dock-btn dock-mono inline-flex h-[30px] min-w-[30px] cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-none px-2 font-(family-name:--font-mono) text-[9px] tracking-[0.06em] text-(--fg-secondary) transition-[background,color] duration-(--t-fast) ease-(--ease) hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg)" onClick={() => chooseLang(zh ? "en" : "zh")} title={zh ? "切换语言" : "Language"}>
               {zh ? "中" : "EN"}
             </button>
             {!STATIC_DEMO && (
@@ -394,14 +401,14 @@ export default function App() {
                 agentEndpoint={agentEndpoint?.url}
                 onConfigureAgent={configureAgent}
                 onBackend={(next) => chooseBackend(next)}
-                triggerClassName="dock-btn dock-mono backend-trigger"
+                triggerClassName="dock-btn dock-mono inline-flex h-[30px] min-w-[30px] cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-none px-2 font-(family-name:--font-mono) text-[9px] tracking-[0.06em] text-(--fg-secondary) transition-[background,color] duration-(--t-fast) ease-(--ease) hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg)"
               />
             )}
-            <button className="dock-btn" onClick={() => setRunInfoOpen(true)} title={zh ? "运行详情" : "Run details"}>
+            <button className="dock-btn inline-flex h-[30px] min-w-[30px] cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-none px-2 font-(family-name:--font-mono) text-[10.5px] text-(--fg-secondary) transition-[background,color] duration-(--t-fast) ease-(--ease) hover:bg-[rgba(0,0,0,0.05)] hover:text-(--fg)" onClick={() => setRunInfoOpen(true)} title={zh ? "运行详情" : "Run details"}>
               <Icon name="braces" size={14} />
             </button>
-            <span className="dock-sep" />
-            <span className="dock-btn dock-mono" style={{ pointerEvents: "none", opacity: 0.55 }}>
+            <span className="dock-sep mx-1 h-4 w-px bg-(--hairline)" />
+            <span className="dock-btn dock-mono inline-flex h-[30px] min-w-[30px] items-center justify-center gap-2 rounded-full border border-transparent bg-none px-2 font-(family-name:--font-mono) text-[9px] tracking-[0.06em] text-(--fg-secondary) opacity-55" style={{ pointerEvents: "none" }}>
               {piNote}
             </span>
           </div>
@@ -477,21 +484,21 @@ function CrashProbe() {
 function SkinCrash({ error, resetErrorBoundary }: FallbackProps) {
   const message = error instanceof Error ? error.message : String(error);
   return (
-    <div className="crash">
-      <div className="crash-card">
-        <div className="crash-kicker">Skin crashed</div>
-        <h2>这套皮肤渲染时抛错了</h2>
-        <pre className="crash-msg">{message}</pre>
-        <div className="crash-actions">
-          <button className="crash-btn" onClick={resetErrorBoundary}>重试这张皮肤</button>
+    <div className="crash grid h-full place-items-center bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(220,38,38,0.05),transparent_70%),#f6f6f7] p-8">
+      <div className="crash-card max-w-[520px] rounded-2xl border border-[rgba(220,38,38,0.25)] bg-white px-[26px] py-6 shadow-[0_30px_80px_-40px_rgba(24,24,27,0.25)]">
+        <div className="crash-kicker mb-2 font-(family-name:--font-mono) text-[9px] tracking-[0.22em] text-[#dc2626] uppercase">Skin crashed</div>
+        <h2 className="m-0 mb-2.5 text-[18px] tracking-[-0.01em] text-[#18181b]">这套皮肤渲染时抛错了</h2>
+        <pre className="crash-msg mb-4 mt-0 max-h-[140px] overflow-auto rounded-[9px] border border-[rgba(17,17,20,0.08)] bg-[rgba(0,0,0,0.04)] px-3 py-2.5 font-(family-name:--font-mono) text-[11px] leading-[1.6] text-[#b91c1c] whitespace-pre-wrap">{message}</pre>
+        <div className="crash-actions mb-3 flex gap-2.5">
+          <button className="crash-btn h-8 cursor-pointer rounded-lg border-0 bg-[linear-gradient(100deg,#ff9aa6,#ffc46b)] px-3.5 text-xs text-[#120a0c]" onClick={resetErrorBoundary}>重试这张皮肤</button>
           <button
-            className="crash-btn crash-btn--ghost"
+            className="crash-btn crash-btn--ghost h-8 cursor-pointer rounded-lg border border-[rgba(17,17,20,0.14)] bg-[rgba(0,0,0,0.03)] px-3.5 text-xs text-[#18181b]"
             onClick={() => navigator.clipboard?.writeText(error instanceof Error ? error.stack || message : message)}
           >
             复制错误
           </button>
         </div>
-        <p className="crash-note">错误边界只兜住当前这一帧：其他皮肤、事件流和输入框都还能用。</p>
+        <p className="crash-note m-0 text-[10.5px] leading-[1.6] text-[rgba(24,24,27,0.5)]">错误边界只兜住当前这一帧：其他皮肤、事件流和输入框都还能用。</p>
       </div>
     </div>
   );

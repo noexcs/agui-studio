@@ -58,7 +58,10 @@ try {
   const packed = JSON.parse(
     execSync("npm pack --dry-run --json", { cwd: pkgDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
   );
-  const packedFiles = (packed[0]?.files ?? []).map((file) => file.path);
+  // npm >= 12 returns an object keyed by package name; older npm returned an
+  // array of package objects. Support both shapes.
+  const pkg = Array.isArray(packed) ? packed[0] : packed[Object.keys(packed)[0]];
+  const packedFiles = (pkg?.files ?? []).map((file) => file.path);
   for (const file of ["dist/index.js", "dist/index.d.ts", "dist/index.css", ...skins.map((s) => `dist/skins/${s}.css`)]) {
     check(packedFiles.includes(file), `npm tarball omits ${file}`);
   }

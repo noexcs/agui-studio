@@ -99,7 +99,10 @@ export function SkinHostProvider(props: {
   return (
     <SkinHostContext.Provider value={value}>
       <div
-        className="sk-tune"
+        // Tailwind migration (task-13): .sk-tune layout moved to utilities;
+        // the class stays as the anchor for the attribute-gated tuning rules
+        // in tuning.css (text anim / density / radius / scale / accent maps).
+        className="sk-tune absolute inset-0 [&>*]:h-full [&>*]:w-full"
         data-skin={props.skin}
         data-sk-accent={normalized ? "" : undefined}
         data-sk-text-anim={tuning.textAnim ?? "none"}
