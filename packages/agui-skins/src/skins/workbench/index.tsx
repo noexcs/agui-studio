@@ -567,7 +567,7 @@ function FoldGroupRow({
     <>
       <div className="wb-row wb-row--fold" data-kind="fold">
         <div className="wb-gutter mono" aria-hidden="true">
-          <span className="wb-line">{line}</span>
+          <span className="wb-line">{open ? "" : line}</span>
         </div>
         <div className="wb-cell">
           <button
@@ -575,7 +575,6 @@ function FoldGroupRow({
             className="wb-fold-head mono"
             data-fold-head=""
             aria-expanded={open}
-            aria-label={t("fold.group")}
             onClick={onToggle}
             onKeyDown={(event) => {
               // explicit for the keydown contract test (jsdom runs no activation)

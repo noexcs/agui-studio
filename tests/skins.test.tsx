@@ -1,8 +1,8 @@
-import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { skins, SkinHostProvider, t } from "agui-skins";
 import type { SkinConversation } from "agui-skins";
-import { makeFixture, makeStore } from "./fixture";
+import { makeFixture, makeFoldStore, makeStore } from "./fixture";
 import { ConversationStore } from "../src/core/store";
 import { EventType } from "../src/core/events";
 
@@ -45,6 +45,21 @@ describe.each(skins.map((skin) => [skin.id, skin] as const))("skin: %s", (_id, s
       </SkinHostProvider>
     );
     expect(container.textContent).toContain("Fixture Agent");
+  });
+
+  it("fold head accessible name comes from its content (no masking aria-label)", () => {
+    const Page = skin.ChatPage;
+    const { container } = render(
+      <SkinHostProvider conversation={makeFoldStore() as unknown as SkinConversation} lang="zh" branding={BRANDING}>
+        <Page />
+      </SkinHostProvider>
+    );
+    const head = container.querySelector("[data-fold-head]") as HTMLButtonElement;
+    expect(head).toBeTruthy();
+    // an aria-label would mask the derived summary and the failure/live flags
+    expect(head.getAttribute("aria-label")).toBeNull();
+    // the content-derived name must carry more than the bare group title (steps counts, tool names, flags)
+    expect(within(container).getAllByRole("button", { name: /\d/ })).toContain(head);
   });
 });
 

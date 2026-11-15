@@ -236,7 +236,7 @@
 .bb-fold-head[aria-expanded="true"] .bb-chev { transform: rotate(-90deg); }
 .bb-fold-head svg { flex: none; color: var(--bb-dim); }
 .bb-fold-title { flex: none; font-weight: 600; font-size: 11px; }
-.bb-fold-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bb-faint); font-size: 9.5px; }
+.bb-fold-summary { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bb-faint); font-size: 9.5px; } /* basis auto: summary width counts into the card's hug size, so tool names stay readable (ellipsis only past the card cap) */
 .bb-fold-items { display: grid; gap: 8px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--bb-line); }
 .bb-fold-items .bb-card { max-width: 100%; }
 /* members sit inside the group bubble: no nested tails, full width */

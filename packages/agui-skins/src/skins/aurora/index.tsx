@@ -442,7 +442,6 @@ function FoldGroupBlock(props: {
             className="reason-toggle"
             data-fold-head=""
             aria-expanded={open}
-            aria-label={t("fold.group")}
             onClick={onToggle}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {

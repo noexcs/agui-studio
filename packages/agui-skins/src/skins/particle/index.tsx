@@ -141,7 +141,6 @@ export function ParticlePage() {
                         className="pt-fold-head"
                         data-fold-head=""
                         aria-expanded={open}
-                        aria-label={t("fold.group")}
                         onClick={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
                         onKeyDown={(event) => {
                           // explicit for the keydown contract test (jsdom runs no activation)

@@ -135,7 +135,6 @@ export function TerminalPage() {
                     className="term-fold-head"
                     data-fold-head=""
                     aria-expanded={foldOpen}
-                    aria-label={t("fold.group")}
                     onClick={() => setFoldOverride((p) => ({ ...p, [item.id]: !foldOpen }))}
                     onKeyDown={(e) => {
                       // explicit for the keydown contract test (jsdom runs no activation)

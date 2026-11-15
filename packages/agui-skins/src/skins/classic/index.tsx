@@ -622,7 +622,6 @@ function FoldGroupRow({
             className="cl-fold-head"
             data-fold-head=""
             aria-expanded={open}
-            aria-label={t("fold.group")}
             onClick={onToggle}
             onKeyDown={(event) => {
               // explicit for the keydown contract test (jsdom runs no activation)

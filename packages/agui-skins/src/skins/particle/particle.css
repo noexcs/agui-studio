@@ -257,6 +257,9 @@
 }
 .pt-fold-head:hover { background: rgba(155, 140, 255, 0.07); }
 .pt-fold-head:active { background: rgba(155, 140, 255, 0.12); }
+/* keyboard focus: brighten the fold card stroke, same language/tokens as .pt-composer:focus-within */
+.pt-fold-head:focus-visible { background: rgba(155, 140, 255, 0.12); }
+.pt-fold:has(.pt-fold-head:focus-visible) { border-color: rgba(155, 140, 255, 0.5); box-shadow: 0 0 0 3px rgba(155, 140, 255, 0.1); }
 .pt-fold-head .pt-chev { transform: rotate(0deg); }
 .pt-fold-head[aria-expanded="true"] .pt-chev { transform: rotate(90deg); }
 .pt-fold-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pt-dim); font-family: var(--sk-mono, ui-monospace, monospace); font-size: 10px; text-transform: none; letter-spacing: 0; }

@@ -131,8 +131,8 @@ export function BubblePage() {
             const open = foldOverride[item.id] ?? foldGroupOpen(item.entries);
             const failures = foldGroupFailures(item.entries);
             const stats = foldGroupStats(item.entries);
-            const preview = stats.toolNames.slice(0, 2).join(", ");
-            const extra = stats.toolNames.length - 2;
+            const preview = stats.toolNames.slice(0, 3).join(", ");
+            const extra = stats.toolNames.length - 3;
             const failure = failures.includes("error") ? "error" : failures.includes("interrupted") ? "interrupted" : undefined;
             return (
               <div key={item.id} className="bb-row bb-row--in">
@@ -142,7 +142,6 @@ export function BubblePage() {
                     className="bb-fold-head"
                     data-fold-head=""
                     aria-expanded={open}
-                    aria-label={t("fold.group")}
                     onClick={() => setFoldOverride((prev) => ({ ...prev, [item.id]: !open }))}
                     onKeyDown={(event) => {
                       // explicit for the keydown contract test (jsdom runs no activation)

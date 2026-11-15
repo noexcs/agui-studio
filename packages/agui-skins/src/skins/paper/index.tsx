@@ -395,7 +395,6 @@ function FoldNote({ entries, open, onToggle }: { entries: Entry[]; open: boolean
         className="pap-fold-head"
         data-fold-head=""
         aria-expanded={open}
-        aria-label={t("fold.group")}
         data-failure={failure}
         onClick={onToggle}
         onKeyDown={(e) => {
